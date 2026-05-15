@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 
-# CONFIGuration
+# Config
 PUSHOVER_USER_KEY = input("Enter your Pushover User Key: ")
 PUSHOVER_API_TOKEN = input("Enter your Pushover API Token: ")
 
