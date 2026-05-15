@@ -5,9 +5,8 @@ import yfinance as yf
 from datetime import datetime
 
 
-# =====================================
-# CONFIG
-# =====================================
+
+# CONFIGuration
 PUSHOVER_USER_KEY = input("Enter your Pushover User Key: ")
 PUSHOVER_API_TOKEN = input("Enter your Pushover API Token: ")
 
@@ -16,9 +15,8 @@ check_interval = 60
 running = True
 
 
-# =====================================
-# GET STOCK PRICE (Optimized)
-# =====================================
+
+# GET STOCK PRICE 
 def get_stock_price(symbol):
     try:
         ticker = yf.Ticker(symbol)
@@ -37,9 +35,8 @@ def get_stock_price(symbol):
         return None
 
 
-# =====================================
 # SEND PUSHOVER NOTIFICATION
-# =====================================
+
 def send_notification(title, message):
     try:
         requests.post(
@@ -58,9 +55,7 @@ def send_notification(title, message):
         print(f"Notification failed: {e}")
 
 
-# =====================================
 # SUMMARY NOTIFICATION
-# =====================================
 def send_summary(initial_price, last_price, start_time):
     end_time = datetime.now()
     runtime = end_time - start_time
@@ -78,9 +73,7 @@ def send_summary(initial_price, last_price, start_time):
     send_notification(f"{stock_symbol} Summary", summary_message)
 
 
-# =====================================
-# STOP LISTENER THREAD
-# =====================================
+# STOP running the program 
 def stop_listener():
     global running
     while running:
@@ -93,9 +86,8 @@ def stop_listener():
 threading.Thread(target=stop_listener, daemon=True).start()
 
 
-# =====================================
 # INITIAL PRICE
-# =====================================
+
 initial_price = get_stock_price(stock_symbol)
 
 if initial_price is None:
@@ -110,17 +102,13 @@ print("==============================\n")
 start_time = datetime.now()
 
 
-# =====================================
 # VARIABLES
-# =====================================
 alert_sent = False
 last_price = initial_price
 unchanged_minutes = 0
 
 
-# =====================================
 # MAIN LOOP
-# =====================================
 try:
     while running:
 
@@ -166,9 +154,7 @@ try:
 except KeyboardInterrupt:
     print("\nStopped with CTRL + C")
 
-# =====================================
 # SEND SUMMARY ON EXIT
-# =====================================
 send_summary(initial_price, last_price, start_time)
 
 print("\nProgram ended.")
