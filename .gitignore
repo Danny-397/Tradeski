@@ -1,0 +1,42 @@
+# -------------------------
+# Python cache and artifacts
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+
+# -------------------------
+# Virtual environments
+# -------------------------
+venv/
+env/
+.venv/
+
+# -------------------------
+# System / OS files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# IDE / Editor settings
+# -------------------------
+.vscode/
+.idea/
+*.code-workspace
+
+# -------------------------
+# Logs (if added later)
+# -------------------------
+*.log
+
+# -------------------------
+# Local environment files
+# (In case you later switch from input() to env vars)
+# -------------------------
+.env
+.env.local
