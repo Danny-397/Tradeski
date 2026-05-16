@@ -1,0 +1,25 @@
+stock-tracker/
+│
+├── tracker/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── config.py
+│   ├── price_fetcher.py
+│   ├── notifier.py
+│   ├── analyzer.py
+│   ├── database.py
+│   ├── logger.py
+│   ├── dashboard.py
+│
+├── tests/
+│   ├── test_price_fetcher.py
+│   ├── test_analyzer.py
+│   ├── test_notifier.py
+│
+├── data/
+│   ├── prices.db
+│
+├── .env
+├── requirements.txt
+├── README.md
+└── run.sh
