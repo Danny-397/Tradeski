@@ -1,42 +1,68 @@
 # -------------------------
-# Python cache and artifacts
+# Python
 # -------------------------
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.pdb
-*.egg-info/
-*.egg
+*.pkl
 
-# -------------------------
 # Virtual environments
-# -------------------------
 venv/
 env/
 .venv/
 
+# Bytecode cache
+*.egg-info/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+
 # -------------------------
-# System / OS files
+# Environment / Secrets
+# -------------------------
+.env
+*.env
+
+# -------------------------
+# Logs
+# -------------------------
+logs/
+*.log
+
+# -------------------------
+# Databases / Data
+# -------------------------
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# CSV / generated exports
+*.csv
+
+# -------------------------
+# OS / Editor Files
 # -------------------------
 .DS_Store
 Thumbs.db
 
-# -------------------------
-# IDE / Editor settings
-# -------------------------
+# VS Code
 .vscode/
+
+# PyCharm
 .idea/
-*.code-workspace
 
 # -------------------------
-# Logs (if added later)
+# Build / Packaging
 # -------------------------
-*.log
+build/
+dist/
+*.egg
+*.whl
 
 # -------------------------
-# Local environment files
-# (In case you later switch from input() to env vars)
+# Flask Cache
 # -------------------------
-.env
-.env.local
+instance/
