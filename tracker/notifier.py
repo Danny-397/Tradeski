@@ -1,4 +1,3 @@
-from typing import Optional
 import requests
 from .config import PushoverConfig
 from .logger import get_logger
