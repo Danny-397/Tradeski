@@ -130,7 +130,7 @@ Current Price: $162.44
 RSI: 28.3 (Oversold)
 Volatility (20): 1.92σ
 Predicted next price: $163.01
-🎯 Future Improvements
+Future Improvements
 WebSocket real‑time streaming (Polygon.io)
 
 LSTM neural network prediction
