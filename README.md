@@ -5,7 +5,7 @@ It tracks stock prices, performs technical analysis, detects anomalies, sends al
 
 Designed to demonstrate skills in:
 
-Software engineering
+Python 
 
 Data science & quantitative finance
 
@@ -140,6 +140,3 @@ Portfolio tracking
 Options chain analysis
 
 Mobile app integration
-
-Author
-Danny — Python developer, data science enthusiast, and finance researcher.
