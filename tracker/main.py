@@ -16,7 +16,6 @@ running = True
 
 
 def stop_listener():
-    global running
     while running:
         command = input("\nType 'stop' to quit:\n").lower()
         if command == "stop":
@@ -26,7 +25,6 @@ def stop_listener():
 
 
 def main():
-    global running
 
     app_config = load_app_config()
     pushover_config = load_pushover_config()
