@@ -1,108 +1,145 @@
-Overview
-This project provides a real‑time stock price monitoring tool that retrieves live market data using the yfinance library and delivers push notifications through the Pushover API. The script continuously tracks a specified stock, alerts the user of significant price changes or inactivity, and generates a summary report upon termination.
+Real‑Time Stock Tracker
+Live Alerts • Technical Analysis • Web Dashboard • Data Storage
+This project is a full‑stack, real‑time financial monitoring system built in Python.
+It tracks stock prices, performs technical analysis, detects anomalies, sends alerts, and displays everything on a live dashboard.
 
-The program is designed for reliability, simplicity, and continuous operation, with a dedicated listener thread for manual shutdown commands.
+Designed to demonstrate skills in:
+
+Software engineering
+
+Data science & quantitative finance
+
+API integration
+
+Web development (Flask)
+
+Multithreading
+
+Database design
+
+Logging & testing
 
 Features
-Real‑time stock price retrieval using Yahoo Finance data.
+Real‑Time Alerts
+Price drop alerts (configurable threshold)
 
-Automatic detection of price drops of 5% or more.
+No‑change alerts (market closed detection)
 
-Alerts when the stock price remains unchanged for five consecutive minutes.
+Anomaly detection using Z‑score
 
-Pushover push notifications for all alerts and the final summary.
+RSI overbought/oversold alerts
 
-Background listener thread for manual termination (stop or send).
+Sent via Pushover
 
-Summary report including runtime, starting price, ending price, and percent change.
+Technical Analysis
+The system automatically computes:
 
-Graceful shutdown support, including CTRL + C.
+SMA (20, 50)
 
-Requirements
-Install the required Python packages:
+EMA (20)
 
-bash
-pip install yfinance requests
-You must also have:
+RSI‑14
 
-A Pushover account
+Volatility (σ)
 
-A Pushover User Key
+Z‑score anomaly detection
 
-A Pushover API Token (Application Token)
+Linear regression price prediction
 
-Pushover application setup:
-https://pushover.net/apps/build
+These analytics are included in alerts and displayed on the dashboard.
 
-Usage
-Run the script:
+Data Storage
+All price checks and alerts are stored in a local SQLite database:
 
-bash
-python script.py
-When prompted, enter:
+prices table
 
-Your Pushover User Key
+alerts table
 
-Your Pushover API Token
+This enables historical analysis and dashboard visualization.
 
-The stock ticker symbol (e.g., AAPL)
+Web Dashboard (Flask)
+A live dashboard displays:
 
-The program will:
+Real‑time price chart (auto‑refreshing)
 
-Retrieve the initial stock price
+Recent alerts
 
-Begin monitoring at 60‑second intervals
+Historical data
 
-Display live updates in the console
-
-To stop the program at any time, type:
+Accessible at:
 
 Code
-stop
-or
+http://127.0.0.1:5000
+Testing & Logging
+Unit tests using pytest
 
+Rotating log files for debugging
+
+Modular architecture for easy testing
+
+Project Structure
 Code
-send
-You may also terminate with CTRL + C.
-In all cases, a summary notification will be sent automatically.
+stock-tracker/
+│
+├── tracker/
+│   ├── main.py
+│   ├── config.py
+│   ├── price_fetcher.py
+│   ├── notifier.py
+│   ├── analyzer.py
+│   ├── database.py
+│   ├── dashboard.py
+│   ├── logger.py
+│
+├── tests/
+│   ├── test_price_fetcher.py
+│   ├── test_analyzer.py
+│   ├── test_notifier.py
+│
+├── data/
+│   ├── prices.db   (auto-created)
+│
+├── requirements.txt
+└── .gitignore
+Installation
+1. Install dependencies
+Code
+pip install -r requirements.txt
+2. Create a .env file
+Code
+PUSHOVER_USER_KEY=your_key_here
+PUSHOVER_API_TOKEN=your_token_here
 
-Alert Conditions
-Price Drop Alert
-A notification is sent when the stock price falls 5% or more from the initial tracked price.
+STOCK_SYMBOL=AAPL
+CHECK_INTERVAL=60
+DROP_THRESHOLD_PERCENT=5
+UNCHANGED_MINUTES_THRESHOLD=5
+ENABLE_DASHBOARD=true
+Running the Application
+Start the tracker:
+Code
+python -m tracker.main
+Start the dashboard (optional):
+Code
+python -m tracker.dashboard
+Example Alert
+Code
+AAPL Drop Alert
+Stock dropped 5.12%
+Current Price: $162.44
+RSI: 28.3 (Oversold)
+Volatility (20): 1.92σ
+Predicted next price: $163.01
+🎯 Future Improvements
+WebSocket real‑time streaming (Polygon.io)
 
-No‑Change Alert
-If the stock price remains unchanged for five consecutive minutes, a notification is sent. This often indicates market closure or low activity.
+LSTM neural network prediction
 
-Summary Notification
-Upon termination, the script sends a summary containing:
+Portfolio tracking
 
-Total runtime (in minutes)
+Options chain analysis
 
-Starting price
+Mobile app integration
 
-Ending price
-
-Percent change
-
-Code Structure
-get_stock_price(symbol)  
-Retrieves the most recent stock price using fast_info, with a fallback to daily historical data.
-
-send_notification(title, message)  
-Sends a push notification through the Pushover API.
-
-send_summary(initial_price, last_price, start_time)  
-Generates and sends the final session summary.
-
-stop_listener()  
-Runs in a separate thread to listen for shutdown commands.
-
-Main Loop  
-Continuously retrieves prices, checks alert conditions, and prints updates.
-
-Notes
-The default check interval is 60 seconds but can be modified in the configuration section.
-
-The script supports any ticker symbol available through Yahoo Finance.
-
-Network interruptions or invalid ticker symbols are handled gracefully.
+Author
+Danny — Python developer, data science enthusiast, and finance researcher.
