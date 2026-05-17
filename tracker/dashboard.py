@@ -1,15 +1,13 @@
-from typing import List, Dict, Any
 from flask import Flask, jsonify, render_template_string
 
-from .database import get_recent_prices, get_recent_alerts
 from .config import load_app_config
+from .database import get_recent_alerts, get_recent_prices
 from .logger import get_logger
 
 logger = get_logger(__name__)
 
 app = Flask(__name__)
 config = load_app_config()
-
 
 INDEX_HTML = """
 <!DOCTYPE html>
@@ -33,7 +31,10 @@ INDEX_HTML = """
             const labels = priceData.map(p => p.timestamp);
             const prices = priceData.map(p => p.price);
 
-            const ctx = document.getElementById('priceChart').getContext('2d');
+            const ctx = document
+                .getElementById('priceChart')
+                .getContext('2d');
+
             window.priceChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -50,10 +51,13 @@ INDEX_HTML = """
             const alertRes = await fetch('/api/alerts');
             const alerts = await alertRes.json();
             const list = document.getElementById('alerts');
+
             list.innerHTML = '';
+
             alerts.forEach(a => {
                 const li = document.createElement('li');
-                li.textContent = `${a.timestamp} - ${a.type}: ${a.message}`;
+                li.textContent =
+                    `${a.timestamp} - ${a.type}: ${a.message}`;
                 list.appendChild(li);
             });
         }
@@ -61,6 +65,7 @@ INDEX_HTML = """
         async function refresh() {
             const priceRes = await fetch('/api/prices');
             const priceData = await priceRes.json();
+
             const labels = priceData.map(p => p.timestamp);
             const prices = priceData.map(p => p.price);
 
@@ -71,10 +76,13 @@ INDEX_HTML = """
             const alertRes = await fetch('/api/alerts');
             const alerts = await alertRes.json();
             const list = document.getElementById('alerts');
+
             list.innerHTML = '';
+
             alerts.forEach(a => {
                 const li = document.createElement('li');
-                li.textContent = `${a.timestamp} - ${a.type}: ${a.message}`;
+                li.textContent =
+                    `${a.timestamp} - ${a.type}: ${a.message}`;
                 list.appendChild(li);
             });
         }
@@ -90,42 +98,69 @@ INDEX_HTML = """
 @app.route("/")
 def index() -> str:
     """
-    Render the main dashboard page with the embedded chart and alert list.
+    Render the main dashboard page with the chart and alert list.
     """
-    return render_template_string(INDEX_HTML, symbol=config.stock_symbol)
+    return render_template_string(
+        INDEX_HTML,
+        symbol=config.stock_symbol,
+    )
 
 
 @app.route("/api/prices")
 def api_prices():
     """
-    API endpoint returning recent price data for the configured symbol.
+    Return recent stock price data.
 
     Returns:
-        JSON list of {timestamp, price} objects.
+        Flask JSON response with timestamp and price.
     """
-    rows = get_recent_prices(config.stock_symbol, limit=200)
-    return jsonify(
-        [{"timestamp": ts, "price": price} for ts, price in rows]
+    rows = get_recent_prices(
+        config.stock_symbol,
+        limit=200,
     )
+
+    data = [
+        {
+            "timestamp": timestamp,
+            "price": price,
+        }
+        for timestamp, price in rows
+    ]
+
+    return jsonify(data)
 
 
 @app.route("/api/alerts")
 def api_alerts():
     """
-    API endpoint returning recent alerts for the configured symbol.
+    Return recent stock alerts.
 
     Returns:
-        JSON list of {timestamp, type, message} objects.
+        Flask JSON response with alert details.
     """
-    rows = get_recent_alerts(config.stock_symbol, limit=50)
-    return jsonify(
-        [{"timestamp": ts, "type": t, "message": msg} for ts, t, msg in rows]
+    rows = get_recent_alerts(
+        config.stock_symbol,
+        limit=50,
     )
+
+    data = [
+        {
+            "timestamp": timestamp,
+            "type": alert_type,
+            "message": message,
+        }
+        for timestamp, alert_type, message in rows
+    ]
+
+    return jsonify(data)
 
 
 def run_dashboard() -> None:
     """
     Start the Flask dashboard server.
     """
-    logger.info("Starting dashboard on http://127.0.0.1:5000")
+    logger.info(
+        "Starting dashboard on "
+        "http://127.0.0.1:5000"
+    )
     app.run(debug=False)
