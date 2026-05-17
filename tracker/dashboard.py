@@ -1,4 +1,6 @@
+from typing import List, Dict, Any
 from flask import Flask, jsonify, render_template_string
+
 from .database import get_recent_prices, get_recent_alerts
 from .config import load_app_config
 from .logger import get_logger
@@ -86,12 +88,21 @@ INDEX_HTML = """
 
 
 @app.route("/")
-def index():
+def index() -> str:
+    """
+    Render the main dashboard page with the embedded chart and alert list.
+    """
     return render_template_string(INDEX_HTML, symbol=config.stock_symbol)
 
 
 @app.route("/api/prices")
 def api_prices():
+    """
+    API endpoint returning recent price data for the configured symbol.
+
+    Returns:
+        JSON list of {timestamp, price} objects.
+    """
     rows = get_recent_prices(config.stock_symbol, limit=200)
     return jsonify(
         [{"timestamp": ts, "price": price} for ts, price in rows]
@@ -100,12 +111,21 @@ def api_prices():
 
 @app.route("/api/alerts")
 def api_alerts():
+    """
+    API endpoint returning recent alerts for the configured symbol.
+
+    Returns:
+        JSON list of {timestamp, type, message} objects.
+    """
     rows = get_recent_alerts(config.stock_symbol, limit=50)
     return jsonify(
         [{"timestamp": ts, "type": t, "message": msg} for ts, t, msg in rows]
     )
 
 
-def run_dashboard():
+def run_dashboard() -> None:
+    """
+    Start the Flask dashboard server.
+    """
     logger.info("Starting dashboard on http://127.0.0.1:5000")
     app.run(debug=False)
