@@ -1,7 +1,8 @@
 import requests
+
+from . import database
 from .config import PushoverConfig
 from .logger import get_logger
-from . import database
 
 logger = get_logger(__name__)
 
@@ -11,12 +12,20 @@ class Notifier:
         self.pushover_config = pushover_config
 
     def send_pushover(self, title: str, message: str) -> None:
-        if not self.pushover_config.user_key or not self.pushover_config.api_token:
-            logger.warning("Pushover credentials not set; skipping notification.")
+        credentials_missing = (
+            not self.pushover_config.user_key
+            or not self.pushover_config.api_token
+        )
+
+        if credentials_missing:
+            logger.warning(
+                "Pushover credentials not set; "
+                "skipping notification."
+            )
             return
 
         try:
-            resp = requests.post(
+            response = requests.post(
                 "https://api.pushover.net/1/messages.json",
                 data={
                     "token": self.pushover_config.api_token,
@@ -26,10 +35,14 @@ class Notifier:
                 },
                 timeout=5,
             )
-            resp.raise_for_status()
+            response.raise_for_status()
             logger.info("Notification sent: %s", title)
-        except requests.RequestException as e:
-            logger.error("Notification failed: %s", e)
+
+        except requests.RequestException as error:
+            logger.error(
+                "Notification failed: %s",
+                error,
+            )
 
     def alert(
         self,
@@ -39,7 +52,11 @@ class Notifier:
         message: str,
         persist: bool = True,
     ) -> None:
-        full_message = f"{message}"
-        self.send_pushover(title, full_message)
+        self.send_pushover(title, message)
+
         if persist:
-            database.insert_alert(symbol, alert_type, full_message)
+            database.insert_alert(
+                symbol,
+                alert_type,
+                message,
+            )
