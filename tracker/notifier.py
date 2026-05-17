@@ -1,4 +1,3 @@
-from typing import Optional
 import requests
 
 from . import database
@@ -10,26 +9,38 @@ logger = get_logger(__name__)
 
 class Notifier:
     """
-    Handles sending notifications (currently via Pushover) and optionally
-    persisting alert records to the database.
+    Send notifications and optionally
+    persist alerts to the database.
     """
 
-    def __init__(self, pushover_config: PushoverConfig) -> None:
+    def __init__(
+        self,
+        pushover_config: PushoverConfig,
+    ) -> None:
         """
-        Initialize the notifier with Pushover credentials.
+        Initialize notifier.
 
         Args:
-            pushover_config: Configuration object containing user key and API token.
+            pushover_config:
+                Pushover credentials.
         """
-        self.pushover_config = pushover_config
+        self.pushover_config = (
+            pushover_config
+        )
 
-    def send_pushover(self, title: str, message: str) -> None:
+    def send_pushover(
+        self,
+        title: str,
+        message: str,
+    ) -> None:
         """
-        Send a Pushover notification if credentials are available.
+        Send a Pushover notification.
 
         Args:
-            title: Notification title.
-            message: Notification body text.
+            title:
+                Notification title.
+            message:
+                Notification text.
         """
         credentials_missing = (
             not self.pushover_config.user_key
@@ -38,26 +49,45 @@ class Notifier:
 
         if credentials_missing:
             logger.warning(
-                "Pushover credentials not set; skipping notification."
+                "Pushover credentials "
+                "not set; skipping "
+                "notification."
             )
             return
 
         try:
             response = requests.post(
-                "https://api.pushover.net/1/messages.json",
+                (
+                    "https://api.pushover.net/"
+                    "1/messages.json"
+                ),
                 data={
-                    "token": self.pushover_config.api_token,
-                    "user": self.pushover_config.user_key,
+                    "token": (
+                        self.pushover_config
+                        .api_token
+                    ),
+                    "user": (
+                        self.pushover_config
+                        .user_key
+                    ),
                     "title": title,
                     "message": message,
                 },
                 timeout=5,
             )
+
             response.raise_for_status()
-            logger.info("Notification sent: %s", title)
+
+            logger.info(
+                "Notification sent: %s",
+                title,
+            )
 
         except requests.RequestException as error:
-            logger.error("Notification failed: %s", error)
+            logger.error(
+                "Notification failed: %s",
+                error,
+            )
 
     def alert(
         self,
@@ -68,16 +98,30 @@ class Notifier:
         persist: bool = True,
     ) -> None:
         """
-        Send a notification and optionally persist the alert to the database.
+        Send notification and
+        optionally save alert.
 
         Args:
-            symbol: Stock ticker symbol.
-            alert_type: Category/type of alert.
-            title: Notification title.
-            message: Notification body text.
-            persist: Whether to store the alert in the database.
+            symbol:
+                Stock ticker symbol.
+            alert_type:
+                Alert category.
+            title:
+                Notification title.
+            message:
+                Notification body.
+            persist:
+                Whether to store
+                the alert.
         """
-        self.send_pushover(title, message)
+        self.send_pushover(
+            title,
+            message,
+        )
 
         if persist:
-            database.insert_alert(symbol, alert_type, message)
+            database.insert_alert(
+                symbol,
+                alert_type,
+                message,
+            )
