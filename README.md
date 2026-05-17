@@ -1,6 +1,8 @@
 Real‑Time Stock Tracker
 Live price monitoring, technical analysis, data storage, and automated alerts — built with Python, SQLite, and a modular architecture.
 
+[![CI Pipeline](https://github.com/Danny-397/real-time-stock-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/real-time-stock-tracker/actions/workflows/ci.yml)
+
 This project is a fully functional application designed to track stock prices in real time, analyze trends, store historical data, and send push notifications when important events occur. It demonstrates clean architecture, testing, CI/CD, and real‑world software engineering practices.
 
 Features
