@@ -12,7 +12,8 @@ from .dashboard import run_dashboard
 
 logger = get_logger(__name__)
 
-running = True 
+running = True
+
 
 def stop_listener():
     global running
