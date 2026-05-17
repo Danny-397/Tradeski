@@ -1,6 +1,7 @@
 import time
 import threading
 from datetime import datetime
+from typing import NoReturn, Dict, Any
 
 from .config import load_app_config, load_pushover_config
 from .logger import get_logger
@@ -15,7 +16,11 @@ logger = get_logger(__name__)
 running = True
 
 
-def stop_listener():
+def stop_listener() -> None:
+    """
+    Background thread that waits for the user to type 'stop'
+    and gracefully shuts down the application.
+    """
     global running
     while running:
         command = input("\nType 'stop' to quit:\n").lower()
@@ -25,16 +30,25 @@ def stop_listener():
             break
 
 
-def main():
-
+def main() -> None:
+    """
+    Main entry point for the real-time stock tracker.
+    Handles:
+        - Configuration loading
+        - Database initialization
+        - Price polling loop
+        - Technical analysis
+        - Alerting logic
+        - Dashboard thread (optional)
+    """
     app_config = load_app_config()
     pushover_config = load_pushover_config()
     notifier = Notifier(pushover_config)
 
     database.init_db()
 
-    symbol = app_config.stock_symbol
-    check_interval = app_config.check_interval
+    symbol: str = app_config.stock_symbol
+    check_interval: int = app_config.check_interval
 
     initial_price = get_stock_price(symbol)
     if initial_price is None:
@@ -45,12 +59,14 @@ def main():
     database.insert_price(symbol, initial_price)
 
     start_time = datetime.now()
-    last_price = initial_price
-    unchanged_minutes = 0
-    alert_sent = False
+    last_price: float = initial_price
+    unchanged_minutes: int = 0
+    alert_sent: bool = False
 
+    # Start stop listener thread
     threading.Thread(target=stop_listener, daemon=True).start()
 
+    # Optional dashboard
     if app_config.enable_dashboard:
         threading.Thread(target=run_dashboard, daemon=True).start()
 
@@ -73,7 +89,7 @@ def main():
             )
 
             series = database.get_recent_prices(symbol, limit=200)
-            analysis = analyze_series(series)
+            analysis: Dict[str, Any] = analyze_series(series)
 
             # DROP ALERT
             if drop_percent >= app_config.drop_threshold_percent and not alert_sent:
@@ -81,10 +97,13 @@ def main():
                     f"Stock dropped {drop_percent:.2f}%",
                     f"Current Price: ${current_price:.2f}",
                 ]
+
                 if analysis.get("rsi14") is not None:
                     msg_lines.append(f"RSI: {analysis['rsi14']:.2f}")
+
                 if analysis.get("vol20") is not None:
                     msg_lines.append(f"Volatility (20): {analysis['vol20']:.4f}")
+
                 if analysis.get("prediction_next") is not None:
                     msg_lines.append(
                         f"Predicted next price: ${analysis['prediction_next']:.2f}"
@@ -109,20 +128,24 @@ def main():
                     symbol,
                     "no_change",
                     f"{symbol} No Change",
-                    f"No price change for {app_config.unchanged_minutes_threshold} minutes.\n"
-                    f"Likely market closed.\nPrice: ${current_price:.2f}",
+                    (
+                        f"No price change for {app_config.unchanged_minutes_threshold} minutes.\n"
+                        f"Likely market closed.\nPrice: ${current_price:.2f}"
+                    ),
                 )
                 unchanged_minutes = 0
 
-            # Anomaly alert (z-score)
+            # ANOMALY ALERT (z-score)
             z = analysis.get("z_score")
             if z is not None and abs(z) >= 2.5:
                 notifier.alert(
                     symbol,
                     "anomaly",
                     f"{symbol} Anomaly Detected",
-                    f"Price deviated {z:.2f}σ from recent mean.\n"
-                    f"Current Price: ${current_price:.2f}",
+                    (
+                        f"Price deviated {z:.2f}σ from recent mean.\n"
+                        f"Current Price: ${current_price:.2f}"
+                    ),
                 )
 
             last_price = current_price
@@ -131,14 +154,17 @@ def main():
     except KeyboardInterrupt:
         logger.info("Stopped with CTRL + C")
 
+    # Summary alert
     end_time = datetime.now()
     runtime_minutes = (end_time - start_time).total_seconds() / 60
+
     summary_msg = (
         f"Runtime: {runtime_minutes:.1f} minutes\n"
         f"Start Price: ${initial_price:.2f}\n"
         f"End Price: ${last_price:.2f}\n"
         f"Change: {((last_price - initial_price) / initial_price) * 100:.2f}%"
     )
+
     notifier.alert(symbol, "summary", f"{symbol} Summary", summary_msg)
     logger.info("Program ended.")
 
