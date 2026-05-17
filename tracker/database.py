@@ -7,6 +7,9 @@ DB_PATH = os.path.join("data", "prices.db")
 
 
 def init_db() -> None:
+    """
+    Initialize the SQLite database and create required tables if they do not exist.
+    """
     os.makedirs("data", exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -39,6 +42,13 @@ def init_db() -> None:
 
 
 def insert_price(symbol: str, price: float) -> None:
+    """
+    Insert a new price record into the database.
+
+    Args:
+        symbol: Stock ticker symbol.
+        price: Latest price value.
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -50,6 +60,14 @@ def insert_price(symbol: str, price: float) -> None:
 
 
 def insert_alert(symbol: str, alert_type: str, message: str) -> None:
+    """
+    Insert a new alert record into the database.
+
+    Args:
+        symbol: Stock ticker symbol.
+        alert_type: Type/category of alert.
+        message: Human-readable alert message.
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -61,6 +79,16 @@ def insert_alert(symbol: str, alert_type: str, message: str) -> None:
 
 
 def get_recent_prices(symbol: str, limit: int = 200) -> List[Tuple[str, float]]:
+    """
+    Retrieve the most recent price records for a given symbol.
+
+    Args:
+        symbol: Stock ticker symbol.
+        limit: Maximum number of records to return.
+
+    Returns:
+        A list of (timestamp, price) tuples ordered from oldest to newest.
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -75,10 +103,27 @@ def get_recent_prices(symbol: str, limit: int = 200) -> List[Tuple[str, float]]:
     )
     rows = cur.fetchall()
     conn.close()
+
+    # Reverse so the earliest record is first
     return list(reversed(rows))
 
 
-def get_recent_alerts(symbol: Optional[str] = None, limit: int = 50):
+def get_recent_alerts(
+    symbol: Optional[str] = None,
+    limit: int = 50
+) -> List[Tuple[str, str, str]]:
+    """
+    Retrieve recent alerts, optionally filtered by symbol.
+
+    Args:
+        symbol: Stock ticker symbol to filter by, or None for all alerts.
+        limit: Maximum number of alerts to return.
+
+    Returns:
+        A list of alert tuples. Format differs depending on filter:
+            If symbol is provided: (timestamp, type, message)
+            If symbol is None:     (timestamp, symbol, type, message)
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
