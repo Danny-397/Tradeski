@@ -1,142 +1,113 @@
 Real‑Time Stock Tracker
-Live Alerts • Technical Analysis • Web Dashboard • Data Storage
-This project is a full‑stack, real‑time financial monitoring system built in Python.
-It tracks stock prices, performs technical analysis, detects anomalies, sends alerts, and displays everything on a live dashboard.
+Live price monitoring, technical analysis, data storage, and automated alerts — built with Python, SQLite, and a modular architecture.
 
-Designed to demonstrate skills in:
-
-Python 
-
-Data science & quantitative finance
-
-API integration
-
-Web development (Flask)
-
-Multithreading
-
-Database design
-
-Logging & testing
+This project is a fully functional application designed to track stock prices in real time, analyze trends, store historical data, and send push notifications when important events occur. It demonstrates clean architecture, testing, CI/CD, and real‑world software engineering practices.
 
 Features
-Real‑Time Alerts
-Price drop alerts (configurable threshold)
+Real‑time price fetching using a configurable polling interval
 
-No‑change alerts (market closed detection)
+Technical analysis (moving averages, trend detection, volatility checks)
 
-Anomaly detection using Z‑score
+SQLite database storage for historical price data
 
-RSI overbought/oversold alerts
+Pushover notifications for alerts and threshold triggers
 
-Sent via Pushover
+Config‑driven design for API keys, symbols, and user preferences
 
-Technical Analysis
-The system automatically computes:
+Automated tests with pytest
 
-SMA (20, 50)
+Continuous Integration (GitHub Actions) with linting and test enforcement
 
-EMA (20)
+Modular, extensible architecture suitable for future expansion
 
-RSI‑14
-
-Volatility (σ)
-
-Z‑score anomaly detection
-
-Linear regression price prediction
-
-These analytics are included in alerts and displayed on the dashboard.
-
-Data Storage
-All price checks and alerts are stored in a local SQLite database:
-
-prices table
-
-alerts table
-
-This enables historical analysis and dashboard visualization.
-
-Web Dashboard (Flask)
-A live dashboard displays:
-
-Real‑time price chart (auto‑refreshing)
-
-Recent alerts
-
-Historical data
-
-Accessible at:
-
+Architecture Overview
 Code
-http://127.0.0.1:5000
-Testing & Logging
-Unit tests using pytest
+tracker/
+    analyzer.py        # Computes trends, moving averages, and signals
+    database.py        # SQLite wrapper for storing and retrieving prices
+    notifier.py        # Sends Pushover alerts
+    price_fetcher.py   # Fetches live stock prices
+    config.py          # Configuration model for Pushover and app settings
+tests/
+    test_analyzer.py
+    test_price_fetcher.py
+    test_notifier.py
+.github/workflows/
+    ci.yml             # Linting and testing pipeline
+requirements.txt
+setup.cfg              # Flake8 configuration
+This structure mirrors real-world Python applications: modular, testable, and easy to maintain.
 
-Rotating log files for debugging
-
-Modular architecture for easy testing
-
-Project Structure
-Code
-stock-tracker/
-│
-├── tracker/
-│   ├── main.py
-│   ├── config.py
-│   ├── price_fetcher.py
-│   ├── notifier.py
-│   ├── analyzer.py
-│   ├── database.py
-│   ├── dashboard.py
-│   ├── logger.py
-│
-├── tests/
-│   ├── test_price_fetcher.py
-│   ├── test_analyzer.py
-│   ├── test_notifier.py
-│
-├── data/
-│   ├── prices.db   (auto-created)
-│
-├── requirements.txt
-└── .gitignore
 Installation
-1. Install dependencies
+Clone the repository:
+
+Code
+git clone https://github.com/Danny-397/real-time-stock-tracker.git
+cd real-time-stock-tracker
+Install dependencies:
+
 Code
 pip install -r requirements.txt
-2. Create a .env file
-Code
-PUSHOVER_USER_KEY=your_key_here
-PUSHOVER_API_TOKEN=your_token_here
-
-STOCK_SYMBOL=AAPL
-CHECK_INTERVAL=60
-DROP_THRESHOLD_PERCENT=5
-UNCHANGED_MINUTES_THRESHOLD=5
-ENABLE_DASHBOARD=true
 Running the Application
-Start the tracker:
+Run the main tracker:
+
 Code
-python -m tracker.main
-Start the dashboard (optional):
+python tracker/main.py
+Ensure your configuration (API keys, symbols, etc.) is set correctly in your config file or environment variables.
+
+Example Output
 Code
-python -m tracker.dashboard
-Example Alert
+[INFO] Fetching price for AAPL...
+[INFO] Latest price: 187.42
+[INFO] 20-period moving average: 185.91
+[INFO] Trend: Upward
+[ALERT] AAPL crossed above its moving average — sending notification
+Testing
+Run the full test suite:
+
 Code
-AAPL Drop Alert
-Stock dropped 5.12%
-Current Price: $162.44
-RSI: 28.3 (Oversold)
-Volatility (20): 1.92σ
-Predicted next price: $163.01
+pytest -q
+The CI pipeline automatically runs:
+
+flake8 linting
+
+pytest tests
+
+import validation
+
+A green pipeline indicates the project is stable and production‑ready.
+
+What I Learned
+Building this project taught me how to:
+
+Design a modular Python application with clean separation of concerns
+
+Use SQLite for lightweight, persistent data storage
+
+Implement real‑time data pipelines
+
+Write automated tests that validate core logic
+
+Configure GitHub Actions for continuous integration
+
+Enforce code quality with flake8 and type hints
+
+Build a real-world notification system using Pushover
+
+This project strengthened my skills in software engineering, debugging, and system design.
+
 Future Improvements
-WebSocket real‑time streaming (Polygon.io)
+Add a web dashboard for live visualization
 
-LSTM neural network prediction
+Support multiple stock symbols simultaneously
 
-Portfolio tracking
+Add more technical indicators (RSI, MACD, Bollinger Bands)
 
-Options chain analysis
+Implement asynchronous price fetching for higher frequency updates
 
-Mobile app integration
+Add Docker support for deployment
+
+Expand notification channels (email, SMS, Discord)
+
+About the Author
+Danny - Aspiring software engineer interested in automation, data systems, and real‑time analytics. Focused on building projects that can give peope some adavantage in the financial sectors of their lives. 
