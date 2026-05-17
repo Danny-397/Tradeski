@@ -1,3 +1,4 @@
+from typing import Optional
 import requests
 
 from . import database
@@ -8,10 +9,28 @@ logger = get_logger(__name__)
 
 
 class Notifier:
-    def __init__(self, pushover_config: PushoverConfig):
+    """
+    Handles sending notifications (currently via Pushover) and optionally
+    persisting alert records to the database.
+    """
+
+    def __init__(self, pushover_config: PushoverConfig) -> None:
+        """
+        Initialize the notifier with Pushover credentials.
+
+        Args:
+            pushover_config: Configuration object containing user key and API token.
+        """
         self.pushover_config = pushover_config
 
     def send_pushover(self, title: str, message: str) -> None:
+        """
+        Send a Pushover notification if credentials are available.
+
+        Args:
+            title: Notification title.
+            message: Notification body text.
+        """
         credentials_missing = (
             not self.pushover_config.user_key
             or not self.pushover_config.api_token
@@ -19,8 +38,7 @@ class Notifier:
 
         if credentials_missing:
             logger.warning(
-                "Pushover credentials not set; "
-                "skipping notification."
+                "Pushover credentials not set; skipping notification."
             )
             return
 
@@ -39,10 +57,7 @@ class Notifier:
             logger.info("Notification sent: %s", title)
 
         except requests.RequestException as error:
-            logger.error(
-                "Notification failed: %s",
-                error,
-            )
+            logger.error("Notification failed: %s", error)
 
     def alert(
         self,
@@ -52,11 +67,17 @@ class Notifier:
         message: str,
         persist: bool = True,
     ) -> None:
+        """
+        Send a notification and optionally persist the alert to the database.
+
+        Args:
+            symbol: Stock ticker symbol.
+            alert_type: Category/type of alert.
+            title: Notification title.
+            message: Notification body text.
+            persist: Whether to store the alert in the database.
+        """
         self.send_pushover(title, message)
 
         if persist:
-            database.insert_alert(
-                symbol,
-                alert_type,
-                message,
-            )
+            database.insert_alert(symbol, alert_type, message)
