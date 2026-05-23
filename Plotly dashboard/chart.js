@@ -5,13 +5,18 @@
 // Added price line 
 // SMA overlay 
 // EMA overlay 
-async function fetchPriceHistory() {
-    const response = await fetch("/price_history");
+// Fetch price history for the selected stock
+// Dark mode Plotly theme 
+// Multi-stock switching 
+// Auto-refresh
+async function fetchPriceHistory(symbol) {
+    const response = await fetch(`/price_history?symbol=${symbol}`);
     return await response.json();
 }
 
 async function updateChart() {
-    const data = await fetchPriceHistory();
+    const symbol = document.getElementById("symbol-select").value;
+    const data = await fetchPriceHistory(symbol);
 
     const times = data.timestamps;
     const prices = data.prices;
@@ -22,15 +27,15 @@ async function updateChart() {
         x: times,
         y: prices,
         mode: "lines",
-        line: { color: "blue" },
-        name: "Price"
+        line: { color: "#4da6ff" },
+        name: `${symbol} Price`
     };
 
     const smaTrace = {
         x: times,
         y: sma20,
         mode: "lines",
-        line: { color: "orange" },
+        line: { color: "#ffa64d" },
         name: "SMA 20"
     };
 
@@ -38,12 +43,15 @@ async function updateChart() {
         x: times,
         y: ema20,
         mode: "lines",
-        line: { color: "green" },
+        line: { color: "#7dff7d" },
         name: "EMA 20"
     };
 
     const layout = {
-        title: "Real-Time Stock Price",
+        paper_bgcolor: "#121212",
+        plot_bgcolor: "#1e1e1e",
+        font: { color: "#e0e0e0" },
+        title: `${symbol} Real-Time Price`,
         xaxis: { title: "Time" },
         yaxis: { title: "Price (USD)" }
     };
@@ -51,5 +59,11 @@ async function updateChart() {
     Plotly.newPlot("chart", [priceTrace, smaTrace, emaTrace], layout);
 }
 
+// Update chart when stock selection changes
+document.getElementById("symbol-select").addEventListener("change", updateChart);
+
+// Initial load
 updateChart();
+
+// Refresh every 5 seconds
 setInterval(updateChart, 5000);
