@@ -69,3 +69,28 @@ CREATE TABLE IF NOT EXISTS alerts (
     created_at REAL
 )
 """)
+
+def create_alert(self, symbol, alert_type, threshold=None, multiplier=None, zscore=None):
+    cursor = self.conn.cursor()
+    cursor.execute("""
+        INSERT INTO alerts (symbol, alert_type, threshold, multiplier, zscore, created_at)
+        VALUES (?, ?, ?, ?, ?, strftime('%s','now'))
+    """, (symbol, alert_type, threshold, multiplier, zscore))
+    self.conn.commit()
+    return cursor.lastrowid
+
+def get_alerts(self):
+    cursor = self.conn.cursor()
+    cursor.execute("SELECT * FROM alerts WHERE active = 1")
+    return cursor.fetchall()
+
+def delete_alert(self, alert_id):
+    cursor = self.conn.cursor()
+    cursor.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
+    self.conn.commit()
+
+def disable_alert(self, alert_id):
+    cursor = self.conn.cursor()
+    cursor.execute("UPDATE alerts SET active = 0 WHERE id = ?", (alert_id,))
+    self.conn.commit()
+
