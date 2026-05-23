@@ -78,6 +78,19 @@ def main() -> None:
     alert_engine = AlertEngine(notifier)
 # Initalize the alert engine 
 # Example alert rules
+
+alert_engine.add_rule(AlertRule(
+    name="Volume Spike",
+    condition=volume_spike(multiplier=2.5),
+    message="Volume spike detected! Current: {volume}, Avg: {avg_volume}",
+    cooldown=600  # 10 minutes
+))
+
+# Fetch last 50 volume entries for average
+recent_volumes = db.get_recent_volumes(symbol, limit=50)
+avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
+
+
 alert_engine.add_rule(AlertRule(
     name="Price Above Target",
     condition=price_above(200),
