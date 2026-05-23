@@ -84,6 +84,57 @@ alert_engine.add_rule(AlertRule(
     cooldown=600  # 10 minutes
 ))
 
+def load_user_alerts():
+    rows = db.get_alerts()
+    for row in rows:
+        alert_id, symbol, alert_type, threshold, multiplier, zscore, active, created_at = row
+
+        if alert_type == "price_above":
+            rule = AlertRule(
+                name=f"Price Above {threshold}",
+                condition=lambda d, t=threshold: d["price"] > t,
+                message=f"Price crossed above {threshold}"
+            )
+
+        elif alert_type == "price_below":
+            rule = AlertRule(
+                name=f"Price Below {threshold}",
+                condition=lambda d, t=threshold: d["price"] < t,
+                message=f"Price dropped below {threshold}"
+            )
+
+        elif alert_type == "rsi_over":
+            rule = AlertRule(
+                name=f"RSI Over {threshold}",
+                condition=lambda d, t=threshold: d["rsi"] > t,
+                message=f"RSI crossed above {threshold}"
+            )
+
+        elif alert_type == "rsi_under":
+            rule = AlertRule(
+                name=f"RSI Under {threshold}",
+                condition=lambda d, t=threshold: d["rsi"] < t,
+                message=f"RSI dropped below {threshold}"
+            )
+
+        elif alert_type == "volume_spike":
+            rule = AlertRule(
+                name=f"Volume Spike x{multiplier}",
+                condition=lambda d, m=multiplier: d["volume"] > d["avg_volume"] * m,
+                message=f"Volume spike detected (>{multiplier}× avg)"
+            )
+
+        elif alert_type == "volatility_spike":
+            rule = AlertRule(
+                name=f"Volatility Spike Z>{zscore}",
+                condition=lambda d, z=zscore: abs(d["zscore"]) > z,
+                message=f"Volatility spike detected (Z>{zscore})"
+            )
+
+        load_user_alerts()
+
+        alert_engine.add_rule(rule)
+
 # Fetch last 50 volume entries for average
 recent_volumes = db.get_recent_volumes(symbol, limit=50)
 avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
