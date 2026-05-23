@@ -153,3 +153,15 @@ def get_recent_alerts(
 
     conn.close()
     return rows
+
+def get_recent_volumes(self, symbol, limit=50):
+    cursor = self.conn.cursor()
+    cursor.execute("""
+        SELECT volume FROM prices
+        WHERE symbol = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (symbol, limit))
+    rows = cursor.fetchall()
+    return [r[0] for r in rows]
+
