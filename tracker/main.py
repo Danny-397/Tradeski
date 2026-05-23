@@ -12,6 +12,7 @@ import threading
 import time
 from datetime import datetime
 from typing import Any, Dict
+from .pruning import prune_old_data
 
 from . import database
 from .analyzer import analyze_series
@@ -56,6 +57,10 @@ def get_user_alert_price() -> float:
             return value
         except ValueError:
             print("Invalid number. Please enter a valid price.")
+
+    last_prune = 0
+PRUNE_INTERVAL = 86400  # once per day
+
 
 
 def main() -> None:
@@ -185,6 +190,26 @@ alert_engine.evaluate(symbol, {
                 current_price,
                 drop_percent,
             )
+
+            # Run pruning once per day
+if time.time() - last_prune > PRUNE_INTERVAL:
+    removed = prune_old_data("tracker.db", days=30)
+    logger.info(f"Pruned {removed} old rows from database")
+    last_prune = time.time()
+# logs how many rows were removed
+
+    if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--prune", action="store_true", help="Prune old DB rows and exit")
+    args = parser.parse_args()
+
+    if args.prune:
+        removed = prune_old_data("tracker.db", days=30)
+        print(f"Pruned {removed} rows")
+        exit()
+
 
             # Fetch recent price series for analysis
             series = database.get_recent_prices(symbol, limit=200)
