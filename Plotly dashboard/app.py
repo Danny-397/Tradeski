@@ -122,3 +122,27 @@ def price_history():
         "ema20": ema20
     })
 
+# create alert
+@app.route("/alerts", methods=["POST"])
+def create_alert():
+    data = request.json
+    alert_id = db.create_alert(
+        symbol=data["symbol"],
+        alert_type=data["alert_type"],
+        threshold=data.get("threshold"),
+        multiplier=data.get("multiplier"),
+        zscore=data.get("zscore")
+    )
+    return jsonify({"status": "ok", "alert_id": alert_id})
+
+# list alerts 
+@app.route("/alerts", methods=["GET"])
+def list_alerts():
+    alerts = db.get_alerts()
+    return jsonify(alerts)
+
+# Delete alerts 
+@app.route("/alerts/<int:alert_id>", methods=["DELETE"])
+def delete_alert(alert_id):
+    db.delete_alert(alert_id)
+    return jsonify({"status": "deleted"})
