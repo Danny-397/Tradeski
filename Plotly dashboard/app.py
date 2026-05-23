@@ -2,6 +2,12 @@
 
 import yfinance as yf
 from .cache import SimpleCache
+from flask import Flask, request, jsonify, render_template
+from flask_socketio import SocketIO
+
+app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
 
 cache = SimpleCache()
 
@@ -146,3 +152,7 @@ def list_alerts():
 def delete_alert(alert_id):
     db.delete_alert(alert_id)
     return jsonify({"status": "deleted"})
+
+if __name__ == "__main__":
+    socketio.run(app, debug=True)
+
