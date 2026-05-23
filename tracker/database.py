@@ -1,50 +1,48 @@
 # tracker/database.py
-# SQLite database layer for prices, alerts, and analytics.
+# SQLite persistence for prices and alerts.
 
 import os
 import sqlite3
-from datetime import datetime
+import time
 from typing import List, Tuple, Optional
 
-DB_PATH = os.path.join("data", "prices.db")
+DB_PATH = "data/prices.db"
 
 
 def _connect() -> sqlite3.Connection:
-    """Return a new SQLite connection."""
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
 
 def init_db() -> None:
-    """Initialize the SQLite database and create required tables."""
-    os.makedirs("data", exist_ok=True)
+    """Initialize the database with prices and alerts tables."""
     conn = _connect()
-    cur = conn.cursor()
+    cursor = conn.cursor()
 
-    # Prices table (timestamp stored as ISO string)
-    cur.execute(
+    cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS prices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             symbol TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
             price REAL NOT NULL,
-            volume REAL DEFAULT 0
+            volume REAL,
+            timestamp REAL NOT NULL
         )
         """
     )
 
-    # User-defined alerts table
-    cur.execute(
+    cursor.execute(
         """
-        CREATE TABLE IF NOT EXISTS user_alerts (
+        CREATE TABLE IF NOT EXISTS alerts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             symbol TEXT NOT NULL,
             alert_type TEXT NOT NULL,
+            message TEXT,
             threshold REAL,
             multiplier REAL,
             zscore REAL,
             active INTEGER DEFAULT 1,
-            created_at REAL
+            created_at REAL NOT NULL
         )
         """
     )
@@ -53,84 +51,93 @@ def init_db() -> None:
     conn.close()
 
 
-# Price storage + retrieval
 def insert_price(symbol: str, price: float, volume: float = 0.0) -> None:
-    """Insert a new price record."""
+    """Insert a price row."""
     conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
+    cursor = conn.cursor()
+
+    cursor.execute(
         """
-        INSERT INTO prices (symbol, timestamp, price, volume)
+        INSERT INTO prices (symbol, price, volume, timestamp)
         VALUES (?, ?, ?, ?)
         """,
-        (symbol, datetime.utcnow().isoformat(), price, volume),
+        (symbol, price, volume, time.time()),
     )
+
     conn.commit()
     conn.close()
 
 
-def get_recent_prices(
-    symbol: str, limit: int = 200
-) -> List[Tuple[str, float]]:
-    """Return recent (timestamp, price) rows, oldest → newest."""
+def get_recent_prices(symbol: str, limit: int = 200) -> List[Tuple[float, float]]:
+    """
+    Return recent prices for a symbol as (timestamp, price) tuples.
+    """
     conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
+    cursor = conn.cursor()
+
+    cursor.execute(
         """
         SELECT timestamp, price
         FROM prices
         WHERE symbol = ?
-        ORDER BY id DESC
-        LIMIT ?
-        """,
-        (symbol, limit),
-    )
-    rows = cur.fetchall()
-    conn.close()
-    return list(reversed(rows))
-
-
-def get_recent_volumes(symbol: str, limit: int = 50) -> List[float]:
-    """Return recent volume values, newest first."""
-    conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT volume
-        FROM prices
-        WHERE symbol = ?
-        ORDER BY id DESC
-        LIMIT ?
-        """,
-        (symbol, limit),
-    )
-    rows = cur.fetchall()
-    conn.close()
-    return [r[0] for r in rows]
-
-
-def get_prices_in_range(
-    symbol: str, start_ts: float, end_ts: float
-) -> List[Tuple[str, float, float]]:
-    """Return (timestamp, price, volume) rows between two timestamps."""
-    conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT timestamp, price, volume
-        FROM prices
-        WHERE symbol = ?
-          AND strftime('%s', timestamp) BETWEEN ? AND ?
         ORDER BY timestamp ASC
+        LIMIT ?
         """,
-        (symbol, int(start_ts), int(end_ts)),
+        (symbol, limit),
     )
-    rows = cur.fetchall()
+
+    rows = cursor.fetchall()
     conn.close()
     return rows
 
 
-# User-defined alert CRUD
+def get_prices_in_range(
+    symbol: str,
+    start_ts: float,
+    end_ts: float,
+) -> List[Tuple[float, float, float]]:
+    """
+    Return prices in a time range as (timestamp, price, volume).
+    """
+    conn = _connect()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT timestamp, price, volume
+        FROM prices
+        WHERE symbol = ?
+          AND timestamp >= ?
+          AND timestamp <= ?
+        ORDER BY timestamp ASC
+        """,
+        (symbol, start_ts, end_ts),
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def insert_alert(symbol: str, alert_type: str, message: str) -> None:
+    """
+    Insert a simple alert (used by tests).
+    """
+    conn = _connect()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO alerts (symbol, alert_type, message, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (symbol, alert_type, message, time.time()),
+    )
+
+    conn.commit()
+    conn.close()
+
+
 def create_alert(
     symbol: str,
     alert_type: str,
@@ -138,60 +145,77 @@ def create_alert(
     multiplier: Optional[float] = None,
     zscore: Optional[float] = None,
 ) -> int:
-    """Create a new user-defined alert."""
+    """
+    Create a rule-based alert (used by dashboard API).
+    """
     conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
+    cursor = conn.cursor()
+
+    cursor.execute(
         """
-        INSERT INTO user_alerts
-        (symbol, alert_type, threshold, multiplier, zscore, created_at)
-        VALUES (?, ?, ?, ?, ?, strftime('%s','now'))
+        INSERT INTO alerts (
+            symbol, alert_type, threshold, multiplier, zscore, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (symbol, alert_type, threshold, multiplier, zscore),
+        (symbol, alert_type, threshold, multiplier, zscore, time.time()),
     )
+
+    alert_id = cursor.lastrowid
     conn.commit()
-    alert_id = cur.lastrowid
     conn.close()
     return alert_id
 
 
-def get_alerts() -> List[Tuple]:
-    """Return all active user-defined alerts."""
+def get_recent_alerts(symbol: str, limit: int = 10):
+    """
+    Return recent alerts for a symbol as (timestamp, alert_type, message).
+    """
     conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
+    cursor = conn.cursor()
+
+    cursor.execute(
         """
-        SELECT id, symbol, alert_type, threshold,
-               multiplier, zscore, active, created_at
-        FROM user_alerts
+        SELECT created_at, alert_type, message
+        FROM alerts
+        WHERE symbol = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+        """,
+        (symbol, limit),
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def get_alerts():
+    """
+    Return all alerts (for dashboard listing).
+    """
+    conn = _connect()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, symbol, alert_type, threshold, multiplier, zscore, created_at
+        FROM alerts
         WHERE active = 1
-        ORDER BY id ASC
+        ORDER BY created_at DESC
         """
     )
-    rows = cur.fetchall()
+
+    rows = cursor.fetchall()
     conn.close()
     return rows
 
 
 def delete_alert(alert_id: int) -> None:
-    """Delete an alert permanently."""
+    """Delete an alert by id."""
     conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
-        "DELETE FROM user_alerts WHERE id = ?",
-        (alert_id,),
-    )
-    conn.commit()
-    conn.close()
+    cursor = conn.cursor()
 
-
-def disable_alert(alert_id: int) -> None:
-    """Soft-disable an alert."""
-    conn = _connect()
-    cur = conn.cursor()
-    cur.execute(
-        "UPDATE user_alerts SET active = 0 WHERE id = ?",
-        (alert_id,),
-    )
+    cursor.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
     conn.commit()
     conn.close()
