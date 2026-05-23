@@ -1,38 +1,47 @@
+# tracker/main.py
+# Main real-time stock tracker: ingestion, alerts, scheduler, WebSocket push.
+
+import argparse
 import threading
 import time
 from datetime import datetime
-from typing import Any, Dict
-from .scheduler import SchedulerManager
-from .pruning import prune_old_data
+from typing import Any, Dict, List, Tuple
 
+from dashboard.app import get_socketio
 from . import database
+from .alerts import (
+    AlertEngine,
+    AlertRule,
+    price_above,
+    price_below,
+    rsi_overbought,
+    rsi_oversold,
+    sma_cross_down,
+    sma_cross_up,
+)
 from .analyzer import analyze_series
 from .config import load_app_config, load_pushover_config
-from .dashboard import run_dashboard
+from .daily_summary import generate_daily_summary
 from .logger import get_logger
 from .notifier import Notifier
 from .price_fetcher import get_stock_price
-from .alerts import AlertEngine, AlertRule, price_above, price_below, rsi_overbought, rsi_oversold, sma_cross_up, sma_cross_down
-from .daily_summary import generate_daily_summary 
-from dashboard.app import get_socketio
-socketio = get_socketio()
-
+from .pruning import prune_old_data
+from .scheduler import SchedulerManager
+from .dashboard import run_dashboard
 
 logger = get_logger(__name__)
-
+socketio = get_socketio()
 
 # Global flag used to stop the tracking loop
 running = True
 
 
 def stop_listener() -> None:
-    # Background thread that waits for the user to type 'stop'
-    # When triggered, it sets the global `running` flag to False
+    """Background thread that waits for 'stop' to quit the app."""
     global running
 
     while running:
         command = input("\nType 'stop' to quit:\n").lower()
-
         if command == "stop":
             running = False
             logger.info("Stop command received. Shutting down...")
@@ -40,7 +49,7 @@ def stop_listener() -> None:
 
 
 def get_user_alert_price() -> float:
-    # Prompt the user for a target price alert (limit-style)
+    """Prompt the user for a target price alert (limit-style)."""
     while True:
         try:
             value = float(
@@ -53,13 +62,75 @@ def get_user_alert_price() -> float:
         except ValueError:
             print("Invalid number. Please enter a valid price.")
 
-    last_prune = 0
-PRUNE_INTERVAL = 86400  # once per day
 
+def load_user_alerts(alert_engine: AlertEngine) -> None:
+    """Load user-defined alerts from the database into the alert engine."""
+    rows = database.get_alerts()
+    for row in rows:
+        (
+            alert_id,
+            symbol,
+            alert_type,
+            threshold,
+            multiplier,
+            zscore,
+            active,
+            created_at,
+        ) = row
+
+        if not active:
+            continue
+
+        if alert_type == "price_above":
+            rule = AlertRule(
+                name=f"{symbol} Price Above {threshold}",
+                condition=lambda d, t=threshold: d["price"] > t,
+                message=f"Price crossed above {threshold}",
+            )
+        elif alert_type == "price_below":
+            rule = AlertRule(
+                name=f"{symbol} Price Below {threshold}",
+                condition=lambda d, t=threshold: d["price"] < t,
+                message=f"Price dropped below {threshold}",
+            )
+        elif alert_type == "rsi_over":
+            rule = AlertRule(
+                name=f"{symbol} RSI Over {threshold}",
+                condition=lambda d, t=threshold: d["rsi"] > t,
+                message=f"RSI crossed above {threshold}",
+            )
+        elif alert_type == "rsi_under":
+            rule = AlertRule(
+                name=f"{symbol} RSI Under {threshold}",
+                condition=lambda d, t=threshold: d["rsi"] < t,
+                message=f"RSI dropped below {threshold}",
+            )
+        else:
+            # Unknown type; skip for now
+            continue
+
+        alert_engine.add_rule(rule)
+
+
+def compute_volume_stats(
+    symbol: str,
+) -> Tuple[float, float]:
+    """Compute current volume and average recent volume for a symbol."""
+    recent_volumes: List[float] = database.get_recent_volumes(
+        symbol, limit=50
+    )
+    avg_volume = (
+        sum(recent_volumes) / len(recent_volumes)
+        if recent_volumes
+        else 0.0
+    )
+    current_volume = recent_volumes[0] if recent_volumes else 0.0
+    return current_volume, avg_volume
 
 
 def main() -> None:
-    # Main function that runs the real-time stock tracker
+    """Main function that runs the real-time stock tracker."""
+    global running
 
     # Load configuration files
     app_config = load_app_config()
@@ -67,138 +138,6 @@ def main() -> None:
 
     # Notification handler
     notifier = Notifier(pushover_config)
-
-    alert_engine = AlertEngine(notifier)
-# Initalize the alert engine 
-# Example alert rules
-
-alert_engine.add_rule(AlertRule(
-    name="Volatility Spike",
-    condition=volatility_spike(threshold=2.5),
-    message="Volatility spike detected! Z-score: {zscore}",
-    cooldown=300  # 5 minutes
-))
-
-
-alert_engine.add_rule(AlertRule(
-    name="Volume Spike",
-    condition=volume_spike(multiplier=2.5),
-    message="Volume spike detected! Current: {volume}, Avg: {avg_volume}",
-    cooldown=600  # 10 minutes
-))
-
-def load_user_alerts():
-    rows = db.get_alerts()
-    for row in rows:
-        alert_id, symbol, alert_type, threshold, multiplier, zscore, active, created_at = row
-
-        if alert_type == "price_above":
-            rule = AlertRule(
-                name=f"Price Above {threshold}",
-                condition=lambda d, t=threshold: d["price"] > t,
-                message=f"Price crossed above {threshold}"
-            )
-
-        elif alert_type == "price_below":
-            rule = AlertRule(
-                name=f"Price Below {threshold}",
-                condition=lambda d, t=threshold: d["price"] < t,
-                message=f"Price dropped below {threshold}"
-            )
-
-        elif alert_type == "rsi_over":
-            rule = AlertRule(
-                name=f"RSI Over {threshold}",
-                condition=lambda d, t=threshold: d["rsi"] > t,
-                message=f"RSI crossed above {threshold}"
-            )
-
-        elif alert_type == "rsi_under":
-            rule = AlertRule(
-                name=f"RSI Under {threshold}",
-                condition=lambda d, t=threshold: d["rsi"] < t,
-                message=f"RSI dropped below {threshold}"
-            )
-
-        elif alert_type == "volume_spike":
-            rule = AlertRule(
-                name=f"Volume Spike x{multiplier}",
-                condition=lambda d, m=multiplier: d["volume"] > d["avg_volume"] * m,
-                message=f"Volume spike detected (>{multiplier}× avg)"
-            )
-
-        elif alert_type == "volatility_spike":
-            rule = AlertRule(
-                name=f"Volatility Spike Z>{zscore}",
-                condition=lambda d, z=zscore: abs(d["zscore"]) > z,
-                message=f"Volatility spike detected (Z>{zscore})"
-            )
-
-        load_user_alerts()
-
-        alert_engine.add_rule(rule)
-
-# Fetch last 50 volume entries for average
-recent_volumes = db.get_recent_volumes(symbol, limit=50)
-avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
-
-
-alert_engine.add_rule(AlertRule(
-    name="Price Above Target",
-    condition=price_above(200),
-    message="Price is above target: {price}"
-))
-
-alert_engine.add_rule(AlertRule(
-    name="Price Below Target",
-    condition=price_below(150),
-    message="Price dropped below threshold: {price}"
-))
-
-alert_engine.add_rule(AlertRule(
-    name="RSI Overbought",
-    condition=rsi_overbought(),
-    message="RSI is overbought at {rsi}"
-))
-
-alert_engine.add_rule(AlertRule(
-    name="RSI Oversold",
-    condition=rsi_oversold(),
-    message="RSI is oversold at {rsi}"
-))
-
-alert_engine.add_rule(AlertRule(
-    name="SMA Bullish Crossover",
-    condition=sma_cross_up(),
-    message="SMA crossed above EMA (bullish)"
-))
-
-alert_engine.add_rule(AlertRule(
-    name="SMA Bearish Crossover",
-    condition=sma_cross_down(),
-    message="SMA crossed below EMA (bearish)"
-
-
-alert_engine.evaluate(symbol, {
-    "price": price,
-    "sma": sma,
-    "ema": ema,
-    "rsi": rsi
-})
-
-))
-
-# makes z-score availlable to all alert rules 
-# allows volatility alerts to fire cleanly 
-alert_engine.evaluate(symbol, {
-    "price": price,
-    "sma": sma,
-    "ema": ema,
-    "rsi": rsi,
-    "volume": volume,
-    "avg_volume": avg_volume,
-    "zscore": zscore
-})
 
     # Initialize SQLite database
     database.init_db()
@@ -234,14 +173,92 @@ alert_engine.evaluate(symbol, {
     unchanged_minutes: int = 0
     drop_alert_sent: bool = False
 
-alert_engine.evaluate(symbol, {
-    "price": price,
-    "sma": sma,
-    "ema": ema,
-    "rsi": rsi,
-    "volume": volume,
-    "avg_volume": avg_volume
-})
+    # Alert engine setup
+    alert_engine = AlertEngine(notifier)
+
+    # Static example rules
+    alert_engine.add_rule(
+        AlertRule(
+            name="Price Above Target",
+            condition=price_above(200),
+            message="Price is above target: {price}",
+        )
+    )
+    alert_engine.add_rule(
+        AlertRule(
+            name="Price Below Target",
+            condition=price_below(150),
+            message="Price dropped below threshold: {price}",
+        )
+    )
+    alert_engine.add_rule(
+        AlertRule(
+            name="RSI Overbought",
+            condition=rsi_overbought(),
+            message="RSI is overbought at {rsi}",
+        )
+    )
+    alert_engine.add_rule(
+        AlertRule(
+            name="RSI Oversold",
+            condition=rsi_oversold(),
+            message="RSI is oversold at {rsi}",
+        )
+    )
+    alert_engine.add_rule(
+        AlertRule(
+            name="SMA Bullish Crossover",
+            condition=sma_cross_up(),
+            message="SMA crossed above EMA (bullish)",
+        )
+    )
+    alert_engine.add_rule(
+        AlertRule(
+            name="SMA Bearish Crossover",
+            condition=sma_cross_down(),
+            message="SMA crossed below EMA (bearish)",
+        )
+    )
+
+    # Load user-defined alerts from DB
+    load_user_alerts(alert_engine)
+
+    # Scheduler setup
+    scheduler = SchedulerManager()
+
+    # Daily pruning at 4:00 AM
+    scheduler.add_daily_job(
+        func=lambda: prune_old_data("tracker.db", days=30),
+        hour=4,
+        minute=0,
+        name="daily_prune",
+    )
+
+    # Optional: run analytics refresh every 10 minutes
+    scheduler.add_interval_job(
+        func=lambda: logger.info("Analytics refresh tick"),
+        seconds=600,
+        name="analytics_refresh",
+    )
+
+    # Daily summary at ~4:05 PM
+    def send_daily_summary() -> None:
+        summary = generate_daily_summary(database, [symbol])
+        notifier.alert(
+            symbol="SUMMARY",
+            alert_type="Daily Summary",
+            title="Daily Market Summary",
+            message=summary,
+        )
+
+    scheduler.add_daily_job(
+        func=send_daily_summary,
+        hour=16,
+        minute=5,
+        name="daily_summary",
+    )
+
+    scheduler.start()
 
     # Start stop-listener thread
     threading.Thread(target=stop_listener, daemon=True).start()
@@ -250,11 +267,7 @@ alert_engine.evaluate(symbol, {
     if app_config.enable_dashboard:
         threading.Thread(target=run_dashboard, daemon=True).start()
 
-    
-    # MAIN TRACKING LOOP
-scheduler.start()
-
-
+    # here is the main loop
     try:
         while running:
             # Fetch current price
@@ -269,6 +282,10 @@ scheduler.start()
             # Store price in database
             database.insert_price(symbol, current_price)
 
+            # Fetch recent price series for analysis
+            series = database.get_recent_prices(symbol, limit=200)
+            analysis: Dict[str, Any] = analyze_series(series)
+
             # Calculate percent drop from initial price
             drop_percent = (
                 (initial_price - current_price) / initial_price
@@ -281,33 +298,24 @@ scheduler.start()
                 drop_percent,
             )
 
-            # Run pruning once per day
-if time.time() - last_prune > PRUNE_INTERVAL:
-    removed = prune_old_data("tracker.db", days=30)
-    logger.info(f"Pruned {removed} old rows from database")
-    last_prune = time.time()
-# logs how many rows were removed
+            # Indicators for alerts
+            rsi14 = analysis.get("rsi14")
+            z_score = analysis.get("z_score")
 
-    if __name__ == "__main__":
-    import argparse
+            # Volume stats for volume-based alerts
+            volume, avg_volume = compute_volume_stats(symbol)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--prune", action="store_true", help="Prune old DB rows and exit")
-    args = parser.parse_args()
+            alert_data: Dict[str, Any] = {
+                "price": current_price,
+                "rsi": rsi14 if rsi14 is not None else 0.0,
+                "zscore": z_score if z_score is not None else 0.0,
+                "volume": volume,
+                "avg_volume": avg_volume,
+            }
 
-    if args.prune:
-        removed = prune_old_data("tracker.db", days=30)
-        print(f"Pruned {removed} rows")
-        exit()
+            alert_engine.evaluate(symbol, alert_data)
 
-
-            # Fetch recent price series for analysis
-            series = database.get_recent_prices(symbol, limit=200)
-            analysis: Dict[str, Any] = analyze_series(series)
-
-            
             # USER-DEFINED PRICE ALERT (limit-style notification)
-            
             if not alert_triggered and current_price <= alert_price:
                 notifier.alert(
                     symbol,
@@ -336,17 +344,14 @@ if time.time() - last_prune > PRUNE_INTERVAL:
                     f"Current Price: ${current_price:.2f}",
                 ]
 
-                # Add RSI if available
-                rsi14 = analysis.get("rsi14")
-                if rsi14 is not None:
-                    msg_lines.append(f"RSI: {rsi14:.2f}")
+                rsi_val = analysis.get("rsi14")
+                if rsi_val is not None:
+                    msg_lines.append(f"RSI: {rsi_val:.2f}")
 
-                # Add volatility if available
                 vol20 = analysis.get("vol20")
                 if vol20 is not None:
                     msg_lines.append(f"Volatility (20): {vol20:.4f}")
 
-                # Add prediction if available
                 prediction = analysis.get("prediction_next")
                 if prediction is not None:
                     msg_lines.append(
@@ -359,25 +364,23 @@ if time.time() - last_prune > PRUNE_INTERVAL:
                     f"{symbol} Drop Alert",
                     "\n".join(msg_lines),
                 )
-
                 drop_alert_sent = True
-# real time push
-   socketio.emit(
-    "price_update",
-    {
-        "symbol": symbol,
-        "price": price,
-        "sma": sma,
-        "ema": ema,
-        "rsi": rsi,
-        "volume": volume,
-    },
-    namespace="/stream"
-)
 
+            # Real-time WebSocket push
+            socketio.emit(
+                "price_update",
+                {
+                    "symbol": symbol,
+                    "price": current_price,
+                    "rsi": rsi14,
+                    "zscore": z_score,
+                    "volume": volume,
+                    "avg_volume": avg_volume,
+                },
+                namespace="/stream",
+            )
 
             # NO CHANGE ALERT
-            
             if current_price == last_price:
                 unchanged_minutes += 1
             else:
@@ -401,8 +404,6 @@ if time.time() - last_prune > PRUNE_INTERVAL:
                 unchanged_minutes = 0
 
             # ANOMALY ALERT (Z-score)
-            
-            z_score = analysis.get("z_score")
             if z_score is not None and abs(z_score) >= 2.5:
                 notifier.alert(
                     symbol,
@@ -416,7 +417,6 @@ if time.time() - last_prune > PRUNE_INTERVAL:
                 )
 
             # Update last price
-            
             last_price = current_price
 
             # Wait for next cycle
@@ -424,16 +424,12 @@ if time.time() - last_prune > PRUNE_INTERVAL:
 
     except KeyboardInterrupt:
         logger.info("Stopped with CTRL + C")
+        running = False
         scheduler.stop()
-
 
     # SUMMARY ON EXIT
     end_time = datetime.now()
-
-    runtime_minutes = (
-        end_time - start_time
-    ).total_seconds() / 60
-
+    runtime_minutes = (end_time - start_time).total_seconds() / 60
     percent_change = (
         (last_price - initial_price) / initial_price
     ) * 100
@@ -456,38 +452,16 @@ if time.time() - last_prune > PRUNE_INTERVAL:
 
 
 if __name__ == "__main__":
-    main()
-# initzilize scheduler 
-scheduler = SchedulerManager()
-
-
-# Daily pruning at 4:00 AM
-scheduler.add_daily_job(
-    func=lambda: prune_old_data("tracker.db", days=30),
-    hour=4,
-    minute=0,
-    name="daily_prune"
-)
-
-# Optional: run analytics refresh every 10 minutes
-scheduler.add_interval_job(
-    func=lambda: logger.info("Analytics refresh tick"),
-    seconds=600,
-    name="analytics_refresh"
-)
-def send_daily_summary():
-    summary = generate_daily_summary(db, symbols)
-    # You already have a Notifier; reuse it
-    notifier.alert(
-        symbol="SUMMARY",
-        alert_type="Daily Summary",
-        title="Daily Market Summary",
-        message=summary
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="Prune old DB rows and exit",
     )
-scheduler.add_daily_job(
-    func=send_daily_summary,
-    hour=16,      # 4:00 PM market close (adjust as you like)
-    minute=5,
-    name="daily_summary"
-)
+    args = parser.parse_args()
 
+    if args.prune:
+        removed = prune_old_data("tracker.db", days=30)
+        print(f"Pruned {removed} rows")
+    else:
+        main()
