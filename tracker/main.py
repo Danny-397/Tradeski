@@ -12,6 +12,7 @@ import threading
 import time
 from datetime import datetime
 from typing import Any, Dict
+from .scheduler import SchedulerManager
 from .pruning import prune_old_data
 
 from . import database
@@ -25,6 +26,7 @@ from .alerts import AlertEngine, AlertRule, price_above, price_below, rsi_overbo
 
 
 logger = get_logger(__name__)
+
 
 # Global flag used to stop the tracking loop
 running = True
@@ -165,6 +167,9 @@ alert_engine.evaluate(symbol, {
 
     
     # MAIN TRACKING LOOP
+scheduler.start()
+
+
     try:
         while running:
             # Fetch current price
@@ -320,6 +325,8 @@ if time.time() - last_prune > PRUNE_INTERVAL:
 
     except KeyboardInterrupt:
         logger.info("Stopped with CTRL + C")
+        scheduler.stop()
+
 
     # SUMMARY ON EXIT
     end_time = datetime.now()
@@ -351,3 +358,22 @@ if time.time() - last_prune > PRUNE_INTERVAL:
 
 if __name__ == "__main__":
     main()
+# initzilize scheduler 
+scheduler = SchedulerManager()
+
+
+# Daily pruning at 4:00 AM
+scheduler.add_daily_job(
+    func=lambda: prune_old_data("tracker.db", days=30),
+    hour=4,
+    minute=0,
+    name="daily_prune"
+)
+
+# Optional: run analytics refresh every 10 minutes
+scheduler.add_interval_job(
+    func=lambda: logger.info("Analytics refresh tick"),
+    seconds=600,
+    name="analytics_refresh"
+)
+
