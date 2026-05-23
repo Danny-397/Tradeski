@@ -9,6 +9,23 @@
 // Dark mode Plotly theme 
 // Multi-stock switching 
 // Auto-refresh
+
+
+
+
+async function updateStats(symbol) {
+    const response = await fetch(`/stats?symbol=${symbol}`);
+    const data = await response.json();
+
+    document.getElementById("stat-symbol").textContent = data.symbol;
+    document.getElementById("stat-open").textContent = `$${data.open.toFixed(2)}`;
+    document.getElementById("stat-high").textContent = `$${data.high.toFixed(2)}`;
+    document.getElementById("stat-low").textContent = `$${data.low.toFixed(2)}`;
+    document.getElementById("stat-52wh").textContent = `$${data.high_52w.toFixed(2)}`;
+    document.getElementById("stat-52wl").textContent = `$${data.low_52w.toFixed(2)}`;
+}
+
+
 async function fetchPriceHistory(symbol) {
     const response = await fetch(`/price_history?symbol=${symbol}`);
     return await response.json();
@@ -66,7 +83,8 @@ document.getElementById("stat-price").textContent = `$${prices[prices.length - 1
 document.getElementById("symbol-select").addEventListener("change", updateChart);
 
 // Initial load
-updateChart();
+updateChart();updateStats(symbol);
+
 
 // Refresh every 5 seconds
 setInterval(updateChart, 5000);
