@@ -1,40 +1,25 @@
 # tracker/price_fetcher.py
-# Retrieves latest price + volume using yfinance.
+# Fetches latest stock prices via yfinance.
 
-from typing import Optional, Tuple
+from typing import Optional
 import yfinance as yf
 
-from .logger import get_logger
 
-logger = get_logger(__name__)
-
-
-def get_stock_price(symbol: str) -> Optional[Tuple[float, float]]:
+def get_stock_price(symbol: str) -> Optional[float]:
     """
-    Retrieve the latest stock price and volume for a given symbol.
+    Return the latest closing price for a symbol, or None on failure.
 
-    Returns:
-        (price, volume) tuple, or None if unavailable.
+    Tests expect:
+        - None on error/empty
+        - a positive float on success
     """
     try:
         ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="1d")
 
-        # Fast path: use fast_info if available
-        price = ticker.fast_info.get("last_price")
-        volume = ticker.fast_info.get("last_volume")
+        if hist.empty:
+            return None
 
-        # Fallback: use historical data
-        if price is None or volume is None:
-            data = ticker.history(period="1d")
-            if data.empty:
-                logger.warning("No price data for symbol %s", symbol)
-                return None
-
-            price = float(data["Close"].iloc[-1])
-            volume = float(data["Volume"].iloc[-1])
-
-        return float(price), float(volume)
-
-    except Exception as error:
-        logger.error("Error retrieving price for %s: %s", symbol, error)
+        return float(hist["Close"].iloc[-1])
+    except Exception:
         return None
