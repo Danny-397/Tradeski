@@ -1,17 +1,33 @@
+# tracker/pruning.py
+# Removes old rows from the prices table to keep the DB lean.
+
 import sqlite3
 import time
 
-def prune_old_data(db_path: str, days: int = 30):
+
+def prune_old_data(db_path: str, days: int = 30) -> int:
+    """
+    Delete price rows older than the given number of days.
+
+    Args:
+        db_path: Path to the SQLite database.
+        days: Number of days to retain.
+
+    Returns:
+        Number of deleted rows.
+    """
     cutoff = time.time() - (days * 86400)
-# Gives a cutoff timestamp and deletes all rows older than that 
-  # This keeps the DB data lean and fast, gets rid of any unessecary things 
+
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         DELETE FROM prices
         WHERE timestamp < ?
-    """, (cutoff,))
+        """,
+        (cutoff,),
+    )
 
     deleted_rows = cursor.rowcount
     conn.commit()
