@@ -34,6 +34,35 @@ def stats():
     })
 
 
+@app.route("/rsi")
+def rsi():
+    symbol = request.args.get("symbol", "AAPL").upper()
+
+    ticker = yf.Ticker(symbol)
+    hist = ticker.history(period="3mo")  # enough for RSI
+
+    if hist.empty:
+        return jsonify({"error": "No data"}), 400
+
+    close_prices = hist["Close"]
+
+    # RSI calculation
+    delta = close_prices.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.rolling(14).mean()
+    avg_loss = loss.rolling(14).mean()
+
+    rs = avg_gain / avg_loss
+    rsi_values = 100 - (100 / (1 + rs))
+
+    return jsonify({
+        "timestamps": hist.index.strftime("%Y-%m-%d %H:%M:%S").tolist(),
+        "rsi": rsi_values.fillna(0).tolist()
+    })
+
+
 @app.route("/price_history")
 def price_history():
     # Get symbol from query parameter
