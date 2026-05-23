@@ -20,6 +20,8 @@ from .dashboard import run_dashboard
 from .logger import get_logger
 from .notifier import Notifier
 from .price_fetcher import get_stock_price
+from .alerts import AlertEngine, AlertRule, price_above, price_below, rsi_overbought, rsi_oversold, sma_cross_up, sma_cross_down
+
 
 logger = get_logger(__name__)
 
@@ -65,6 +67,55 @@ def main() -> None:
 
     # Notification handler
     notifier = Notifier(pushover_config)
+
+    alert_engine = AlertEngine(notifier)
+# Initalize the alert engine 
+# Example alert rules
+alert_engine.add_rule(AlertRule(
+    name="Price Above Target",
+    condition=price_above(200),
+    message="Price is above target: {price}"
+))
+
+alert_engine.add_rule(AlertRule(
+    name="Price Below Target",
+    condition=price_below(150),
+    message="Price dropped below threshold: {price}"
+))
+
+alert_engine.add_rule(AlertRule(
+    name="RSI Overbought",
+    condition=rsi_overbought(),
+    message="RSI is overbought at {rsi}"
+))
+
+alert_engine.add_rule(AlertRule(
+    name="RSI Oversold",
+    condition=rsi_oversold(),
+    message="RSI is oversold at {rsi}"
+))
+
+alert_engine.add_rule(AlertRule(
+    name="SMA Bullish Crossover",
+    condition=sma_cross_up(),
+    message="SMA crossed above EMA (bullish)"
+))
+
+alert_engine.add_rule(AlertRule(
+    name="SMA Bearish Crossover",
+    condition=sma_cross_down(),
+    message="SMA crossed below EMA (bearish)"
+
+
+alert_engine.evaluate(symbol, {
+    "price": price,
+    "sma": sma,
+    "ema": ema,
+    "rsi": rsi
+})
+
+))
+
 
     # Initialize SQLite database
     database.init_db()
