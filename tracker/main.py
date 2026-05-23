@@ -13,7 +13,7 @@ from .logger import get_logger
 from .notifier import Notifier
 from .price_fetcher import get_stock_price
 from .alerts import AlertEngine, AlertRule, price_above, price_below, rsi_overbought, rsi_oversold, sma_cross_up, sma_cross_down
-
+from .daily_summary import generate_daily_summary 
 
 logger = get_logger(__name__)
 
@@ -406,5 +406,20 @@ scheduler.add_interval_job(
     func=lambda: logger.info("Analytics refresh tick"),
     seconds=600,
     name="analytics_refresh"
+)
+def send_daily_summary():
+    summary = generate_daily_summary(db, symbols)
+    # You already have a Notifier; reuse it
+    notifier.alert(
+        symbol="SUMMARY",
+        alert_type="Daily Summary",
+        title="Daily Market Summary",
+        message=summary
+    )
+scheduler.add_daily_job(
+    func=send_daily_summary,
+    hour=16,      # 4:00 PM market close (adjust as you like)
+    minute=5,
+    name="daily_summary"
 )
 
