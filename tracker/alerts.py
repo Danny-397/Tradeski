@@ -21,6 +21,36 @@ def volume_spike(multiplier=2.0):
 def volatility_spike(threshold=2.5):
     return lambda d: abs(d.get("zscore", 0)) > threshold
 
+def volatility_regime():
+    return lambda d: (
+        "EXTREME" if abs(d["zscore"]) > 3.5 else
+        "HIGH" if abs(d["zscore"]) > 2.5 else
+        "NORMAL"
+    )
+alert_engine.add_rule(AlertRule(
+    name="Extreme Volatility",
+    condition=lambda d: abs(d.get("zscore", 0)) > 3.5,
+    message="EXTREME volatility detected! Z-score: {zscore}",
+    cooldown=600
+))
+# Detects extreme volatility events 
+# Gives a more nuanced alert system 
+# This makes the backend sore of like a quant engine, which is good becasue I will be expanding on that.
+
+
+
+# This is a power signal used by hedge funds 
+alert_engine.add_rule(AlertRule(
+    name="Volume + Volatility Spike",
+    condition=lambda d: (
+        abs(d.get("zscore", 0)) > 2.5 and
+        d.get("volume", 0) > d.get("avg_volume", 1) * 2
+    ),
+    message="High volatility + volume spike detected!",
+    cooldown=600
+))
+# When volume and volitlity spike together, it usally means: news, earnings leak, whale activity, institutional buying/selling, breakout or breakdon
+# This is a valuable alert 
 
 
 class AlertEngine:
