@@ -30,18 +30,50 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
-        #stats-card {
-    width: 90%;
-    margin: 20px auto;
-    padding: 16px;
-    border-radius: 12px;
-    background: rgba(20, 20, 30, 0.55);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(0, 200, 255, 0.35);
-    box-shadow: 0 0 12px rgba(0, 200, 255, 0.25);
-    transition: 0.25s ease;
-}
 
+        
+       <div id="stats-card">
+    <div class="stats-title">Stock Overview</div>
+
+    <div class="stats-row">
+        <div class="stat-item">
+            <span class="label">Symbol</span>
+            <span id="stat-symbol" class="value">AAPL</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">Current Price</span>
+            <span id="stat-price" class="value">$0.00</span>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-item">
+            <span class="label">Open</span>
+            <span id="stat-open" class="value">$0.00</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">High</span>
+            <span id="stat-high" class="value">$0.00</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">Low</span>
+            <span id="stat-low" class="value">$0.00</span>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-item">
+            <span class="label">52W High</span>
+            <span id="stat-52wh" class="value">$0.00</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">52W Low</span>
+            <span id="stat-52wl" class="value">$0.00</span>
+        </div>
+    </div>
+</div>
+
+        
 #stats-card:hover {
     box-shadow: 0 0 18px rgba(0, 200, 255, 0.45);
     border-color: rgba(0, 200, 255, 0.55);
