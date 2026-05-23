@@ -127,7 +127,8 @@ document.getElementById("stat-price").textContent = `$${prices[prices.length - 1
 document.getElementById("symbol-select").addEventListener("change", updateChart);
 
 // Initial load
-updateChart();updateStats(symbol);
+updateChart();updateStats(symbol);updateRSI(symbol);
+
 
 
 // Refresh every 5 seconds
