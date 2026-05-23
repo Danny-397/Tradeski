@@ -11,6 +11,50 @@
 // Auto-refresh
 
 
+async function fetchRSI(symbol) {
+    const response = await fetch(`/rsi?symbol=${symbol}`);
+    return await response.json();
+}
+
+
+async function updateRSI(symbol) {
+    const data = await fetchRSI(symbol);
+
+    const rsiTrace = {
+        x: data.timestamps,
+        y: data.rsi,
+        mode: "lines",
+        line: { color: "#00eaff" },
+        name: "RSI(14)",
+        yaxis: "y2"
+    };
+
+    const overbought = {
+        x: data.timestamps,
+        y: Array(data.timestamps.length).fill(70),
+        mode: "lines",
+        line: { color: "#ff00d4", dash: "dot" },
+        name: "Overbought"
+    };
+
+    const oversold = {
+        x: data.timestamps,
+        y: Array(data.timestamps.length).fill(30),
+        mode: "lines",
+        line: { color: "#ff00d4", dash: "dot" },
+        name: "Oversold"
+    };
+
+    const layout = {
+        paper_bgcolor: "#121212",
+        plot_bgcolor: "#1e1e1e",
+        font: { color: "#e0e0e0" },
+        height: 300,
+        margin: { t: 20 }
+    };
+
+    Plotly.newPlot("rsi-chart", [rsiTrace, overbought, oversold], layout);
+}
 
 
 async function updateStats(symbol) {
