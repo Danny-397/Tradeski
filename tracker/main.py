@@ -1,3 +1,13 @@
+# Main entry point for the real-time stock tracker.
+# Handles:
+# - Config loading
+# - User-defined price alert
+# - Dashboard startup
+# - Stop listener thread
+# - Tracking loop
+# - Alerts (drop, no-change, anomaly, price alert)
+# - Summary notification
+
 import threading
 import time
 from datetime import datetime
@@ -13,13 +23,13 @@ from .price_fetcher import get_stock_price
 
 logger = get_logger(__name__)
 
+# Global flag used to stop the tracking loop
 running = True
 
 
 def stop_listener() -> None:
-    """
-    Listen for a stop command and shut down gracefully.
-    """
+    # Background thread that waits for the user to type 'stop'
+    # When triggered, it sets the global `running` flag to False
     global running
 
     while running:
@@ -32,12 +42,7 @@ def stop_listener() -> None:
 
 
 def get_user_alert_price() -> float:
-    """
-    Prompt the user for a target price alert.
-
-    Returns:
-        float: The user-defined alert price.
-    """
+    # Prompt the user for a target price alert (limit-style)
     while True:
         try:
             value = float(
@@ -52,25 +57,29 @@ def get_user_alert_price() -> float:
 
 
 def main() -> None:
-    """
-    Run the real-time stock tracker.
-    """
+    # Main function that runs the real-time stock tracker
+
+    # Load configuration files
     app_config = load_app_config()
     pushover_config = load_pushover_config()
 
+    # Notification handler
     notifier = Notifier(pushover_config)
 
+    # Initialize SQLite database
     database.init_db()
 
+    # Load stock symbol and interval from config
     symbol: str = app_config.stock_symbol
     check_interval: int = app_config.check_interval
 
+    # Fetch initial price
     initial_price = get_stock_price(symbol)
-
     if initial_price is None:
         logger.error("Invalid stock symbol: %s", symbol)
         return
 
+    # Ask user for a custom price alert
     alert_price = get_user_alert_price()
     alert_triggered = False
 
@@ -81,36 +90,40 @@ def main() -> None:
         alert_price,
     )
 
+    # Store initial price in database
     database.insert_price(symbol, initial_price)
 
     start_time = datetime.now()
 
+    # State variables
     last_price: float = initial_price
     unchanged_minutes: int = 0
     drop_alert_sent: bool = False
 
-    threading.Thread(
-        target=stop_listener,
-        daemon=True,
-    ).start()
+    # Start stop-listener thread
+    threading.Thread(target=stop_listener, daemon=True).start()
 
+    # Start dashboard if enabled
     if app_config.enable_dashboard:
-        threading.Thread(
-            target=run_dashboard,
-            daemon=True,
-        ).start()
+        threading.Thread(target=run_dashboard, daemon=True).start()
 
+    
+    # MAIN TRACKING LOOP
     try:
         while running:
+            # Fetch current price
             current_price = get_stock_price(symbol)
 
+            # Handle API failure
             if current_price is None:
                 logger.warning("Unable to retrieve price.")
                 time.sleep(check_interval)
                 continue
 
+            # Store price in database
             database.insert_price(symbol, current_price)
 
+            # Calculate percent drop from initial price
             drop_percent = (
                 (initial_price - current_price) / initial_price
             ) * 100
@@ -122,11 +135,13 @@ def main() -> None:
                 drop_percent,
             )
 
+            # Fetch recent price series for analysis
             series = database.get_recent_prices(symbol, limit=200)
-
             analysis: Dict[str, Any] = analyze_series(series)
 
+            
             # USER-DEFINED PRICE ALERT (limit-style notification)
+            
             if not alert_triggered and current_price <= alert_price:
                 notifier.alert(
                     symbol,
@@ -147,8 +162,7 @@ def main() -> None:
 
             # DROP ALERT
             if (
-                drop_percent
-                >= app_config.drop_threshold_percent
+                drop_percent >= app_config.drop_threshold_percent
                 and not drop_alert_sent
             ):
                 msg_lines = [
@@ -156,21 +170,21 @@ def main() -> None:
                     f"Current Price: ${current_price:.2f}",
                 ]
 
+                # Add RSI if available
                 rsi14 = analysis.get("rsi14")
                 if rsi14 is not None:
                     msg_lines.append(f"RSI: {rsi14:.2f}")
 
+                # Add volatility if available
                 vol20 = analysis.get("vol20")
                 if vol20 is not None:
-                    msg_lines.append(
-                        f"Volatility (20): {vol20:.4f}"
-                    )
+                    msg_lines.append(f"Volatility (20): {vol20:.4f}")
 
+                # Add prediction if available
                 prediction = analysis.get("prediction_next")
                 if prediction is not None:
                     msg_lines.append(
-                        "Predicted next price: "
-                        f"${prediction:.2f}"
+                        f"Predicted next price: ${prediction:.2f}"
                     )
 
                 notifier.alert(
@@ -183,6 +197,7 @@ def main() -> None:
                 drop_alert_sent = True
 
             # NO CHANGE ALERT
+            
             if current_price == last_price:
                 unchanged_minutes += 1
             else:
@@ -198,18 +213,16 @@ def main() -> None:
                     f"{symbol} No Change",
                     (
                         "No price change for "
-                        f"{app_config.unchanged_minutes_threshold} "
-                        "minutes.\n"
+                        f"{app_config.unchanged_minutes_threshold} minutes.\n"
                         "Likely market closed.\n"
                         f"Price: ${current_price:.2f}"
                     ),
                 )
-
                 unchanged_minutes = 0
 
-            # ANOMALY ALERT
+            # ANOMALY ALERT (Z-score)
+            
             z_score = analysis.get("z_score")
-
             if z_score is not None and abs(z_score) >= 2.5:
                 notifier.alert(
                     symbol,
@@ -222,13 +235,17 @@ def main() -> None:
                     ),
                 )
 
+            # Update last price
+            
             last_price = current_price
 
+            # Wait for next cycle
             time.sleep(check_interval)
 
     except KeyboardInterrupt:
         logger.info("Stopped with CTRL + C")
 
+    # SUMMARY ON EXIT
     end_time = datetime.now()
 
     runtime_minutes = (
