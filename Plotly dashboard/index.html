@@ -30,6 +30,53 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
+        #stats-card {
+    width: 90%;
+    margin: 20px auto;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(20, 20, 30, 0.55);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 200, 255, 0.35);
+    box-shadow: 0 0 12px rgba(0, 200, 255, 0.25);
+    transition: 0.25s ease;
+}
+
+#stats-card:hover {
+    box-shadow: 0 0 18px rgba(0, 200, 255, 0.45);
+    border-color: rgba(0, 200, 255, 0.55);
+}
+
+.stats-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #00eaff;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.label {
+    font-size: 12px;
+    color: #7ddfff;
+    opacity: 0.8;
+}
+
+.value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #00eaff;
+}
+
     </style>
 </head>
 
@@ -45,7 +92,23 @@
         <option value="AMZN">AMZN</option>
     </select>
 
+    <div id="stats-card">
+    <div class="stats-title">Stock Overview</div>
+    <div class="stats-row">
+        <div class="stat-item">
+            <span class="label">Symbol</span>
+            <span id="stat-symbol" class="value">AAPL</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">Current Price</span>
+            <span id="stat-price" class="value">$0.00</span>
+        </div>
+    </div>
+</div>
+
+   
     <div id="chart"></div>
+    
 
     <script src="/static/chart.js"></script>
 </body>
