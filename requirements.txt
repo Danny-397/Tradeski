@@ -5,4 +5,5 @@ flask
 numpy
 pytest
 apscheduler
-flask-socketio eventlet 
+flask-socketio
+eventlet
