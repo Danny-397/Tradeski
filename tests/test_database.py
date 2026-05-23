@@ -56,3 +56,16 @@ def test_insert_and_fetch_alerts() -> None:
 
     assert alert_type == "drop"
     assert message == "Price dropped"
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    alert_type TEXT NOT NULL,
+    threshold REAL,
+    multiplier REAL,
+    zscore REAL,
+    active INTEGER DEFAULT 1,
+    created_at REAL
+)
+""")
