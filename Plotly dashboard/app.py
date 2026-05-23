@@ -3,14 +3,16 @@
 
 @app.route("/price_history")
 def price_history():
-    # Get last 200 prices
-    rows = database.get_recent_prices("AAPL", limit=200)
+    # Get symbol from query parameter
+    symbol = request.args.get("symbol", "AAPL").upper()
 
-    # rows = [(timestamp, price), ...]
+    # Get last 200 prices for this symbol
+    rows = database.get_recent_prices(symbol, limit=200)
+
     timestamps = [ts for ts, price in rows]
     prices = [price for ts, price in rows]
 
-    # Compute SMA and EMA (simple versions)
+    # Simple SMA and EMA calculations
     def sma(values, window):
         if len(values) < window:
             return [None] * len(values)
@@ -40,3 +42,4 @@ def price_history():
         "sma20": sma20,
         "ema20": ema20
     })
+
