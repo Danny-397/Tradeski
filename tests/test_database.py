@@ -1,14 +1,11 @@
 import os
-
 from tracker import database
 
 TEST_DB = "data/test_prices.db"
 
 
 def setup_function() -> None:
-    """
-    Set up a clean test database before each test.
-    """
+    """Set up a clean test database before each test."""
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
 
@@ -19,16 +16,11 @@ def setup_function() -> None:
 
 
 def test_insert_and_fetch_prices() -> None:
-    """
-    Test inserting and retrieving stock prices.
-    """
-    database.insert_price("AAPL", 150.0)
-    database.insert_price("AAPL", 151.0)
+    """Test inserting and retrieving stock prices."""
+    database.insert_price("AAPL", 150.0, volume=1000)
+    database.insert_price("AAPL", 151.0, volume=1200)
 
-    rows = database.get_recent_prices(
-        "AAPL",
-        limit=10,
-    )
+    rows = database.get_recent_prices("AAPL", limit=10)
 
     assert len(rows) == 2
     assert rows[0][1] == 150.0
@@ -36,61 +28,14 @@ def test_insert_and_fetch_prices() -> None:
 
 
 def test_insert_and_fetch_alerts() -> None:
-    """
-    Test inserting and retrieving alerts.
-    """
-    database.insert_alert(
-        "AAPL",
-        "drop",
-        "Price dropped",
-    )
+    """Test inserting and retrieving alerts."""
+    database.insert_alert("AAPL", "drop", "Price dropped")
 
-    rows = database.get_recent_alerts(
-        "AAPL",
-        limit=10,
-    )
+    rows = database.get_recent_alerts("AAPL", limit=10)
 
     assert len(rows) == 1
 
-    _, alert_type, message = rows[0]
+    timestamp, alert_type, message = rows[0]
 
     assert alert_type == "drop"
     assert message == "Price dropped"
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS alerts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    symbol TEXT NOT NULL,
-    alert_type TEXT NOT NULL,
-    threshold REAL,
-    multiplier REAL,
-    zscore REAL,
-    active INTEGER DEFAULT 1,
-    created_at REAL
-)
-""")
-
-def create_alert(self, symbol, alert_type, threshold=None, multiplier=None, zscore=None):
-    cursor = self.conn.cursor()
-    cursor.execute("""
-        INSERT INTO alerts (symbol, alert_type, threshold, multiplier, zscore, created_at)
-        VALUES (?, ?, ?, ?, ?, strftime('%s','now'))
-    """, (symbol, alert_type, threshold, multiplier, zscore))
-    self.conn.commit()
-    return cursor.lastrowid
-
-def get_alerts(self):
-    cursor = self.conn.cursor()
-    cursor.execute("SELECT * FROM alerts WHERE active = 1")
-    return cursor.fetchall()
-
-def delete_alert(self, alert_id):
-    cursor = self.conn.cursor()
-    cursor.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
-    self.conn.commit()
-
-def disable_alert(self, alert_id):
-    cursor = self.conn.cursor()
-    cursor.execute("UPDATE alerts SET active = 0 WHERE id = ?", (alert_id,))
-    self.conn.commit()
-
