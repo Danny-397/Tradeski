@@ -1,3 +1,6 @@
+# Adds SMA20 and EMA20 
+
+
 @app.route("/price_history")
 def price_history():
     # Get last 200 prices
