@@ -14,6 +14,9 @@ from .notifier import Notifier
 from .price_fetcher import get_stock_price
 from .alerts import AlertEngine, AlertRule, price_above, price_below, rsi_overbought, rsi_oversold, sma_cross_up, sma_cross_down
 from .daily_summary import generate_daily_summary 
+from dashboard.app import get_socketio
+socketio = get_socketio()
+
 
 logger = get_logger(__name__)
 
@@ -358,6 +361,20 @@ if time.time() - last_prune > PRUNE_INTERVAL:
                 )
 
                 drop_alert_sent = True
+# real time push
+   socketio.emit(
+    "price_update",
+    {
+        "symbol": symbol,
+        "price": price,
+        "sma": sma,
+        "ema": ema,
+        "rsi": rsi,
+        "volume": volume,
+    },
+    namespace="/stream"
+)
+
 
             # NO CHANGE ALERT
             
