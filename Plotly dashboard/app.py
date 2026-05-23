@@ -1,5 +1,38 @@
 # Adds SMA20 and EMA20 
 
+import yfinance as yf
+
+@app.route("/stats")
+def stats():
+    symbol = request.args.get("symbol", "AAPL").upper()
+
+    ticker = yf.Ticker(symbol)
+    hist = ticker.history(period="1y")
+
+    if hist.empty:
+        return jsonify({"error": "No data"}), 400
+
+    # Today's OHLC
+    today = hist.iloc[-1]
+    open_price = float(today["Open"])
+    high_price = float(today["High"])
+    low_price = float(today["Low"])
+    close_price = float(today["Close"])
+
+    # 52-week stats
+    high_52w = float(hist["High"].max())
+    low_52w = float(hist["Low"].min())
+
+    return jsonify({
+        "symbol": symbol,
+        "open": open_price,
+        "high": high_price,
+        "low": low_price,
+        "close": close_price,
+        "high_52w": high_52w,
+        "low_52w": low_52w
+    })
+
 
 @app.route("/price_history")
 def price_history():
