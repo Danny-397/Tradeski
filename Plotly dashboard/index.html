@@ -128,6 +128,21 @@
     </style>
 </head>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    const socket = io({ path: "/socket.io", transports: ["websocket"] });
+
+    socket.on("connect", () => {
+        console.log("Connected to WebSocket stream");
+    });
+
+    socket.on("price_update", (data) => {
+        console.log("Live update:", data);
+        // later: update chart + stats card here
+    });
+</script>
+
+
 <body>
     <h1>Real-Time Stock Dashboard</h1>
 
