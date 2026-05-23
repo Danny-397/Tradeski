@@ -39,20 +39,25 @@ def stats():
 
     return jsonify(result)
 
-
+# Caches RSI calcs 
+# makes dashboard feel instant 
 @app.route("/rsi")
 def rsi():
     symbol = request.args.get("symbol", "AAPL").upper()
+    cache_key = f"rsi_{symbol}"
+
+    cached = cache.get(cache_key)
+    if cached:
+        return jsonify(cached)
 
     ticker = yf.Ticker(symbol)
-    hist = ticker.history(period="3mo")  # enough for RSI
+    hist = ticker.history(period="3mo")
 
     if hist.empty:
         return jsonify({"error": "No data"}), 400
 
     close_prices = hist["Close"]
 
-    # RSI calculation
     delta = close_prices.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
@@ -63,10 +68,16 @@ def rsi():
     rs = avg_gain / avg_loss
     rsi_values = 100 - (100 / (1 + rs))
 
-    return jsonify({
+    result = {
         "timestamps": hist.index.strftime("%Y-%m-%d %H:%M:%S").tolist(),
         "rsi": rsi_values.fillna(0).tolist()
-    })
+    }
+
+    # Cache for 60 seconds
+    cache.set(cache_key, result, ttl=60)
+
+    return jsonify(result)
+
 
 
 @app.route("/price_history")
