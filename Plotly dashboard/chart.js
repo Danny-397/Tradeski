@@ -30,6 +30,9 @@ async function updateChart() {
         line: { color: "#4da6ff" },
         name: `${symbol} Price`
     };
+// Update stats card
+document.getElementById("stat-symbol").textContent = symbol;
+document.getElementById("stat-price").textContent = `$${prices[prices.length - 1].toFixed(2)}`;
 
     const smaTrace = {
         x: times,
