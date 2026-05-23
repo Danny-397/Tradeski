@@ -1,13 +1,3 @@
-# Main entry point for the real-time stock tracker.
-# Handles:
-# - Config loading
-# - User-defined price alert
-# - Dashboard startup
-# - Stop listener thread
-# - Tracking loop
-# - Alerts (drop, no-change, anomaly, price alert)
-# - Summary notification
-
 import threading
 import time
 from datetime import datetime
@@ -80,6 +70,14 @@ def main() -> None:
 # Example alert rules
 
 alert_engine.add_rule(AlertRule(
+    name="Volatility Spike",
+    condition=volatility_spike(threshold=2.5),
+    message="Volatility spike detected! Z-score: {zscore}",
+    cooldown=300  # 5 minutes
+))
+
+
+alert_engine.add_rule(AlertRule(
     name="Volume Spike",
     condition=volume_spike(multiplier=2.5),
     message="Volume spike detected! Current: {volume}, Avg: {avg_volume}",
@@ -136,6 +134,17 @@ alert_engine.evaluate(symbol, {
 
 ))
 
+# makes z-score availlable to all alert rules 
+# allows volatility alerts to fire cleanly 
+alert_engine.evaluate(symbol, {
+    "price": price,
+    "sma": sma,
+    "ema": ema,
+    "rsi": rsi,
+    "volume": volume,
+    "avg_volume": avg_volume,
+    "zscore": zscore
+})
 
     # Initialize SQLite database
     database.init_db()
