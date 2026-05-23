@@ -171,6 +171,15 @@ alert_engine.evaluate(symbol, {
     unchanged_minutes: int = 0
     drop_alert_sent: bool = False
 
+alert_engine.evaluate(symbol, {
+    "price": price,
+    "sma": sma,
+    "ema": ema,
+    "rsi": rsi,
+    "volume": volume,
+    "avg_volume": avg_volume
+})
+
     # Start stop-listener thread
     threading.Thread(target=stop_listener, daemon=True).start()
 
