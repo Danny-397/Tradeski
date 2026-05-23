@@ -1,32 +1,39 @@
-# Dashboard server for real-time Plotly charts
-# API endpoint 
-
-from flask import Flask, jsonify, render_template
-from .. import database
-
-app = Flask(__name__)
-
-
-@app.route("/")
-def index():
-    # Serve the dashboard HTML
-    return render_template("index.html")
-
-
 @app.route("/price_history")
 def price_history():
-    # Return the last 200 price points for the chart
+    # Get last 200 prices
     rows = database.get_recent_prices("AAPL", limit=200)
 
     # rows = [(timestamp, price), ...]
-    data = [
-        {"timestamp": ts, "price": price}
-        for ts, price in rows
-    ]
+    timestamps = [ts for ts, price in rows]
+    prices = [price for ts, price in rows]
 
-    return jsonify(data)
+    # Compute SMA and EMA (simple versions)
+    def sma(values, window):
+        if len(values) < window:
+            return [None] * len(values)
+        return [None] * (window - 1) + [
+            sum(values[i - window + 1:i + 1]) / window
+            for i in range(window - 1, len(values))
+        ]
 
+    def ema(values, window):
+        if len(values) < window:
+            return [None] * len(values)
+        ema_values = [None] * len(values)
+        k = 2 / (window + 1)
+        ema_values[window - 1] = sum(values[:window]) / window
+        for i in range(window, len(values)):
+            ema_values[i] = (
+                values[i] * k + ema_values[i - 1] * (1 - k)
+            )
+        return ema_values
 
-def run_dashboard() -> None:
-    # Start the dashboard server
-    app.run(host="127.0.0.1", port=5001, debug=False)
+    sma20 = sma(prices, 20)
+    ema20 = ema(prices, 20)
+
+    return jsonify({
+        "timestamps": timestamps,
+        "prices": prices,
+        "sma20": sma20,
+        "ema20": ema20
+    })
