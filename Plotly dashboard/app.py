@@ -1,23 +1,30 @@
-# Adds SMA20 and EMA20 
+# dashboard/app.py
+# Adds SMA20 and EMA20, plus caching and WebSocket support.
 
 import yfinance as yf
-from .cache import SimpleCache
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO
 
+from .cache import SimpleCache
+from tracker.database import database  # Ensure DB is imported
+
+# Flask application setup
 app = Flask(__name__)
+
+# WebSocket server
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-
+# In‑memory cache for stats + RSI
 cache = SimpleCache()
 
-# This reduces yfinacnce calls by 95%
+
+# Stats endpoint (cached)
 @app.route("/stats")
 def stats():
+    """Return OHLC + 52‑week stats for a symbol."""
     symbol = request.args.get("symbol", "AAPL").upper()
     cache_key = f"stats_{symbol}"
 
-    # Try cache first
     cached = cache.get(cache_key)
     if cached:
         return jsonify(cached)
@@ -37,18 +44,17 @@ def stats():
         "low": float(today["Low"]),
         "close": float(today["Close"]),
         "high_52w": float(hist["High"].max()),
-        "low_52w": float(hist["Low"].min())
+        "low_52w": float(hist["Low"].min()),
     }
 
-    # Cache for 60 seconds
     cache.set(cache_key, result, ttl=60)
-
     return jsonify(result)
 
-# Caches RSI calcs 
-# makes dashboard feel instant 
+
+# RSI endpoint (cached)
 @app.route("/rsi")
 def rsi():
+    """Return RSI(14) values for a symbol."""
     symbol = request.args.get("symbol", "AAPL").upper()
     cache_key = f"rsi_{symbol}"
 
@@ -76,86 +82,100 @@ def rsi():
 
     result = {
         "timestamps": hist.index.strftime("%Y-%m-%d %H:%M:%S").tolist(),
-        "rsi": rsi_values.fillna(0).tolist()
+        "rsi": rsi_values.fillna(0).tolist(),
     }
 
-    # Cache for 60 seconds
     cache.set(cache_key, result, ttl=60)
-
     return jsonify(result)
 
 
-
+# Price history + SMA/EMA
 @app.route("/price_history")
 def price_history():
-    # Get symbol from query parameter
+    """Return last 200 prices + SMA20 + EMA20."""
     symbol = request.args.get("symbol", "AAPL").upper()
 
-    # Get last 200 prices for this symbol
+    # Get last 200 rows from DB
     rows = database.get_recent_prices(symbol, limit=200)
 
     timestamps = [ts for ts, price in rows]
     prices = [price for ts, price in rows]
 
-    # Simple SMA and EMA calculations
+    # Simple SMA
     def sma(values, window):
         if len(values) < window:
             return [None] * len(values)
-        return [None] * (window - 1) + [
+        prefix = [None] * (window - 1)
+        series = [
             sum(values[i - window + 1:i + 1]) / window
             for i in range(window - 1, len(values))
         ]
+        return prefix + series
 
+    # Simple EMA
     def ema(values, window):
         if len(values) < window:
             return [None] * len(values)
         ema_values = [None] * len(values)
-        k = 2 / (window + 1)
+        k_factor = 2 / (window + 1)
         ema_values[window - 1] = sum(values[:window]) / window
         for i in range(window, len(values)):
             ema_values[i] = (
-                values[i] * k + ema_values[i - 1] * (1 - k)
+                values[i] * k_factor +
+                ema_values[i - 1] * (1 - k_factor)
             )
         return ema_values
 
     sma20 = sma(prices, 20)
     ema20 = ema(prices, 20)
 
-    return jsonify({
-        "timestamps": timestamps,
-        "prices": prices,
-        "sma20": sma20,
-        "ema20": ema20
-    })
+    return jsonify(
+        {
+            "timestamps": timestamps,
+            "prices": prices,
+            "sma20": sma20,
+            "ema20": ema20,
+        }
+    )
 
-# create alert
+
+# Alert CRUD endpoints
 @app.route("/alerts", methods=["POST"])
 def create_alert():
+    """Create a new alert rule."""
     data = request.json
-    alert_id = db.create_alert(
+    alert_id = database.create_alert(
         symbol=data["symbol"],
         alert_type=data["alert_type"],
         threshold=data.get("threshold"),
         multiplier=data.get("multiplier"),
-        zscore=data.get("zscore")
+        zscore=data.get("zscore"),
     )
     return jsonify({"status": "ok", "alert_id": alert_id})
 
-# list alerts 
+
 @app.route("/alerts", methods=["GET"])
 def list_alerts():
-    alerts = db.get_alerts()
+    """Return all active alerts."""
+    alerts = database.get_alerts()
     return jsonify(alerts)
 
-# Delete alerts 
+
 @app.route("/alerts/<int:alert_id>", methods=["DELETE"])
 def delete_alert(alert_id):
-    db.delete_alert(alert_id)
+    """Delete an alert rule."""
+    database.delete_alert(alert_id)
     return jsonify({"status": "deleted"})
 
-if __name__ == "__main__":
-    socketio.run(app, debug=True)
 
+# WebSocket accessor
 def get_socketio():
-    return scoketio 
+    """Expose Socket.IO instance to tracker."""
+    return socketio
 
+
+# Entry point
+if __name__ == "__main__":
+    
+    # Run Flask + WebSocket server
+    socketio.run(app, debug=True)
