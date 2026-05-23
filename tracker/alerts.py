@@ -13,6 +13,11 @@ class AlertRule:
 # Real alert engine 
 # easily intergates with the exitsing PUSHOVER notifer
 # This is how trading bots sturcutre alerts and is something that I can expand on. 
+
+def volume_spike(multiplier=2.0):
+    return lambda d: d.get("volume", 0) > (d.get("avg_volume", 1) * multiplier)
+
+
 class AlertEngine:
     def __init__(self, notifier):
         self.notifier = notifier
