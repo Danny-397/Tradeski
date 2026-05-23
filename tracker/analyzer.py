@@ -152,17 +152,41 @@ def analyze_series(data: List[Tuple[str, float]]) -> Dict[str, Optional[float]]:
     """
     Run a full technical analysis on a price series.
 
-    Args:
-        data: List of (timestamp, price) tuples.
+    Returns both:
+    - raw indicator names (sma20, ema20, rsi14, z_score, etc.)
+    - normalized names used by the alert engine (sma, ema, rsi, zscore)
 
-    Returns:
-        A dictionary containing SMA, EMA, RSI, volatility, z-score,
-        and a linear regression prediction.
+    This keeps backward compatibility while supporting the new alert system.
     """
     if not data:
         return {}
 
     prices = _extract_prices(data)
+
+    sma20 = simple_moving_average(prices, 20)
+    ema20 = exponential_moving_average(prices, 20)
+    rsi14 = rsi(prices, 14)
+    vol20 = volatility(prices, 20)
+    z_val = z_score_latest(prices, 20)
+    pred = linear_regression_prediction(data, 1)
+
+    return {
+        # Raw indicator names
+        "sma20": sma20,
+        "sma50": simple_moving_average(prices, 50),
+        "ema20": ema20,
+        "rsi14": rsi14,
+        "vol20": vol20,
+        "z_score": z_val,
+        "prediction_next": pred,
+
+        # Normalized names for alert engine + WebSocket
+        "sma": sma20,
+        "ema": ema20,
+        "rsi": rsi14,
+        "zscore": z_val,
+    }
+
 
     return {
         "sma20": simple_moving_average(prices, 20),
