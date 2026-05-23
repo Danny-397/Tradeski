@@ -1,6 +1,10 @@
 # Adds SMA20 and EMA20 
 
 import yfinance as yf
+from .cache import SimpleCache
+
+cache = SimpleCache()
+
 
 @app.route("/stats")
 def stats():
