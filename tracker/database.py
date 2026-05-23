@@ -37,6 +37,18 @@ def init_db() -> None:
         """
     )
 
+    def get_prices_in_range(self, symbol, start_ts, end_ts):
+    cursor = self.conn.cursor()
+    cursor.execute("""
+        SELECT timestamp, price, volume
+        FROM prices
+        WHERE symbol = ?
+          AND timestamp BETWEEN ? AND ?
+        ORDER BY timestamp ASC
+    """, (symbol, start_ts, end_ts))
+    return cursor.fetchall()
+
+
     conn.commit()
     conn.close()
 
