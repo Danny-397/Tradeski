@@ -3,12 +3,49 @@
 <head>
     <title>Stock Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        /* Dark mode styling */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        #chart {
+            width: 90%;
+            height: 500px;
+            margin: auto;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background-color: #1e1e1e;
+        }
+
+        select {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Real-Time Stock Price</h1>
+    <h1>Real-Time Stock Dashboard</h1>
 
-    <div id="chart" style="width: 90%; height: 500px;"></div>
+    <!-- Multi-stock dropdown -->
+    <select id="symbol-select">
+        <option value="AAPL">AAPL</option>
+        <option value="TSLA">TSLA</option>
+        <option value="NVDA">NVDA</option>
+        <option value="MSFT">MSFT</option>
+        <option value="AMZN">AMZN</option>
+    </select>
+
+    <div id="chart"></div>
 
     <script src="/static/chart.js"></script>
 </body>
