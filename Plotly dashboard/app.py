@@ -156,3 +156,6 @@ def delete_alert(alert_id):
 if __name__ == "__main__":
     socketio.run(app, debug=True)
 
+def get_socketio():
+    return scoketio 
+
