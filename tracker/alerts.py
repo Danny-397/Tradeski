@@ -17,6 +17,11 @@ class AlertRule:
 def volume_spike(multiplier=2.0):
     return lambda d: d.get("volume", 0) > (d.get("avg_volume", 1) * multiplier)
 
+# triggers when volatility excceds a z score threshold 
+def volatility_spike(threshold=2.5):
+    return lambda d: abs(d.get("zscore", 0)) > threshold
+
+
 
 class AlertEngine:
     def __init__(self, notifier):
