@@ -6,30 +6,46 @@
 
     <style>
         /* Dark mode styling */
-        body {
-            background-color: #121212;
-            color: #e0e0e0;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
+      #stats-card {
+    width: 90%;
+    margin: 20px auto;
+    padding: 18px;
+    border-radius: 14px;
+    background: rgba(15, 20, 30, 0.55);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 200, 255, 0.35);
+    box-shadow: 0 0 14px rgba(0, 200, 255, 0.25);
+    transition: 0.25s ease;
+}
 
-        #chart {
-            width: 90%;
-            height: 500px;
-            margin: auto;
-            border: 1px solid #333;
-            border-radius: 8px;
-            background-color: #1e1e1e;
-        }
+#stats-card:hover {
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.45);
+    border-color: rgba(0, 200, 255, 0.55);
+}
 
-        select {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-            padding: 8px;
-            border: 1px solid #444;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
+.stats-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+}
+
+.label {
+    font-size: 12px;
+    color: #7ddfff;
+    opacity: 0.8;
+}
+
+.value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #00eaff;
+}
 
         
        <div id="stats-card">
