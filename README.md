@@ -1,115 +1,232 @@
-Real‑Time Stock Tracker
-Live price monitoring, technical analysis, data storage, and automated alerts — built with Python, SQLite, and a modular architecture.
-
-[![CI Pipeline](https://github.com/Danny-397/real-time-stock-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/real-time-stock-tracker/actions/workflows/ci.yml)
-
-This project is a fully functional application designed to track stock prices in real time, analyze trends, store historical data, and send push notifications when important events occur. It demonstrates clean architecture, testing, CI/CD, and real‑world software engineering practices.
+Tradeski — Real‑Time Market Intelligence Dashboard
+Tradeski is a full‑stack, real‑time financial analytics platform that streams live market data, computes quantitative indicators, and visualizes them through an interactive TradingView‑style dashboard.
+It combines a high‑performance Python backend with a modern JavaScript frontend to deliver a complete market‑monitoring experience.
 
 Features
-Real‑time price fetching using a configurable polling interval
+Real‑Time Data
+Live price streaming via WebSockets
 
-Technical analysis (moving averages, trend detection, volatility checks)
+Millisecond‑level updates
 
-SQLite database storage for historical price data
+Automatic chart extension
 
-Pushover notifications for alerts and threshold triggers
+Advanced Technical Indicators
+Tradeski computes a full suite of quantitative indicators:
 
-Config‑driven design for API keys, symbols, and user preferences
+SMA20
 
-Automated tests with pytest
+EMA20
 
-Continuous Integration (GitHub Actions) with linting and test enforcement
+RSI(14)
 
-Modular, extensible architecture suitable for future expansion
+MACD (macd, signal, histogram)
+
+Bollinger Bands
+
+Z‑Score
+
+Volatility
+
+Linear regression prediction
+
+Interactive Dashboard
+Candlestick chart
+
+Volume bars
+
+RSI subplot
+
+MACD subplot
+
+Bollinger Band overlays
+
+Real‑time alert feed
+
+Symbol switching
+
+Alert Engine
+Rule‑based alerts
+
+Z‑score alerts
+
+Threshold alerts
+
+Real‑time push notifications to the dashboard
+
+Full‑Stack Architecture
+Python + Flask + Socket.IO backend
+
+SQLite database
+
+JavaScript + Plotly frontend
+
+REST API + WebSocket streaming
+
+Production‑ready deployment (Railway + Vercel)
 
 Architecture Overview
 Code
-tracker/
-    analyzer.py        # Computes trends, moving averages, and signals
-    database.py        # SQLite wrapper for storing and retrieving prices
-    notifier.py        # Sends Pushover alerts
-    price_fetcher.py   # Fetches live stock prices
-    config.py          # Configuration model for Pushover and app settings
-tests/
-    test_analyzer.py
-    test_price_fetcher.py
-    test_notifier.py
-.github/workflows/
-    ci.yml             # Linting and testing pipeline
-requirements.txt
-setup.cfg              # Flake8 configuration
-This structure mirrors real-world Python applications: modular, testable, and easy to maintain.
+Tradeski/
+│
+├── dashboard/          # Flask + Socket.IO backend
+│   ├── app.py
+│   └── ...
+│
+├── tracker/            # Data ingestion + analytics engine
+│   ├── analyzer.py
+│   ├── database.py
+│   └── ...
+│
+├── frontend/           # Public dashboard UI
+│   ├── index.html
+│   ├── styles.css
+│   └── dashboard.js
+│
+└── README.md
+Backend Technology
+Data Pipeline
+Real‑time ingestion
 
-Installation
-Clone the repository:
+Timestamped price storage
 
+Volume tracking
+
+Automatic pruning
+
+Analytics Engine
+Implemented in analyzer.py:
+
+SMA, EMA
+
+RSI
+
+MACD
+
+Bollinger Bands
+
+Z‑score
+
+Volatility
+
+Linear regression forecasting
+
+API Endpoints
+/price_history — full indicator set
+
+/stats — OHLC + 52‑week range
+
+/alerts — create, list, delete alerts
+
+WebSocket Events
+price_update
+
+alert_triggered
+
+Frontend Technology
+Dashboard
+Built with HTML, CSS, and vanilla JavaScript
+
+Plotly.js for charting
+
+Socket.IO client for real‑time updates
+
+Charts
+Candlesticks
+
+Volume bars
+
+RSI
+
+MACD
+
+Bollinger Bands
+
+SMA/EMA overlays
+
+UI
+Dark‑mode TradingView‑style layout
+
+Stats panel
+
+Alerts feed
+
+Symbol selector
+
+How to Run Locally
+Backend
 Code
-git clone https://github.com/Danny-397/real-time-stock-tracker.git
-cd real-time-stock-tracker
-Install dependencies:
-
-Code
+cd dashboard
 pip install -r requirements.txt
-Running the Application
-Run the main tracker:
+python app.py
+Frontend
+Open frontend/index.html in a browser
+(or serve with any static file server).
 
-Code
-python tracker/main.py
-Ensure your configuration (API keys, symbols, etc.) is set correctly in your config file or environment variables.
+Deployment
+Backend
+Deployed on Railway
 
-Example Output
-Code
-[INFO] Fetching price for AAPL...
-[INFO] Latest price: 187.42
-[INFO] 20-period moving average: 185.91
-[INFO] Trend: Upward
-[ALERT] AAPL crossed above its moving average — sending notification
-Testing
-Run the full test suite:
+Auto‑redeploy on push
 
-Code
-pytest -q
-The CI pipeline automatically runs:
+Public API endpoint
 
-flake8 linting
+WebSocket support
 
-pytest tests
+Frontend
+Deployed on Vercel
 
-import validation
+Static hosting
 
-A green pipeline indicates the project is stable and production‑ready.
+Instant redeploys
+
+Connected to Railway backend
+
+Why I Built Tradeski
+Tradeski began as a personal project to explore real‑time systems, quantitative finance, and full‑stack engineering.
+I wanted to build something that wasn’t just a script or a school assignment, but a complete, production‑ready platform that integrates
+
+data engineering
+
+backend architecture
+
+quantitative analysis
+
+frontend visualization
+
+real‑time communication
+
+Tradeski represents my interest in automation, markets, and system design — and my ability to take a complex idea from concept to a fully deployed product.
 
 What I Learned
-Building this project taught me how to:
+Building real‑time systems with WebSockets
 
-Design a modular Python application with clean separation of concerns
+Designing REST APIs and backend services
 
-Use SQLite for lightweight, persistent data storage
+Implementing quantitative indicators from scratch
 
-Implement real‑time data pipelines
+Managing stateful data pipelines
 
-Write automated tests that validate core logic
+Structuring a full‑stack application
 
-Configure GitHub Actions for continuous integration
+Deploying production services (Railway + Vercel)
 
-Enforce code quality with flake8 and type hints
+Creating interactive data visualizations
 
-Build a real-world notification system using Pushover
-
-This project strengthened my skills in software engineering, debugging, and system design.
+Writing clean, maintainable, modular code
 
 Future Improvements
-Add a web dashboard for live visualization
+Multi‑symbol watchlist
 
-Support multiple stock symbols simultaneously
+User accounts + authentication
 
-Add more technical indicators (RSI, MACD, Bollinger Bands)
+Custom alert creation UI
 
-Implement asynchronous price fetching for higher frequency updates
+Portfolio tracking
 
-Add Docker support for deployment
+News + sentiment integration
 
-Expand notification channels (email, SMS, Discord)
+Machine learning prediction models
 
-About the Author
-Danny - Aspiring software engineer interested in automation, data systems, and real‑time analytics. Focused on building projects that can give peope some adavantage in the financial sectors of their lives. 
+Mobile‑optimized dashboard
+
+Cloud database migration
