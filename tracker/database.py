@@ -9,10 +9,19 @@ from typing import List, Tuple, Optional
 DB_PATH = "data/prices.db"
 
 
+# ------------------------------------------------------------------------------
+# Internal Helpers
+# ------------------------------------------------------------------------------
+
 def _connect() -> sqlite3.Connection:
+    """Ensure DB directory exists and return a connection."""
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
+
+# ------------------------------------------------------------------------------
+# Initialization
+# ------------------------------------------------------------------------------
 
 def init_db() -> None:
     """Initialize the database with prices and alerts tables."""
@@ -51,8 +60,12 @@ def init_db() -> None:
     conn.close()
 
 
+# ------------------------------------------------------------------------------
+# Price Storage
+# ------------------------------------------------------------------------------
+
 def insert_price(symbol: str, price: float, volume: float = 0.0) -> None:
-    """Insert a price row."""
+    """Insert a price row with timestamp."""
     conn = _connect()
     cursor = conn.cursor()
 
@@ -68,16 +81,17 @@ def insert_price(symbol: str, price: float, volume: float = 0.0) -> None:
     conn.close()
 
 
-def get_recent_prices(symbol: str, limit: int = 200) -> List[Tuple[float, float]]:
+def get_recent_prices(symbol: str, limit: int = 200) -> List[Tuple[float, float, float]]:
     """
-    Return recent prices for a symbol as (timestamp, price) tuples.
+    Return recent prices for a symbol as (timestamp, price, volume) tuples.
+    Ordered oldest → newest.
     """
     conn = _connect()
     cursor = conn.cursor()
 
     cursor.execute(
         """
-        SELECT timestamp, price
+        SELECT timestamp, price, volume
         FROM prices
         WHERE symbol = ?
         ORDER BY timestamp ASC
@@ -118,6 +132,10 @@ def get_prices_in_range(
     conn.close()
     return rows
 
+
+# ------------------------------------------------------------------------------
+# Alerts
+# ------------------------------------------------------------------------------
 
 def insert_alert(symbol: str, alert_type: str, message: str) -> None:
     """
@@ -192,7 +210,7 @@ def get_recent_alerts(symbol: str, limit: int = 10):
 
 def get_alerts():
     """
-    Return all alerts (for dashboard listing).
+    Return all active alerts (for dashboard listing).
     """
     conn = _connect()
     cursor = conn.cursor()
