@@ -3,12 +3,18 @@ from typing import List, Tuple
 
 
 def sma(values: List[float], period: int) -> List[float]:
-    """Simple Moving Average."""
+    """Simple Moving Average (exact, no floating‑point drift)."""
     if len(values) < period:
         return [None] * len(values)
 
-    conv = np.convolve(values, np.ones(period) / period, mode="valid")
-    return [None] * (period - 1) + list(conv)
+    result = [None] * (period - 1)
+
+    for i in range(period - 1, len(values)):
+        window = values[i - period + 1:i + 1]
+        avg = sum(window) / period
+        result.append(avg)
+
+    return result
 
 
 def ema(values: List[float], period: int) -> List[float]:
@@ -92,7 +98,7 @@ def macd(values: List[float]) -> Tuple[List[float], List[float], List[float]]:
 
 
 def zscore(values: List[float], period: int = 20) -> List[float]:
-    """Rolling Z-score."""
+    """Rolling Z‑score."""
     result = []
 
     for i in range(len(values)):
@@ -128,7 +134,7 @@ def volatility(values: List[float], period: int = 20) -> List[float]:
 
 
 def linear_regression_prediction(values: List[float]) -> float | None:
-    """Predict next value using least squares linear regression."""
+    """Predict next value using least‑squares linear regression."""
     if len(values) < 10:
         return None
 
