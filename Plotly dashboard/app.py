@@ -1,170 +1,53 @@
-# dashboard/app.py
-# Adds SMA20 and EMA20, plus caching and WebSocket support.
+# inside dashboard/app.py
 
-import yfinance as yf
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO
-
-from .cache import SimpleCache
-from tracker import database  # Correct import
-
-# Flask application setup
-app = Flask(__name__)
-
-# WebSocket server
-socketio = SocketIO(app, cors_allowed_origins="*")
-
-# In‑memory cache for stats + RSI
-cache = SimpleCache()
-
-
-@app.route("/stats")
-def stats():
-    """Return OHLC + 52‑week stats for a symbol."""
-    symbol = request.args.get("symbol", "AAPL").upper()
-    cache_key = f"stats_{symbol}"
-
-    cached = cache.get(cache_key)
-    if cached:
-        return jsonify(cached)
-
-    ticker = yf.Ticker(symbol)
-    hist = ticker.history(period="1y")
-
-    if hist.empty:
-        return jsonify({"error": "No data"}), 400
-
-    today = hist.iloc[-1]
-
-    result = {
-        "symbol": symbol,
-        "open": float(today["Open"]),
-        "high": float(today["High"]),
-        "low": float(today["Low"]),
-        "close": float(today["Close"]),
-        "high_52w": float(hist["High"].max()),
-        "low_52w": float(hist["Low"].min()),
-    }
-
-    cache.set(cache_key, result, ttl=60)
-    return jsonify(result)
-
-
-@app.route("/rsi")
-def rsi():
-    """Return RSI(14) values for a symbol."""
-    symbol = request.args.get("symbol", "AAPL").upper()
-    cache_key = f"rsi_{symbol}"
-
-    cached = cache.get(cache_key)
-    if cached:
-        return jsonify(cached)
-
-    ticker = yf.Ticker(symbol)
-    hist = ticker.history(period="3mo")
-
-    if hist.empty:
-        return jsonify({"error": "No data"}), 400
-
-    close_prices = hist["Close"]
-
-    delta = close_prices.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-
-    avg_gain = gain.rolling(14).mean()
-    avg_loss = loss.rolling(14).mean()
-
-    rs = avg_gain / avg_loss
-    rsi_values = 100 - (100 / (1 + rs))
-
-    result = {
-        "timestamps": hist.index.strftime("%Y-%m-%d %H:%M:%S").tolist(),
-        "rsi": rsi_values.fillna(0).tolist(),
-    }
-
-    cache.set(cache_key, result, ttl=60)
-    return jsonify(result)
-
+from tracker import database
+from tracker.analyzer import (
+    sma, ema, rsi, macd, bollinger_bands,
+    zscore, volatility, linear_regression_prediction
+)
 
 @app.route("/price_history")
 def price_history():
-    """Return last 200 prices + SMA20 + EMA20."""
-    symbol = request.args.get("symbol", "AAPL").upper()
+    symbol = request.args.get("symbol", "AAPL")
+    rows = database.get_recent_prices(symbol, limit=300)
 
-    rows = database.get_recent_prices(symbol, limit=200)
+    timestamps = [r[0] for r in rows]
+    prices = [r[1] for r in rows]
+    volume = [r[2] for r in rows]
 
-    timestamps = [ts for ts, _ in rows]
-    prices = [price for _, price in rows]
-
-    def sma(values, window):
-        if len(values) < window:
-            return [None] * len(values)
-        prefix = [None] * (window - 1)
-        series = [
-            sum(values[i - window + 1:i + 1]) / window
-            for i in range(window - 1, len(values))
-        ]
-        return prefix + series
-
-    def ema(values, window):
-        if len(values) < window:
-            return [None] * len(values)
-        ema_values = [None] * len(values)
-        k_factor = 2 / (window + 1)
-        ema_values[window - 1] = sum(values[:window]) / window
-        for i in range(window, len(values)):
-            ema_values[i] = (
-                values[i] * k_factor +
-                ema_values[i - 1] * (1 - k_factor)
-            )
-        return ema_values
+    # OHLC reconstruction (simple method)
+    open_prices = prices
+    high_prices = prices
+    low_prices = prices
+    close_prices = prices
 
     sma20 = sma(prices, 20)
     ema20 = ema(prices, 20)
+    rsi_vals = rsi(prices, 14)
+    macd_line, signal_line, histogram = macd(prices)
+    upper_band, lower_band = bollinger_bands(prices, 20)
+    z_vals = zscore(prices, 20)
+    vol_vals = volatility(prices, 20)
+    prediction = linear_regression_prediction(prices)
 
-    return jsonify(
-        {
-            "timestamps": timestamps,
-            "prices": prices,
-            "sma20": sma20,
-            "ema20": ema20,
-        }
-    )
-
-
-@app.route("/alerts", methods=["POST"])
-def create_alert():
-    """Create a new alert rule."""
-    data = request.json
-    alert_id = database.create_alert(
-        symbol=data["symbol"],
-        alert_type=data["alert_type"],
-        threshold=data.get("threshold"),
-        multiplier=data.get("multiplier"),
-        zscore=data.get("zscore"),
-    )
-    return jsonify({"status": "ok", "alert_id": alert_id})
-
-
-@app.route("/alerts", methods=["GET"])
-def list_alerts():
-    """Return all active alerts."""
-    alerts = database.get_alerts()
-    return jsonify(alerts)
-
-
-@app.route("/alerts/<int:alert_id>", methods=["DELETE"])
-def delete_alert(alert_id):
-    """Delete an alert rule."""
-    database.delete_alert(alert_id)
-    return jsonify({"status": "deleted"})
-
-
-def get_socketio():
-    """Expose Socket.IO instance to tracker."""
-    return socketio
-
-
-if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    return jsonify({
+        "timestamps": timestamps,
+        "prices": prices,
+        "open": open_prices,
+        "high": high_prices,
+        "low": low_prices,
+        "close": close_prices,
+        "volume": volume,
+        "sma20": sma20,
+        "ema20": ema20,
+        "rsi": rsi_vals,
+        "macd": macd_line,
+        "signal": signal_line,
+        "histogram": histogram,
+        "upper_band": upper_band,
+        "lower_band": lower_band,
+        "zscore": z_vals,
+        "volatility": vol_vals,
+        "prediction": prediction
+    })
