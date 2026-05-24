@@ -1,6 +1,5 @@
 import numpy as np
-from typing import List
-from sklearn.linear_model import LinearRegression
+from typing import List, Tuple
 
 
 def sma(values: List[float], period: int) -> List[float]:
@@ -56,7 +55,7 @@ def bollinger_bands(
     values: List[float],
     period: int = 20,
     std_factor: float = 2.0
-) -> tuple[list, list]:
+) -> Tuple[List[float], List[float]]:
     """Bollinger Bands."""
     if len(values) < period:
         return [None] * len(values), [None] * len(values)
@@ -80,7 +79,7 @@ def bollinger_bands(
     return upper, lower
 
 
-def macd(values: List[float]) -> tuple[list, list, list]:
+def macd(values: List[float]) -> Tuple[List[float], List[float], List[float]]:
     """MACD indicator."""
     ema12 = ema(values, 12)
     ema26 = ema(values, 26)
@@ -129,19 +128,20 @@ def volatility(values: List[float], period: int = 20) -> List[float]:
 
 
 def linear_regression_prediction(values: List[float]) -> float | None:
-    """Predict next value using linear regression."""
+    """Predict next value using least squares linear regression."""
     if len(values) < 10:
         return None
 
-    X = np.arange(len(values)).reshape(-1, 1)
+    x = np.arange(len(values))
     y = np.array(values)
 
-    model = LinearRegression().fit(X, y)
-    next_x = np.array([[len(values)]])
+    A = np.vstack([x, np.ones(len(x))]).T
+    m, b = np.linalg.lstsq(A, y, rcond=None)[0]
 
-    return float(model.predict(next_x))
+    return float(m * len(values) + b)
 
-def analyze_series(data: list[tuple[str, float]]) -> dict:
+
+def analyze_series(data: List[Tuple[str, float]]) -> dict:
     """Compute key indicators from a list of (timestamp, price) tuples."""
     if not data:
         return {}
