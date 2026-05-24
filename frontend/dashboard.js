@@ -1,7 +1,7 @@
 // dashboard.js
-// Frontend logic for FinSeek dashboard: charts, stats, alerts, WebSocket.
+// Full TradingView-style dashboard integration for FinSeek
 
-const API_BASE = "http://localhost:5000";  // Change to your Railway URL in production
+const API_BASE = "http://localhost:5000";  // Change to Railway URL in production
 const socket = io(API_BASE);
 
 const chartDiv = document.getElementById("price-chart");
@@ -11,12 +11,14 @@ const symbolSelect = document.getElementById("symbol-select");
 
 let currentSymbol = "AAPL";
 
-// Load full price history and indicators, then render charts
+
+// Load full price history + indicators
+
 async function loadPriceHistory(symbol) {
     const res = await fetch(`${API_BASE}/price_history?symbol=${symbol}`);
     const data = await res.json();
 
-    // Main price series (candles)
+    // Candlestick chart
     const traceCandle = {
         x: data.timestamps,
         open: data.open,
@@ -24,12 +26,12 @@ async function loadPriceHistory(symbol) {
         low: data.low,
         close: data.close,
         type: "candlestick",
-        name: "Price",
+        name: "Candles",
         xaxis: "x",
         yaxis: "y"
     };
 
-    // SMA20 and EMA20 overlays
+    // SMA20
     const traceSMA = {
         x: data.timestamps,
         y: data.sma20,
@@ -41,6 +43,7 @@ async function loadPriceHistory(symbol) {
         yaxis: "y"
     };
 
+    // EMA20
     const traceEMA = {
         x: data.timestamps,
         y: data.ema20,
@@ -52,32 +55,30 @@ async function loadPriceHistory(symbol) {
         yaxis: "y"
     };
 
-    // Optional Bollinger Bands (if provided)
-    const tracesBands = [];
-    if (data.upper_band && data.lower_band) {
-        tracesBands.push({
-            x: data.timestamps,
-            y: data.upper_band,
-            type: "scatter",
-            mode: "lines",
-            name: "Upper Band",
-            line: { color: "#888", width: 1 },
-            xaxis: "x",
-            yaxis: "y"
-        });
-        tracesBands.push({
-            x: data.timestamps,
-            y: data.lower_band,
-            type: "scatter",
-            mode: "lines",
-            name: "Lower Band",
-            line: { color: "#888", width: 1 },
-            xaxis: "x",
-            yaxis: "y"
-        });
-    }
+    // Bollinger Bands
+    const traceUpper = {
+        x: data.timestamps,
+        y: data.upper_band,
+        type: "scatter",
+        mode: "lines",
+        name: "Upper Band",
+        line: { color: "#888", width: 1 },
+        xaxis: "x",
+        yaxis: "y"
+    };
 
-    // Volume bars (secondary y-axis on first row)
+    const traceLower = {
+        x: data.timestamps,
+        y: data.lower_band,
+        type: "scatter",
+        mode: "lines",
+        name: "Lower Band",
+        line: { color: "#888", width: 1 },
+        xaxis: "x",
+        yaxis: "y"
+    };
+
+    // Volume bars
     const traceVolume = {
         x: data.timestamps,
         y: data.volume,
@@ -89,7 +90,7 @@ async function loadPriceHistory(symbol) {
         opacity: 0.5
     };
 
-    // RSI subplot (row 2)
+    // RSI subplot
     const traceRSI = {
         x: data.timestamps,
         y: data.rsi,
@@ -101,7 +102,7 @@ async function loadPriceHistory(symbol) {
         yaxis: "y3"
     };
 
-    // MACD subplot (row 3)
+    // MACD subplot
     const traceMACD = {
         x: data.timestamps,
         y: data.macd,
@@ -139,7 +140,8 @@ async function loadPriceHistory(symbol) {
         traceCandle,
         traceSMA,
         traceEMA,
-        ...tracesBands,
+        traceUpper,
+        traceLower,
         traceVolume,
         traceRSI,
         traceMACD,
@@ -152,7 +154,13 @@ async function loadPriceHistory(symbol) {
         plot_bgcolor: "#111",
         font: { color: "#eee" },
         showlegend: true,
-        grid: { rows: 3, columns: 1, pattern: "independent", roworder: "top to bottom" },
+
+        grid: {
+            rows: 3,
+            columns: 1,
+            pattern: "independent",
+            roworder: "top to bottom"
+        },
 
         // Row 1: Price + Volume
         xaxis: { domain: [0, 1], anchor: "y" },
@@ -168,7 +176,7 @@ async function loadPriceHistory(symbol) {
         xaxis2: { domain: [0, 1], anchor: "y3" },
         yaxis3: {
             title: "RSI",
-            domain: [0.3, 0.5],
+            domain: [0.30, 0.50],
             range: [0, 100]
         },
 
@@ -185,7 +193,8 @@ async function loadPriceHistory(symbol) {
     Plotly.newPlot(chartDiv, traces, layout);
 }
 
-// Load stats panel
+// Stats Panel
+
 async function loadStats(symbol) {
     const res = await fetch(`${API_BASE}/stats?symbol=${symbol}`);
     const data = await res.json();
@@ -200,7 +209,8 @@ async function loadStats(symbol) {
     `;
 }
 
-// WebSocket setup for live updates and alerts
+// WebSocket Real-Time Updates
+
 function setupWebSocket() {
     socket.on("connect", () => {
         console.log("Connected to WebSocket");
@@ -209,9 +219,7 @@ function setupWebSocket() {
     socket.on("price_update", (msg) => {
         if (msg.symbol !== currentSymbol) return;
 
-        // Extend only the main price trace (candles) and volume
-        // For simplicity, we just append a new point to price and volume.
-        // In a real system, you might want to update the last candle instead.
+        // Extend only the candle close + volume
         Plotly.extendTraces(
             chartDiv,
             {
@@ -219,7 +227,7 @@ function setupWebSocket() {
                 close: [[msg.price]],
                 y: [[msg.volume]]
             },
-            [0, 4]  // 0: candles, 4: volume (based on traces order above)
+            [0, 5]  // 0 = candles, 5 = volume
         );
     });
 
@@ -230,14 +238,16 @@ function setupWebSocket() {
     });
 }
 
-// Symbol selector
+// Symbol Switching
+
 symbolSelect.addEventListener("change", () => {
     currentSymbol = symbolSelect.value;
     loadPriceHistory(currentSymbol);
     loadStats(currentSymbol);
 });
 
-// Initial load
+// Initial Load
+
 currentSymbol = symbolSelect.value;
 loadPriceHistory(currentSymbol);
 loadStats(currentSymbol);
