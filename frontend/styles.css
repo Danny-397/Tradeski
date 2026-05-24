@@ -1,0 +1,40 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #eee;
+}
+
+header {
+    background: #1a1a1a;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+    padding: 20px;
+}
+
+#chart-container {
+    grid-column: 1 / 2;
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+#stats-panel, #alerts-panel {
+    background: #1a1a1a;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+#alerts-feed {
+    max-height: 300px;
+    overflow-y: auto;
+}
