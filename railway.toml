@@ -2,8 +2,14 @@
 builder = "nixpacks"
 
 [deploy]
+<<<<<<< HEAD
 startCommand = "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT wsgi:app"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
+=======
+startCommand = "PYTHONPATH=/app python \"Plotly dashboard/app.py\""
+healthcheckPath = "/market_status"
+healthcheckTimeout = 300
+>>>>>>> b69063c4a2189fb2fdd909c38c67498d5dbdd6c8
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
