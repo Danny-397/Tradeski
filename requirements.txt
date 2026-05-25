@@ -4,7 +4,7 @@ python-dotenv
 flask
 flask-cors
 flask-socketio
-eventlet==0.36.1
+eventlet>=0.37.0
 gunicorn
 numpy==1.26.4
 scikit-learn==1.4.2

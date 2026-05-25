@@ -295,8 +295,9 @@ def _background_tracker() -> None:
 # Runner
 # ─────────────────────────────────────────────────────────────
 
+database.init_db()
+socketio.start_background_task(_background_tracker)
+
 if __name__ == "__main__":
-    database.init_db()
-    socketio.start_background_task(_background_tracker)
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host="0.0.0.0", port=port)
