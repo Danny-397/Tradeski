@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python \"Plotly dashboard/app.py\""
+startCommand = "PYTHONPATH=/app python \"Plotly dashboard/app.py\""
 healthcheckPath = "/market_status"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
