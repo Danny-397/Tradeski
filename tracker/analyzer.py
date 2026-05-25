@@ -15,9 +15,9 @@ def sma(values: List[float], period: int) -> List[Optional[float]]:
 
 def ema(values: List[float], period: int) -> List[float]:
     """Exponential Moving Average."""
-    k       = 2 / (period + 1)
+    k = 2 / (period + 1)
     ema_val = values[0]
-    result  = []
+    result = []
     for price in values:
         ema_val = price * k + ema_val * (1 - k)
         result.append(ema_val)
@@ -30,20 +30,20 @@ def rsi(values: List[float], period: int = 14) -> List[Optional[float]]:
         return [None] * len(values)
 
     deltas = np.diff(values)
-    seed   = deltas[:period]
-    up     = seed[seed > 0].sum() / period
-    down   = -seed[seed < 0].sum() / period
-    rs     = up / down if down != 0 else 0
+    seed = deltas[:period]
+    up = seed[seed > 0].sum() / period
+    down = -seed[seed < 0].sum() / period
+    rs = up / down if down != 0 else 0
 
     result: List[Optional[float]] = [None] * period
     result.append(100 - (100 / (1 + rs)))
 
     for delta in deltas[period:]:
-        up_v   = max(delta, 0)
+        up_v = max(delta, 0)
         down_v = -min(delta, 0)
-        up     = (up * (period - 1) + up_v) / period
-        down   = (down * (period - 1) + down_v) / period
-        rs     = up / down if down != 0 else 0
+        up = (up * (period - 1) + up_v) / period
+        down = (down * (period - 1) + down_v) / period
+        rs = up / down if down != 0 else 0
         result.append(100 - (100 / (1 + rs)))
 
     return result
@@ -59,7 +59,8 @@ def bollinger_bands(
         return [None] * len(values), [None] * len(values)
 
     sma_vals = sma(values, period)
-    upper, lower = [], []
+    upper = []
+    lower = []
 
     for i in range(len(values)):
         if i < period - 1:
@@ -80,11 +81,11 @@ def macd(
     signal_period: int = 9,
 ) -> Tuple[List[float], List[float], List[float]]:
     """MACD indicator (line, signal, histogram)."""
-    ema_fast   = ema(values, fast)
-    ema_slow   = ema(values, slow)
-    macd_line  = [a - b for a, b in zip(ema_fast, ema_slow)]
+    ema_fast = ema(values, fast)
+    ema_slow = ema(values, slow)
+    macd_line = [a - b for a, b in zip(ema_fast, ema_slow)]
     signal_line = ema(macd_line, signal_period)
-    histogram  = [m - s for m, s in zip(macd_line, signal_line)]
+    histogram = [m - s for m, s in zip(macd_line, signal_line)]
     return macd_line, signal_line, histogram
 
 
@@ -96,9 +97,9 @@ def zscore(values: List[float], period: int = 20) -> List[Optional[float]]:
             result.append(None)
             continue
         window = values[i - period:i]
-        mean   = np.mean(window)
-        std    = np.std(window)
-        result.append(0.0 if std == 0 else (values[i] - mean) / std)
+        mean = np.mean(window)
+        std = np.std(window)
+        result.append(0.0 if std == 0 else float((values[i] - mean) / std))
     return result
 
 
@@ -128,7 +129,7 @@ def atr(
         tr = max(
             high[i] - low[i],
             abs(high[i] - close[i - 1]),
-            abs(low[i]  - close[i - 1]),
+            abs(low[i] - close[i - 1]),
         )
         tr_vals.append(tr)
 
@@ -152,27 +153,30 @@ def stochastic(
 ) -> Tuple[List[Optional[float]], List[Optional[float]]]:
     """Stochastic Oscillator (%K, %D).
 
-    %K measures where the close sits within the high-low range.
-    %D is a smoothed signal line of %K.
+    %K: where close sits within the k_period high-low range.
+    %D: d_period SMA of %K (signal line).
     """
     k_vals: List[Optional[float]] = []
-
     for i in range(len(close)):
         if i < k_period - 1:
             k_vals.append(None)
             continue
         h_max = max(high[i - k_period + 1:i + 1])
-        l_min = min(low [i - k_period + 1:i + 1])
+        l_min = min(low[i - k_period + 1:i + 1])
         denom = h_max - l_min
         k_vals.append(((close[i] - l_min) / denom * 100) if denom != 0 else 50.0)
 
-    # %D = 3-period SMA of %K (skip None values)
-    k_clean = [v if v is not None else 0.0 for v in k_vals]
-    d_raw   = sma(k_clean, d_period)
-    # Mask leading Nones from %K into %D
-    first_valid_k = next((i for i, v in enumerate(k_vals) if v is not None), len(k_vals))
-    d_vals = [None] * min(first_valid_k + d_period - 1, len(d_raw))
-    d_vals += d_raw[len(d_vals):]
+    d_vals: List[Optional[float]] = []
+    for i in range(len(k_vals)):
+        if k_vals[i] is None:
+            d_vals.append(None)
+            continue
+        window = [
+            k_vals[j]
+            for j in range(max(0, i - d_period + 1), i + 1)
+            if k_vals[j] is not None
+        ]
+        d_vals.append(sum(window) / d_period if len(window) == d_period else None)
 
     return k_vals, d_vals
 
@@ -181,9 +185,9 @@ def linear_regression_prediction(values: List[float]) -> Optional[float]:
     """Predict next value via least-squares linear regression."""
     if len(values) < 10:
         return None
-    x   = np.arange(len(values))
-    y   = np.array(values)
-    A   = np.vstack([x, np.ones(len(x))]).T
+    x = np.arange(len(values))
+    y = np.array(values)
+    A = np.vstack([x, np.ones(len(x))]).T
     m, b = np.linalg.lstsq(A, y, rcond=None)[0]
     return float(m * len(values) + b)
 
@@ -195,25 +199,23 @@ def analyze_series(data: List[Tuple[str, float]]) -> dict:
 
     prices = [p for _, p in data]
 
-    sma20_vals  = sma(prices, 20)
-    sma50_vals  = sma(prices, 50)
-    ema20_vals  = ema(prices, 20)
-    rsi14_vals  = rsi(prices, 14)
-    vol20_vals  = volatility(prices, 20)
-    z_vals      = zscore(prices, 20)
-    pred        = linear_regression_prediction(prices)
-
-    # Stochastic uses price as a proxy for high/low (single price series)
+    sma20_vals = sma(prices, 20)
+    sma50_vals = sma(prices, 50)
+    ema20_vals = ema(prices, 20)
+    rsi14_vals = rsi(prices, 14)
+    vol20_vals = volatility(prices, 20)
+    z_vals = zscore(prices, 20)
+    pred = linear_regression_prediction(prices)
     k_vals, d_vals = stochastic(prices, prices, prices)
 
     return {
-        "sma20":        sma20_vals[-1],
-        "sma50":        sma50_vals[-1],
-        "ema20":        ema20_vals[-1],
-        "rsi14":        rsi14_vals[-1],
-        "vol20":        vol20_vals[-1],
-        "z_score":      z_vals[-1],
-        "prediction":   pred,
-        "stoch_k":      k_vals[-1],
-        "stoch_d":      d_vals[-1],
+        "sma20": sma20_vals[-1],
+        "sma50": sma50_vals[-1],
+        "ema20": ema20_vals[-1],
+        "rsi14": rsi14_vals[-1],
+        "vol20": vol20_vals[-1],
+        "z_score": z_vals[-1],
+        "prediction_next": pred,
+        "stoch_k": k_vals[-1],
+        "stoch_d": d_vals[-1],
     }

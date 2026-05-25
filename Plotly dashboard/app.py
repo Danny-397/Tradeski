@@ -21,13 +21,9 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # ── helpers ──────────────────────────────────────────────────
 
-def _rows_to_dict(rows, limit):
-    """Convert (timestamp, price, volume) rows to labelled lists."""
-    rows = rows[-limit:] if limit else rows
-    timestamps = [r[0] for r in rows]
-    prices     = [r[1] for r in rows]
-    volume     = [r[2] for r in rows]
-    return timestamps, prices, volume
+def _slice(rows, limit):
+    """Return the last `limit` rows (oldest → newest)."""
+    return rows[-limit:] if limit and limit < len(rows) else rows
 
 
 # ── REST endpoints ────────────────────────────────────────────
@@ -35,26 +31,26 @@ def _rows_to_dict(rows, limit):
 @app.route("/stats")
 def stats():
     symbol = request.args.get("symbol", "AAPL")
-    rows   = database.get_recent_prices(symbol, limit=300)
+    rows = database.get_recent_prices(symbol, limit=300)
 
     if not rows:
         return jsonify({"error": "No data"}), 404
 
-    prices  = [r[1] for r in rows]
-    open_p  = prices[0]
+    prices = [r[1] for r in rows]
+    open_p = prices[0]
     close_p = prices[-1]
-    high_p  = max(prices)
-    low_p   = min(prices)
+    high_p = max(prices)
+    low_p = min(prices)
     change_pct = ((close_p - open_p) / open_p * 100) if open_p else 0.0
 
     return jsonify({
-        "symbol":     symbol,
-        "open":       round(open_p,  4),
-        "high":       round(high_p,  4),
-        "low":        round(low_p,   4),
-        "close":      round(close_p, 4),
-        "high_52w":   round(high_p,  4),
-        "low_52w":    round(low_p,   4),
+        "symbol": symbol,
+        "open": round(open_p, 4),
+        "high": round(high_p, 4),
+        "low": round(low_p, 4),
+        "close": round(close_p, 4),
+        "high_52w": round(high_p, 4),
+        "low_52w": round(low_p, 4),
         "change_pct": round(change_pct, 4),
     })
 
@@ -62,66 +58,68 @@ def stats():
 @app.route("/price_history")
 def price_history():
     symbol = request.args.get("symbol", "AAPL")
-    limit  = int(request.args.get("limit", 300))
+    limit = int(request.args.get("limit", 300))
 
     rows = database.get_recent_prices(symbol, limit=max(limit, 300))
     if not rows:
         return jsonify({"error": "No data"}), 404
 
-    timestamps, prices, volume = _rows_to_dict(rows, limit)
+    rows = _slice(rows, limit)
+    timestamps = [r[0] for r in rows]
+    prices = [r[1] for r in rows]
+    volume = [r[2] for r in rows]
 
-    # Indicators
-    sma20_vals              = sma(prices, 20)
-    sma50_vals              = sma(prices, 50)
-    ema20_vals              = ema(prices, 20)
-    rsi_vals                = rsi(prices, 14)
-    macd_line, sig, hist    = macd(prices)
-    upper_band, lower_band  = bollinger_bands(prices, 20)
-    z_vals                  = zscore(prices, 20)
-    vol_vals                = volatility(prices, 20)
-    prediction              = linear_regression_prediction(prices)
+    sma20_vals = sma(prices, 20)
+    sma50_vals = sma(prices, 50)
+    ema20_vals = ema(prices, 20)
+    rsi_vals = rsi(prices, 14)
+    macd_line, sig, hist = macd(prices)
+    upper_band, lower_band = bollinger_bands(prices, 20)
+    z_vals = zscore(prices, 20)
+    vol_vals = volatility(prices, 20)
+    prediction = linear_regression_prediction(prices)
 
     return jsonify({
-        "timestamps":  timestamps,
-        "prices":      prices,
-        "open":        prices,
-        "high":        prices,
-        "low":         prices,
-        "close":       prices,
-        "volume":      volume,
-        "sma20":       sma20_vals,
-        "sma50":       sma50_vals,
-        "ema20":       ema20_vals,
-        "rsi":         rsi_vals,
-        "macd":        macd_line,
-        "signal":      sig,
-        "histogram":   hist,
-        "upper_band":  upper_band,
-        "lower_band":  lower_band,
-        "zscore":      z_vals,
-        "volatility":  vol_vals,
-        "prediction":  prediction,
+        "timestamps": timestamps,
+        "prices": prices,
+        "open": prices,
+        "high": prices,
+        "low": prices,
+        "close": prices,
+        "volume": volume,
+        "sma20": sma20_vals,
+        "sma50": sma50_vals,
+        "ema20": ema20_vals,
+        "rsi": rsi_vals,
+        "macd": macd_line,
+        "signal": sig,
+        "histogram": hist,
+        "upper_band": upper_band,
+        "lower_band": lower_band,
+        "zscore": z_vals,
+        "volatility": vol_vals,
+        "prediction": prediction,
     })
 
 
 @app.route("/watchlist")
 def watchlist():
     """Return latest price + pct_change for a comma-separated list of symbols."""
-    raw     = request.args.get("symbols", "AAPL,MSFT,TSLA,NVDA,AMZN")
+    raw = request.args.get("symbols", "AAPL,MSFT,TSLA,NVDA,AMZN")
     symbols = [s.strip().upper() for s in raw.split(",") if s.strip()]
-    result  = {}
+    result = {}
 
     for sym in symbols:
         rows = database.get_recent_prices(sym, limit=2)
         if not rows:
             result[sym] = None
             continue
-        prices  = [r[1] for r in rows]
-        open_p  = prices[0]
+        prices = [r[1] for r in rows]
+        open_p = prices[0]
         close_p = prices[-1]
-        pct     = ((close_p - open_p) / open_p * 100) if open_p else 0.0
+        pct = ((close_p - open_p) / open_p * 100) if open_p else 0.0
         result[sym] = {
-            "price":      round(close_p, 4),
+            "price": round(close_p, 4),
             "change_pct": round(pct, 4),
         }
 
@@ -130,10 +128,10 @@ def watchlist():
 
 @app.route("/market_status")
 def market_status():
-    """Simple market-open heuristic based on server UTC time."""
+    """Market-open heuristic based on UTC time."""
     import datetime
-    now  = datetime.datetime.utcnow()
-    day  = now.weekday()    # 0=Mon … 6=Sun
+    now = datetime.datetime.utcnow()
+    day = now.weekday()
     hour = now.hour + now.minute / 60
 
     if day >= 5:
@@ -155,10 +153,10 @@ def get_alerts():
 
 @app.route("/alerts", methods=["POST"])
 def create_alert():
-    data       = request.json or {}
-    symbol     = data.get("symbol")
+    data = request.json or {}
+    symbol = data.get("symbol")
     alert_type = data.get("alert_type")
-    threshold  = data.get("threshold")
+    threshold = data.get("threshold")
     multiplier = data.get("multiplier")
     zscore_val = data.get("zscore")
 
@@ -176,17 +174,17 @@ def delete_alert(alert_id):
 
 def broadcast_price(symbol, price, change_pct=None):
     socketio.emit("price_update", {
-        "symbol":     symbol,
-        "price":      price,
+        "symbol": symbol,
+        "price": price,
         "change_pct": change_pct,
-        "timestamp":  time.time(),
+        "timestamp": time.time(),
     })
 
 
 def broadcast_alert(symbol, message):
     socketio.emit("alert_triggered", {
-        "symbol":    symbol,
-        "message":   message,
+        "symbol": symbol,
+        "message": message,
         "timestamp": time.time(),
     })
 
