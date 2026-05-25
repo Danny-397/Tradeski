@@ -1,8 +1,18 @@
+<<<<<<< HEAD
 # Tradeski — Real-Time Market Intelligence Platform
 
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+=======
+Tradeski — Real‑Time Market Intelligence Dashboard
+Tradeski is a full‑stack, real‑time financial analytics platform that streams live market data, computes quantitative indicators, and visualizes them through an interactive TradingView‑style dashboard.
+It combines a high‑performance Python backend with a modern JavaScript frontend to deliver a complete market‑monitoring experience.
+[![CI Pipeline](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
+Features
+Real‑Time Data
+Live price streaming via WebSockets
+>>>>>>> 92ba63b9a0b187b1175c08f0e1683173431ce497
 
 Tradeski is a full-stack, real-time financial analytics platform that streams live equity data, computes a complete suite of quantitative indicators, and visualizes everything through a cyber-styled interactive trading dashboard. It combines a high-performance Python backend with a modern JavaScript frontend, connected over WebSockets for millisecond-level updates.
 

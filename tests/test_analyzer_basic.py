@@ -1,10 +1,25 @@
+from typing import List, Tuple
+
+from tracker.analyzer import (
+    sma,
+    ema,
+    rsi,
+    volatility,
+    zscore,
+    linear_regression_prediction,
+    stochastic,
+)
+
+
 def analyze_series(data: List[Tuple[str, float]]) -> dict:
     """Return latest indicator values for a (timestamp, price) series."""
     if not data:
         return {}
 
+    # Extract price series
     prices = [price for _, price in data]
 
+    # Core indicators
     sma20_vals = sma(prices, 20)
     sma50_vals = sma(prices, 50)
     ema20_vals = ema(prices, 20)
@@ -23,7 +38,7 @@ def analyze_series(data: List[Tuple[str, float]]) -> dict:
         "rsi14": rsi_vals[-1],
         "vol20": vol_vals[-1],
         "z_score": z_vals[-1],
-        "prediction_next": prediction,   # <-- REQUIRED BY TESTS
+        "prediction_next": prediction,   # REQUIRED BY TESTS
         "stoch_k": k_vals[-1],
         "stoch_d": d_vals[-1],
     }
