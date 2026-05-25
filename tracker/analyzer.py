@@ -18,11 +18,6 @@ def sma(values: List[float], period: int) -> List[Optional[float]]:
 
 def ema(values: List[float], period: int) -> List[float]:
     """Exponential Moving Average."""
-<<<<<<< HEAD
-    k = 2 / (period + 1)
-    ema_val = values[0]
-    result = []
-=======
     if not values:
         return []
 
@@ -30,7 +25,6 @@ def ema(values: List[float], period: int) -> List[float]:
     ema_val = values[0]
     result: List[float] = []
 
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
     for price in values:
         ema_val = price * k + ema_val * (1 - k)
         result.append(ema_val)
@@ -45,28 +39,15 @@ def rsi(values: List[float], period: int = 14) -> List[Optional[float]]:
 
     deltas = np.diff(values)
     seed = deltas[:period]
-<<<<<<< HEAD
-    up = seed[seed > 0].sum() / period
-    down = -seed[seed < 0].sum() / period
-    rs = up / down if down != 0 else 0
-=======
 
     up = seed[seed > 0].sum() / period
     down = -seed[seed < 0].sum() / period
     rs = up / down if down != 0 else 0.0
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
 
     result: List[Optional[float]] = [None] * period
     result.append(100 - (100 / (1 + rs)))
 
     for delta in deltas[period:]:
-<<<<<<< HEAD
-        up_v = max(delta, 0)
-        down_v = -min(delta, 0)
-        up = (up * (period - 1) + up_v) / period
-        down = (down * (period - 1) + down_v) / period
-        rs = up / down if down != 0 else 0
-=======
         up_val = max(delta, 0)
         down_val = -min(delta, 0)
 
@@ -74,7 +55,6 @@ def rsi(values: List[float], period: int = 14) -> List[Optional[float]]:
         down = (down * (period - 1) + down_val) / period
 
         rs = up / down if down != 0 else 0.0
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
         result.append(100 - (100 / (1 + rs)))
 
     return result
@@ -91,13 +71,8 @@ def bollinger_bands(
         return none_list, none_list
 
     sma_vals = sma(values, period)
-<<<<<<< HEAD
-    upper = []
-    lower = []
-=======
     upper: List[Optional[float]] = []
     lower: List[Optional[float]] = []
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
 
     for i in range(len(values)):
         if i < period - 1:
@@ -120,14 +95,6 @@ def macd(
     slow: int = 26,
     signal_period: int = 9,
 ) -> Tuple[List[float], List[float], List[float]]:
-<<<<<<< HEAD
-    """MACD indicator (line, signal, histogram)."""
-    ema_fast = ema(values, fast)
-    ema_slow = ema(values, slow)
-    macd_line = [a - b for a, b in zip(ema_fast, ema_slow)]
-    signal_line = ema(macd_line, signal_period)
-    histogram = [m - s for m, s in zip(macd_line, signal_line)]
-=======
     """MACD line, signal line, and histogram."""
     ema_fast = ema(values, fast)
     ema_slow = ema(values, slow)
@@ -136,7 +103,6 @@ def macd(
     signal_line = ema(macd_line, signal_period)
     histogram = [m - s for m, s in zip(macd_line, signal_line)]
 
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
     return macd_line, signal_line, histogram
 
 
@@ -150,11 +116,6 @@ def zscore(values: List[float], period: int = 20) -> List[Optional[float]]:
             continue
 
         window = values[i - period:i]
-<<<<<<< HEAD
-        mean = np.mean(window)
-        std = np.std(window)
-        result.append(0.0 if std == 0 else float((values[i] - mean) / std))
-=======
         mean = float(np.mean(window))
         std = float(np.std(window))
 
@@ -163,7 +124,6 @@ def zscore(values: List[float], period: int = 20) -> List[Optional[float]]:
         else:
             result.append((values[i] - mean) / std)
 
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
     return result
 
 
@@ -220,38 +180,13 @@ def stochastic(
     k_period: int = 14,
     d_period: int = 3,
 ) -> Tuple[List[Optional[float]], List[Optional[float]]]:
-<<<<<<< HEAD
-    """Stochastic Oscillator (%K, %D).
-
-    %K: where close sits within the k_period high-low range.
-    %D: d_period SMA of %K (signal line).
-    """
-=======
     """Stochastic Oscillator (%K and %D)."""
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
     k_vals: List[Optional[float]] = []
+
     for i in range(len(close)):
         if i < k_period - 1:
             k_vals.append(None)
             continue
-<<<<<<< HEAD
-        h_max = max(high[i - k_period + 1:i + 1])
-        l_min = min(low[i - k_period + 1:i + 1])
-        denom = h_max - l_min
-        k_vals.append(((close[i] - l_min) / denom * 100) if denom != 0 else 50.0)
-
-    d_vals: List[Optional[float]] = []
-    for i in range(len(k_vals)):
-        if k_vals[i] is None:
-            d_vals.append(None)
-            continue
-        window = [
-            k_vals[j]
-            for j in range(max(0, i - d_period + 1), i + 1)
-            if k_vals[j] is not None
-        ]
-        d_vals.append(sum(window) / d_period if len(window) == d_period else None)
-=======
 
         h_max = max(high[i - k_period + 1:i + 1])
         l_min = min(low[i - k_period + 1:i + 1])
@@ -262,9 +197,11 @@ def stochastic(
         else:
             k_vals.append((close[i] - l_min) / denom * 100)
 
+    # Compute %D using SMA of %K
     k_clean = [v if v is not None else 0.0 for v in k_vals]
     d_raw = sma(k_clean, d_period)
 
+    # Align %D with %K
     first_valid = next(
         (idx for idx, val in enumerate(k_vals) if val is not None),
         len(k_vals),
@@ -275,7 +212,6 @@ def stochastic(
         len(d_raw),
     )
     d_vals.extend(d_raw[len(d_vals):])
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
 
     return k_vals, d_vals
 
@@ -284,13 +220,6 @@ def linear_regression_prediction(values: List[float]) -> Optional[float]:
     """Predict next value using linear regression."""
     if len(values) < 10:
         return None
-<<<<<<< HEAD
-    x = np.arange(len(values))
-    y = np.array(values)
-    A = np.vstack([x, np.ones(len(x))]).T
-    m, b = np.linalg.lstsq(A, y, rcond=None)[0]
-    return float(m * len(values) + b)
-=======
 
     x_vals = np.arange(len(values))
     y_vals = np.array(values)
@@ -299,7 +228,6 @@ def linear_regression_prediction(values: List[float]) -> Optional[float]:
     slope, intercept = np.linalg.lstsq(matrix, y_vals, rcond=None)[0]
 
     return float(slope * len(values) + intercept)
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
 
 
 def analyze_series(data: List[Tuple[str, float]]) -> dict:
@@ -312,35 +240,20 @@ def analyze_series(data: List[Tuple[str, float]]) -> dict:
     sma20_vals = sma(prices, 20)
     sma50_vals = sma(prices, 50)
     ema20_vals = ema(prices, 20)
-<<<<<<< HEAD
-    rsi14_vals = rsi(prices, 14)
-    vol20_vals = volatility(prices, 20)
-    z_vals = zscore(prices, 20)
-    pred = linear_regression_prediction(prices)
-=======
     rsi_vals = rsi(prices, 14)
     vol_vals = volatility(prices, 20)
     z_vals = zscore(prices, 20)
     prediction = linear_regression_prediction(prices)
-
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
     k_vals, d_vals = stochastic(prices, prices, prices)
 
     return {
         "sma20": sma20_vals[-1],
         "sma50": sma50_vals[-1],
         "ema20": ema20_vals[-1],
-<<<<<<< HEAD
-        "rsi14": rsi14_vals[-1],
-        "vol20": vol20_vals[-1],
-        "z_score": z_vals[-1],
-        "prediction_next": pred,
-=======
         "rsi14": rsi_vals[-1],
         "vol20": vol_vals[-1],
         "z_score": z_vals[-1],
-        "prediction": prediction,
->>>>>>> d8c46bd5fd781080e51d3572bbb987026c399a57
+        "prediction_next": prediction,
         "stoch_k": k_vals[-1],
         "stoch_d": d_vals[-1],
     }
