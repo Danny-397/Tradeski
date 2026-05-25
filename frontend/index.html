@@ -2,38 +2,216 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinSeek Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradeski — Real-Time Fintech Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
-
 <body>
-    <header>
-        <h1>FinSeek Real-Time Dashboard</h1>
-        <select id="symbol-select">
-            <option value="AAPL">AAPL</option>
-            <option value="MSFT">MSFT</option>
-            <option value="TSLA">TSLA</option>
-            <option value="NVDA">NVDA</option>
-        </select>
+
+    <!-- ===== HEADER ===== -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">TRADESKI</span>
+            </div>
+            <div class="market-status" id="market-status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-label">CHECKING...</span>
+            </div>
+        </div>
+
+        <div class="header-center" id="header-price-display">
+            <div class="header-price-item skeleton">
+                <span class="hp-symbol">AAPL</span>
+                <span class="hp-price neutral">——</span>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="ws-indicator" id="ws-status">
+                <span class="ws-dot" id="ws-dot"></span>
+                <span class="ws-label">CONNECTING</span>
+            </div>
+            <div class="clock" id="live-clock">--:--:--</div>
+        </div>
     </header>
 
-    <main>
-        <section id="chart-container">
-            <div id="price-chart"></div>
-        </section>
+    <!-- ===== TICKER TAPE ===== -->
+    <div class="ticker-wrap">
+        <div class="ticker-inner">
+            <div class="ticker-tape" id="ticker-tape">
+                <span class="ticker-item">
+                    <span class="ticker-symbol">LOADING</span>
+                    <span class="ticker-price">——</span>
+                </span>
+            </div>
+        </div>
+    </div>
 
-        <section id="stats-panel">
-            <h2>Stats</h2>
-            <div id="stats-content"></div>
-        </section>
+    <!-- ===== MAIN LAYOUT ===== -->
+    <div class="app-body">
 
-        <section id="alerts-panel">
-            <h2>Alerts</h2>
-            <div id="alerts-feed"></div>
-        </section>
-    </main>
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar-left">
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">WATCHLIST</span>
+                    <button class="btn-icon" id="add-symbol-btn" title="Coming soon: add symbol">+</button>
+                </div>
+                <div id="watchlist" class="watchlist">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">ACTIVE ALERTS</span>
+                    <span class="badge" id="alert-count">0</span>
+                </div>
+                <div id="active-alerts-list" class="alerts-list">
+                    <div class="feed-empty">No alerts set</div>
+                </div>
+                <div class="panel-footer">
+                    <button class="btn-secondary full-width" id="create-alert-btn">+ New Alert</button>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- MAIN CHART AREA -->
+        <main class="chart-area">
+
+            <div class="chart-toolbar">
+                <div class="toolbar-left">
+                    <select id="symbol-select" class="symbol-dropdown">
+                        <option value="AAPL">AAPL — Apple</option>
+                        <option value="MSFT">MSFT — Microsoft</option>
+                        <option value="TSLA">TSLA — Tesla</option>
+                        <option value="NVDA">NVDA — NVIDIA</option>
+                        <option value="AMZN">AMZN — Amazon</option>
+                        <option value="GOOGL">GOOGL — Alphabet</option>
+                        <option value="META">META — Meta</option>
+                        <option value="SPY">SPY — S&amp;P 500 ETF</option>
+                        <option value="QQQ">QQQ — Nasdaq ETF</option>
+                    </select>
+
+                    <div class="timeframe-group" id="timeframe-group">
+                        <button class="tf-btn" data-tf="1D">1D</button>
+                        <button class="tf-btn" data-tf="5D">5D</button>
+                        <button class="tf-btn active" data-tf="1M">1M</button>
+                        <button class="tf-btn" data-tf="3M">3M</button>
+                        <button class="tf-btn" data-tf="6M">6M</button>
+                        <button class="tf-btn" data-tf="1Y">1Y</button>
+                    </div>
+                </div>
+
+                <div class="toolbar-right">
+                    <span class="toolbar-label">OVERLAYS</span>
+                    <div class="indicator-toggles">
+                        <button class="ind-btn active" data-ind="bb" title="Bollinger Bands">BB</button>
+                        <button class="ind-btn active" data-ind="sma" title="Simple Moving Average">SMA</button>
+                        <button class="ind-btn active" data-ind="ema" title="Exponential Moving Average">EMA</button>
+                        <button class="ind-btn active" data-ind="vol" title="Volume">VOL</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="price-chart" class="chart-container">
+                <div class="chart-loading" id="chart-loading">
+                    <div class="loading-spinner"></div>
+                    <span>Fetching market data...</span>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- RIGHT SIDEBAR -->
+        <aside class="sidebar-right">
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">MARKET DATA</span>
+                    <span class="symbol-badge" id="current-symbol-badge">AAPL</span>
+                </div>
+                <div id="stats-content" class="stats-grid">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">INDICATORS</span>
+                </div>
+                <div id="indicators-panel" class="indicators-panel">
+                    <div class="feed-empty">Loading indicators...</div>
+                </div>
+            </div>
+
+            <div class="panel panel-grow">
+                <div class="panel-header">
+                    <span class="panel-title">SIGNAL FEED</span>
+                    <button class="btn-icon" id="clear-feed-btn" title="Clear feed">✕</button>
+                </div>
+                <div id="alerts-feed" class="alerts-feed">
+                    <div class="feed-empty">Monitoring active — no signals yet</div>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    <!-- ===== ALERT MODAL ===== -->
+    <div class="modal-overlay" id="alert-modal" style="display:none">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="panel-title">CREATE ALERT</span>
+                <button class="btn-icon" id="close-modal-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Symbol</label>
+                    <select id="alert-symbol" class="form-input">
+                        <option value="AAPL">AAPL</option>
+                        <option value="MSFT">MSFT</option>
+                        <option value="TSLA">TSLA</option>
+                        <option value="NVDA">NVDA</option>
+                        <option value="AMZN">AMZN</option>
+                        <option value="GOOGL">GOOGL</option>
+                        <option value="META">META</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trigger</label>
+                    <select id="alert-type" class="form-input">
+                        <option value="price_above">Price Crosses Above</option>
+                        <option value="price_below">Price Crosses Below</option>
+                        <option value="rsi_overbought">RSI Overbought (&gt;70)</option>
+                        <option value="rsi_oversold">RSI Oversold (&lt;30)</option>
+                        <option value="volume_spike">Volume Spike</option>
+                        <option value="volatility_spike">Volatility Spike</option>
+                    </select>
+                </div>
+                <div class="form-group" id="threshold-group">
+                    <label>Price Threshold ($)</label>
+                    <input type="number" id="alert-threshold" class="form-input" placeholder="e.g. 200.00" step="0.01" min="0">
+                </div>
+                <button class="btn-primary full-width" id="submit-alert-btn">CREATE ALERT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== STATUS BAR ===== -->
+    <footer class="status-bar">
+        <span id="status-msg">Initializing...</span>
+        <span id="last-update">—</span>
+        <span class="status-brand">Tradeski v2.0 · Real-Time Market Analytics</span>
+    </footer>
 
     <script src="dashboard.js"></script>
 </body>

@@ -1,179 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Stock Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradeski — Stock Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        /* Dark mode styling */
-      #stats-card {
-    width: 90%;
-    margin: 20px auto;
-    padding: 18px;
-    border-radius: 14px;
-    background: rgba(15, 20, 30, 0.55);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(0, 200, 255, 0.35);
-    box-shadow: 0 0 14px rgba(0, 200, 255, 0.25);
-    transition: 0.25s ease;
-}
+        :root {
+            --bg:     #080c14;
+            --panel:  rgba(13, 20, 34, 0.9);
+            --border: rgba(0, 212, 255, 0.15);
+            --cyan:   #00d4ff;
+            --green:  #00e87a;
+            --red:    #ff2d55;
+            --mono:   'JetBrains Mono', monospace;
+        }
 
-#stats-card:hover {
-    box-shadow: 0 0 20px rgba(0, 200, 255, 0.45);
-    border-color: rgba(0, 200, 255, 0.55);
-}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-.stats-row {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-}
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: #d8eaf5;
+            padding: 20px;
+            min-height: 100vh;
+        }
 
-.stat-item {
-    display: flex;
-    flex-direction: column;
-    width: 30%;
-}
+        h1 {
+            font-family: var(--mono);
+            font-size: 18px;
+            letter-spacing: 4px;
+            color: var(--cyan);
+            text-shadow: 0 0 16px rgba(0,212,255,0.4);
+            margin-bottom: 18px;
+        }
 
-.label {
-    font-size: 12px;
-    color: #7ddfff;
-    opacity: 0.8;
-}
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
 
-.value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #00eaff;
-}
+        select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            color: #d8eaf5;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: var(--mono);
+            font-size: 13px;
+        }
+        select option { background: #0c1120; }
 
-        
-       <div id="stats-card">
-    <div class="stats-title">Stock Overview</div>
+        #stats-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 18px rgba(0,212,255,0.1);
+            transition: box-shadow 0.2s;
+        }
+        #stats-card:hover { box-shadow: 0 0 26px rgba(0,212,255,0.2); }
 
-    <div class="stats-row">
-        <div class="stat-item">
-            <span class="label">Symbol</span>
-            <span id="stat-symbol" class="value">AAPL</span>
-        </div>
-        <div class="stat-item">
-            <span class="label">Current Price</span>
-            <span id="stat-price" class="value">$0.00</span>
-        </div>
-    </div>
+        .stats-title {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: var(--cyan);
+            margin-bottom: 14px;
+            text-transform: uppercase;
+        }
 
-    <div class="stats-row">
-        <div class="stat-item">
-            <span class="label">Open</span>
-            <span id="stat-open" class="value">$0.00</span>
-        </div>
-        <div class="stat-item">
-            <span class="label">High</span>
-            <span id="stat-high" class="value">$0.00</span>
-        </div>
-        <div class="stat-item">
-            <span class="label">Low</span>
-            <span id="stat-low" class="value">$0.00</span>
-        </div>
-    </div>
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
 
-    <div class="stats-row">
-        <div class="stat-item">
-            <span class="label">52W High</span>
-            <span id="stat-52wh" class="value">$0.00</span>
-        </div>
-        <div class="stat-item">
-            <span class="label">52W Low</span>
-            <span id="stat-52wl" class="value">$0.00</span>
-        </div>
-    </div>
-</div>
+        .stat-item { display: flex; flex-direction: column; gap: 3px; }
 
-        
-#stats-card:hover {
-    box-shadow: 0 0 18px rgba(0, 200, 255, 0.45);
-    border-color: rgba(0, 200, 255, 0.55);
-}
+        .label {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            color: rgba(0,212,255,0.6);
+            text-transform: uppercase;
+        }
 
-.stats-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 12px;
-    color: #00eaff;
-}
+        .value {
+            font-family: var(--mono);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--cyan);
+        }
+        .value.up   { color: var(--green); }
+        .value.down { color: var(--red); }
 
-.stats-row {
-    display: flex;
-    justify-content: space-between;
-}
+        #chart, #rsi-chart { border-radius: 8px; overflow: hidden; }
 
-.stat-item {
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-}
-
-.label {
-    font-size: 12px;
-    color: #7ddfff;
-    opacity: 0.8;
-}
-
-.value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #00eaff;
-}
-
+        .ws-badge {
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 3px 9px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: #5e7e9a;
+            letter-spacing: 1px;
+        }
+        .ws-badge.on { color: var(--green); border-color: rgba(0,232,122,0.3); }
     </style>
 </head>
-
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script>
-    const socket = io({ path: "/socket.io", transports: ["websocket"] });
-
-    socket.on("connect", () => {
-        console.log("Connected to WebSocket stream");
-    });
-
-    socket.on("price_update", (data) => {
-        console.log("Live update:", data);
-        // later: update chart + stats card here
-    });
-</script>
-
-
 <body>
-    <h1>Real-Time Stock Dashboard</h1>
 
-    <!-- Multi-stock dropdown -->
-    <select id="symbol-select">
-        <option value="AAPL">AAPL</option>
-        <option value="TSLA">TSLA</option>
-        <option value="NVDA">NVDA</option>
-        <option value="MSFT">MSFT</option>
-        <option value="AMZN">AMZN</option>
-    </select>
+    <h1>◈ TRADESKI</h1>
+
+    <div class="toolbar">
+        <select id="symbol-select">
+            <option value="AAPL">AAPL — Apple</option>
+            <option value="MSFT">MSFT — Microsoft</option>
+            <option value="TSLA">TSLA — Tesla</option>
+            <option value="NVDA">NVDA — NVIDIA</option>
+            <option value="AMZN">AMZN — Amazon</option>
+        </select>
+        <span class="ws-badge" id="ws-badge">● CONNECTING</span>
+    </div>
 
     <div id="stats-card">
-    <div class="stats-title">Stock Overview</div>
-    <div class="stats-row">
-        <div class="stat-item">
-            <span class="label">Symbol</span>
-            <span id="stat-symbol" class="value">AAPL</span>
+        <div class="stats-title">Market Overview</div>
+        <div class="stats-row">
+            <div class="stat-item">
+                <span class="label">Symbol</span>
+                <span id="stat-symbol" class="value">—</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Price</span>
+                <span id="stat-price" class="value">$0.00</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Change</span>
+                <span id="stat-change" class="value">—</span>
+            </div>
         </div>
-        <div class="stat-item">
-            <span class="label">Current Price</span>
-            <span id="stat-price" class="value">$0.00</span>
+        <div class="stats-row">
+            <div class="stat-item">
+                <span class="label">Open</span>
+                <span id="stat-open" class="value">$0.00</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">High</span>
+                <span id="stat-high" class="value up">$0.00</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Low</span>
+                <span id="stat-low" class="value down">$0.00</span>
+            </div>
         </div>
     </div>
-</div>
 
-   
     <div id="chart"></div>
+    <br>
     <div id="rsi-chart"></div>
 
-
     <script src="/static/chart.js"></script>
+    <script>
+        const socket = io({ path: "/socket.io", transports: ["websocket", "polling"] });
+        const badge  = document.getElementById("ws-badge");
+
+        socket.on("connect", () => {
+            badge.textContent = "● LIVE";
+            badge.classList.add("on");
+        });
+        socket.on("disconnect", () => {
+            badge.textContent = "● OFFLINE";
+            badge.classList.remove("on");
+        });
+        socket.on("price_update", (data) => {
+            const priceEl = document.getElementById("stat-price");
+            if (priceEl) priceEl.textContent = "$" + parseFloat(data.price).toFixed(2);
+        });
+    </script>
 </body>
 </html>
