@@ -8,7 +8,9 @@
 Tradeski — Real‑Time Market Intelligence Dashboard
 Tradeski is a full‑stack, real‑time financial analytics platform that streams live market data, computes quantitative indicators, and visualizes them through an interactive TradingView‑style dashboard.
 It combines a high‑performance Python backend with a modern JavaScript frontend to deliver a complete market‑monitoring experience.
+
 [![CI Pipeline](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
+
 Features
 Real‑Time Data
 Live price streaming via WebSockets
@@ -330,6 +332,7 @@ python -m http.server 8080 --directory frontend
 
 ## Running Tests
 
+<<<<<<< HEAD
 ```bash
 pip install pytest
 python -m pytest -v
@@ -353,6 +356,15 @@ The CI pipeline runs both on every push and pull request to `main`.
 ---
 
 ## Deployment
+=======
+Why I Built Tradeski
+Tradeski began as a personal project to explore real‑time systems, quantitative finance, and full‑stack engineering.
+I wanted to build something that would make trading for retail traders easier. Take staistical information that is commonly used on Wall Street readily available in a simple easy to understand dashboard. Saving the user from having to spend valuable time in the trading day looking for this data. The dashboard would better allow for retail traders to make faster and more informed decitions on what stocks to sell or buy. 
+
+
+
+Tradeski represents my interest in automation, markets, and system design 
+>>>>>>> daf2757e1e84fef8dc963f5b1024d487f0e9462b
 
 ### Backend — Railway
 
@@ -376,6 +388,7 @@ Tradeski started as a personal project driven by two interests: quantitative fin
 
 Implementing every indicator from scratch — rather than importing a library — was intentional. It forces engagement with the actual mathematics: understanding why RSI uses Wilder smoothing instead of a simple average, how floating-point accumulation can corrupt a naive SMA, why Bollinger Band width is a proxy for realized volatility. The code reflects that understanding.
 
+<<<<<<< HEAD
 The project touches five distinct engineering disciplines:
 
 - **Data engineering** — polling, storage, retention, schema design
@@ -387,6 +400,9 @@ The project touches five distinct engineering disciplines:
 ---
 
 ## Future Work
+=======
+Future Improvements
+>>>>>>> daf2757e1e84fef8dc963f5b1024d487f0e9462b
 
 - **Portfolio tracking** — position entry/exit, P&L calculation, exposure heatmap
 - **User authentication** — per-user watchlists, alerts, and settings
@@ -399,6 +415,10 @@ The project touches five distinct engineering disciplines:
 
 ---
 
+<<<<<<< HEAD
 ## License
 
 MIT © 2026 Dan Lichtenberger. See [LICENSE](LICENSE).
+=======
+Mobile‑optimized dashboard
+>>>>>>> daf2757e1e84fef8dc963f5b1024d487f0e9462b
