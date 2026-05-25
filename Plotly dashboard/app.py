@@ -57,6 +57,11 @@ def rows_to_dict(
 # REST Endpoints
 # ─────────────────────────────────────────────────────────────
 
+@app.route("/health")
+def health() -> tuple:
+    return jsonify({"status": "ok"})
+
+
 @app.route("/stats")
 def stats() -> tuple:
     """Return basic OHLC + 52‑week stats for a symbol."""
