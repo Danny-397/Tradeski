@@ -1,7 +1,9 @@
 Tradeski — Real‑Time Market Intelligence Dashboard
 Tradeski is a full‑stack, real‑time financial analytics platform that streams live market data, computes quantitative indicators, and visualizes them through an interactive TradingView‑style dashboard.
 It combines a high‑performance Python backend with a modern JavaScript frontend to deliver a complete market‑monitoring experience.
+
 [![CI Pipeline](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
+
 Features
 Real‑Time Data
 Live price streaming via WebSockets
@@ -183,19 +185,11 @@ Connected to Railway backend
 
 Why I Built Tradeski
 Tradeski began as a personal project to explore real‑time systems, quantitative finance, and full‑stack engineering.
-I wanted to build something that wasn’t just a script or a school assignment, but a complete, production‑ready platform that integrates
+I wanted to build something that would make trading for retail traders easier. Take staistical information that is commonly used on Wall Street readily available in a simple easy to understand dashboard. Saving the user from having to spend valuable time in the trading day looking for this data. The dashboard would better allow for retail traders to make faster and more informed decitions on what stocks to sell or buy. 
 
-data engineering
 
-backend architecture
 
-quantitative analysis
-
-frontend visualization
-
-real‑time communication
-
-Tradeski represents my interest in automation, markets, and system design — and my ability to take a complex idea from concept to a fully deployed product.
+Tradeski represents my interest in automation, markets, and system design 
 
 What I Learned
 Building real‑time systems with WebSockets
@@ -215,18 +209,9 @@ Creating interactive data visualizations
 Writing clean, maintainable, modular code
 
 Future Improvements
-Multi‑symbol watchlist
-
-User accounts + authentication
-
-Custom alert creation UI
-
-Portfolio tracking
 
 News + sentiment integration
 
 Machine learning prediction models
 
 Mobile‑optimized dashboard
-
-Cloud database migration
