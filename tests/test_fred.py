@@ -1,6 +1,5 @@
 """Tests for tracker/fred.py — uses unittest.mock to avoid hitting the real API."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 from tracker.fred import get_macro_snapshot, format_macro_context

@@ -1,7 +1,6 @@
 """Tests for portfolio CRUD operations in tracker/database.py."""
 
 import os
-import pytest
 
 import tracker.database as db
 

@@ -1,7 +1,6 @@
 """Tests for tracker/news.py — NewsAPI client and VADER sentiment scoring."""
 
 from unittest.mock import patch, MagicMock
-import pytest
 
 from tracker.news import (
     fetch_news,
@@ -20,14 +19,17 @@ def test_label_bullish():
     assert _label(0.5) == "bullish"
     assert _label(0.06) == "bullish"
 
+
 def test_label_bearish():
     assert _label(-0.5) == "bearish"
     assert _label(-0.06) == "bearish"
+
 
 def test_label_neutral():
     assert _label(0.0) == "neutral"
     assert _label(0.04) == "neutral"
     assert _label(-0.04) == "neutral"
+
 
 def test_financial_lexicon_augmentation():
     """Financial jargon should score non-zero after lexicon augmentation."""
