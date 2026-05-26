@@ -1,9 +1,15 @@
 """Plotly dashboard backend using Flask + Socket.IO for Tradeski."""
 
+import sys
+import os
+
+# When run via gunicorn --chdir, the repo root is the parent of this file's directory.
+# Insert it so `tracker` can always be found regardless of working directory.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import eventlet
 eventlet.monkey_patch()
 
-import os
 import time
 import datetime
 from typing import List, Tuple, Optional

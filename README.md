@@ -1,20 +1,8 @@
-<<<<<<< HEAD
 # Tradeski — Real-Time Market Intelligence Platform
 
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-=======
-Tradeski — Real‑Time Market Intelligence Dashboard
-Tradeski is a full‑stack, real‑time financial analytics platform that streams live market data, computes quantitative indicators, and visualizes them through an interactive TradingView‑style dashboard.
-It combines a high‑performance Python backend with a modern JavaScript frontend to deliver a complete market‑monitoring experience.
-
-[![CI Pipeline](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
-
-Features
-Real‑Time Data
-Live price streaming via WebSockets
->>>>>>> 92ba63b9a0b187b1175c08f0e1683173431ce497
 
 Tradeski is a full-stack, real-time financial analytics platform that streams live equity data, computes a complete suite of quantitative indicators, and visualizes everything through a cyber-styled interactive trading dashboard. It combines a high-performance Python backend with a modern JavaScript frontend, connected over WebSockets for millisecond-level updates.
 
@@ -116,7 +104,7 @@ Tradeski/
 │   ├── app.py                 # REST API + WebSocket event emitters
 │   ├── cache.py               # TTL in-memory cache
 │   ├── index.html             # Fallback dashboard UI
-│   └── Procfile               # Railway deployment config
+│   └── Procfile               # Local dev config
 │
 ├── frontend/                  # Primary dashboard UI
 │   ├── index.html             # Full dashboard layout (header, watchlist, chart, alerts)
@@ -131,6 +119,7 @@ Tradeski/
 │   └── test_price_fetcher.py  # Live yfinance smoke test
 │
 ├── .github/workflows/ci.yml   # GitHub Actions CI pipeline
+├── railway.toml               # Railway deployment configuration
 ├── requirements.txt           # Python dependencies (pinned where needed)
 ├── setup.cfg                  # Flake8 configuration
 └── README.md
@@ -265,6 +254,9 @@ Batch price lookup for the watchlist sidebar.
 ### `GET /market_status`
 Returns `open`, `extended`, or `closed` based on server UTC time.
 
+### `GET /health`
+Returns `{"status": "ok"}` — used by Railway for health checks.
+
 ### `GET /alerts` · `POST /alerts` · `DELETE /alerts/<id>`
 List, create, and delete rule-based alerts stored in SQLite.
 
@@ -332,7 +324,6 @@ python -m http.server 8080 --directory frontend
 
 ## Running Tests
 
-<<<<<<< HEAD
 ```bash
 pip install pytest
 python -m pytest -v
@@ -356,22 +347,13 @@ The CI pipeline runs both on every push and pull request to `main`.
 ---
 
 ## Deployment
-=======
-Why I Built Tradeski
-Tradeski began as a personal project to explore real‑time systems, quantitative finance, and full‑stack engineering.
-I wanted to build something that would make trading for retail traders easier. Take staistical information that is commonly used on Wall Street readily available in a simple easy to understand dashboard. Saving the user from having to spend valuable time in the trading day looking for this data. The dashboard would better allow for retail traders to make faster and more informed decitions on what stocks to sell or buy. 
-
-
-
-Tradeski represents my interest in automation, markets, and system design 
->>>>>>> daf2757e1e84fef8dc963f5b1024d487f0e9462b
 
 ### Backend — Railway
 
 1. Push to GitHub. Railway auto-deploys from `main`.
 2. Set environment variables in the Railway dashboard.
-3. The `Procfile` configures the web process: `python app.py`.
-4. Railway provisions a public HTTPS URL with WebSocket support automatically.
+3. `railway.toml` configures the gunicorn web process with WebSocket support.
+4. Railway provisions a public HTTPS URL automatically.
 
 ### Frontend — Vercel
 
@@ -388,7 +370,6 @@ Tradeski started as a personal project driven by two interests: quantitative fin
 
 Implementing every indicator from scratch — rather than importing a library — was intentional. It forces engagement with the actual mathematics: understanding why RSI uses Wilder smoothing instead of a simple average, how floating-point accumulation can corrupt a naive SMA, why Bollinger Band width is a proxy for realized volatility. The code reflects that understanding.
 
-<<<<<<< HEAD
 The project touches five distinct engineering disciplines:
 
 - **Data engineering** — polling, storage, retention, schema design
@@ -397,12 +378,11 @@ The project touches five distinct engineering disciplines:
 - **Frontend engineering** — real-time state management, canvas rendering, responsive layout
 - **DevOps** — CI/CD pipelines, containerized deployment, environment configuration
 
+Tradeski began as a way to make statistical information commonly used on Wall Street readily available in a simple, easy-to-understand dashboard — saving retail traders from spending valuable time during the trading day hunting for data, and helping them make faster, more informed decisions.
+
 ---
 
 ## Future Work
-=======
-Future Improvements
->>>>>>> daf2757e1e84fef8dc963f5b1024d487f0e9462b
 
 - **Portfolio tracking** — position entry/exit, P&L calculation, exposure heatmap
 - **User authentication** — per-user watchlists, alerts, and settings
@@ -415,10 +395,6 @@ Future Improvements
 
 ---
 
-<<<<<<< HEAD
 ## License
 
 MIT © 2026 Dan Lichtenberger. See [LICENSE](LICENSE).
-=======
-Mobile‑optimized dashboard
->>>>>>> daf2757e1e84fef8dc963f5b1024d487f0e9462b
