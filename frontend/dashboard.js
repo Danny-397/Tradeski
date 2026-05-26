@@ -919,3 +919,62 @@ async function skiSend() {
 }
 
 document.addEventListener("DOMContentLoaded", () => { initSki(); });
+
+// ============================================================
+// MACRO RIBBON (FRED data)
+// ============================================================
+
+const MACRO_LABELS = {
+    CPIAUCSL:     { short: "CPI",      tip: "Consumer Price Index YoY %" },
+    FEDFUNDS:     { short: "FED RATE", tip: "Effective Federal Funds Rate" },
+    GDP:          { short: "GDP",      tip: "Real GDP (Chained 2017 $B)" },
+    UNRATE:       { short: "UNEMP",    tip: "Unemployment Rate" },
+    DGS10:        { short: "10Y",      tip: "10-Year Treasury Yield" },
+    T10Y2Y:       { short: "CURVE",    tip: "Yield Curve (10Y−2Y Spread)" },
+    BAMLH0A0HYM2: { short: "HY SPD",  tip: "High Yield OAS Credit Spread" },
+};
+
+async function loadMacroRibbon() {
+    const inner = document.getElementById("macro-inner");
+    if (!inner) return;
+
+    try {
+        const res = await fetch(`${CFG.API}/macro`);
+        if (!res.ok) {
+            inner.innerHTML = '<div class="macro-item"><span class="macro-error">FRED data unavailable — set FRED_API_KEY</span></div>';
+            return;
+        }
+        const data = await res.json();
+        if (data.error) {
+            inner.innerHTML = `<div class="macro-item"><span class="macro-error">${data.error}</span></div>`;
+            return;
+        }
+
+        inner.innerHTML = "";
+        for (const [sid, info] of Object.entries(data)) {
+            const meta   = MACRO_LABELS[sid] || { short: info.label, tip: info.description };
+            const item   = document.createElement("div");
+            item.className = "macro-item";
+            item.title   = `${meta.tip} — as of ${info.date || "?"}`;
+
+            const arrowMap = { up: " ▲", down: " ▼", neutral: "" };
+            const cls      = info.trend === "up" ? "up" : info.trend === "down" ? "down" : "neutral";
+            const val      = info.value != null ? `${info.value}${info.unit}` : "—";
+            const arrow    = arrowMap[info.trend] || "";
+
+            item.innerHTML = `
+                <span class="macro-label">${meta.short}</span>
+                <span class="macro-value ${cls}">${val}${arrow}</span>
+                <span class="macro-date">${info.date || ""}</span>
+            `;
+            inner.appendChild(item);
+        }
+    } catch {
+        inner.innerHTML = '<div class="macro-item"><span class="macro-error">Macro data unavailable</span></div>';
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadMacroRibbon();
+    setInterval(loadMacroRibbon, 3_600_000); // refresh every hour
+});

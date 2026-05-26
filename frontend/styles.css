@@ -241,6 +241,76 @@ body::before {
 .ticker-change.down { color: var(--red); }
 .ticker-sep { color: var(--text-muted); padding: 0 4px; }
 
+/* ===== MACRO RIBBON ===== */
+.macro-ribbon {
+    height: 46px;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.45);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+    z-index: 40;
+}
+
+.macro-ribbon-inner {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+}
+
+.macro-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    border-right: 1px solid var(--border);
+    gap: 2px;
+    min-width: 0;
+    cursor: default;
+    transition: background var(--t) var(--ease);
+}
+.macro-item:last-child { border-right: none; }
+.macro-item:hover { background: var(--bg-hover); }
+.macro-item.macro-loading { flex: 1; }
+
+.macro-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.macro-value {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.macro-value.up   { color: var(--green); }
+.macro-value.down { color: var(--red); }
+.macro-value.neutral { color: var(--text-primary); }
+
+.macro-date {
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.macro-error {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
 /* ===== APP BODY ===== */
 .app-body {
     display: flex;

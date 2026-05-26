@@ -20,7 +20,9 @@ from flask_socketio import SocketIO
 
 import anthropic
 
+from cache import SimpleCache
 from tracker import database
+from tracker.fred import get_macro_snapshot, format_macro_context
 from tracker.price_fetcher import get_stock_price
 from tracker.analyzer import (
     sma,
@@ -41,6 +43,9 @@ socketio = SocketIO(
     cors_allowed_origins="*",
     async_mode="eventlet",
 )
+
+_cache = SimpleCache()
+_FRED_TTL = 3600  # refresh FRED data at most once per hour
 
 
 # ─────────────────────────────────────────────────────────────
@@ -236,6 +241,34 @@ def delete_alert(alert_id: int) -> tuple:
     return jsonify({"status": "deleted"})
 
 
+@app.route("/macro")
+def macro() -> tuple:
+    """Return latest FRED macro indicator snapshot (cached 1 h)."""
+    fred_key = os.environ.get("FRED_API_KEY", "")
+    if not fred_key:
+        return jsonify({"error": "FRED_API_KEY not configured"}), 503
+
+    cached = _cache.get("macro_snapshot")
+    if cached is not None:
+        return jsonify(cached)
+
+    snapshot = get_macro_snapshot(fred_key)
+    _cache.set("macro_snapshot", snapshot, ttl=_FRED_TTL)
+    return jsonify(snapshot)
+
+
+def _get_macro_context() -> str:
+    """Return a formatted macro context string for Ski, using the cache."""
+    fred_key = os.environ.get("FRED_API_KEY", "")
+    if not fred_key:
+        return ""
+    cached = _cache.get("macro_snapshot")
+    if cached is None:
+        cached = get_macro_snapshot(fred_key)
+        _cache.set("macro_snapshot", cached, ttl=_FRED_TTL)
+    return format_macro_context(cached)
+
+
 _SKI_SYSTEM_PROMPT = """You are Ski, a financial Q&A assistant built into the Tradeski real-time market analytics platform. \
 You are sharp, concise, and authoritative — like a seasoned Wall Street analyst who can explain complex concepts clearly \
 to retail traders.
@@ -311,7 +344,11 @@ def chat() -> tuple:
     if not message:
         return jsonify({"error": "No message provided"}), 400
 
-    client = anthropic.Anthropic()
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "AI service not configured"}), 503
+
+    client = anthropic.Anthropic(api_key=api_key)
 
     messages = []
     for turn in history[-10:]:
@@ -321,14 +358,20 @@ def chat() -> tuple:
             messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": message})
 
+    system_blocks: list = [{
+        "type": "text",
+        "text": _SKI_SYSTEM_PROMPT,
+        "cache_control": {"type": "ephemeral"},
+    }]
+
+    macro_ctx = _get_macro_context()
+    if macro_ctx:
+        system_blocks.append({"type": "text", "text": macro_ctx})
+
     response = client.messages.create(
         model="claude-opus-4-7",
         max_tokens=1024,
-        system=[{
-            "type": "text",
-            "text": _SKI_SYSTEM_PROMPT,
-            "cache_control": {"type": "ephemeral"},
-        }],
+        system=system_blocks,
         messages=messages,
     )
 
