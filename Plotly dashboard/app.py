@@ -23,7 +23,7 @@ import anthropic
 from cache import SimpleCache
 from tracker import database
 from tracker.fred import get_macro_snapshot, format_macro_context
-from tracker.price_fetcher import get_stock_price
+from tracker.price_fetcher import get_stock_price, get_ohlc_history
 from tracker.analyzer import (
     sma,
     ema,
@@ -45,7 +45,18 @@ socketio = SocketIO(
 )
 
 _cache = SimpleCache()
-_FRED_TTL = 3600  # refresh FRED data at most once per hour
+_FRED_TTL  = 3600   # refresh FRED data at most once per hour
+_CHART_TTL = 300    # price history / stats cache: 5 minutes
+
+# Timeframe → (yfinance period, interval)
+_TF_MAP: dict[str, tuple[str, str]] = {
+    "1D":  ("1d",  "5m"),
+    "5D":  ("5d",  "15m"),
+    "1M":  ("1mo", "1d"),
+    "3M":  ("3mo", "1d"),
+    "6M":  ("6mo", "1d"),
+    "1Y":  ("1y",  "1d"),
+}
 
 
 # ─────────────────────────────────────────────────────────────
@@ -77,83 +88,120 @@ def health() -> tuple:
 
 @app.route("/stats")
 def stats() -> tuple:
-    """Return basic OHLC + 52‑week stats for a symbol."""
-    symbol = request.args.get("symbol", "AAPL")
-    rows = database.get_recent_prices(symbol, limit=300)
+    """Return OHLC + real 52-week range for a symbol (yfinance, cached 5 min)."""
+    symbol = request.args.get("symbol", "AAPL").upper()
+    cache_key = f"stats:{symbol}"
 
-    if not rows:
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
+    bars = get_ohlc_history(symbol, "1y", "1d")
+    if not bars:
         return jsonify({"error": "No data"}), 404
 
-    prices = [row[1] for row in rows]
-    open_price = prices[0]
-    close_price = prices[-1]
-    high_price = max(prices)
-    low_price = min(prices)
-
+    latest     = bars[-1]
+    all_highs  = [b["high"] for b in bars]
+    all_lows   = [b["low"]  for b in bars]
     change_pct = (
-        (close_price - open_price) / open_price * 100
-        if open_price else 0.0
+        (latest["close"] - latest["open"]) / latest["open"] * 100
+        if latest["open"] else 0.0
     )
 
-    return jsonify(
-        {
-            "symbol": symbol,
-            "open": round(open_price, 4),
-            "high": round(high_price, 4),
-            "low": round(low_price, 4),
-            "close": round(close_price, 4),
-            "high_52w": round(high_price, 4),
-            "low_52w": round(low_price, 4),
-            "change_pct": round(change_pct, 4),
-        }
-    )
+    result = {
+        "symbol":     symbol,
+        "open":       round(latest["open"],  4),
+        "high":       round(latest["high"],  4),
+        "low":        round(latest["low"],   4),
+        "close":      round(latest["close"], 4),
+        "high_52w":   round(max(all_highs),  4),
+        "low_52w":    round(min(all_lows),   4),
+        "change_pct": round(change_pct,      4),
+    }
+
+    _cache.set(cache_key, result, ttl=_CHART_TTL)
+    return jsonify(result)
 
 
 @app.route("/price_history")
 def price_history() -> tuple:
-    """Return price history + indicators."""
-    symbol = request.args.get("symbol", "AAPL")
-    limit = int(request.args.get("limit", 300))
+    """Return real OHLC history + computed indicators (yfinance, cached 5 min)."""
+    symbol = request.args.get("symbol", "AAPL").upper()
+    # Accept either ?tf=1M (new) or ?limit=300 (legacy — map to nearest tf)
+    tf = (request.args.get("tf") or request.args.get("timeframe") or "1M").upper()
+    if tf not in _TF_MAP:
+        tf = "1M"
 
-    rows = database.get_recent_prices(symbol, limit=max(limit, 300))
-    if not rows:
+    cache_key = f"ph:{symbol}:{tf}"
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
+    period, interval = _TF_MAP[tf]
+    bars = get_ohlc_history(symbol, period, interval)
+    if not bars:
         return jsonify({"error": "No data"}), 404
 
-    timestamps, prices, volume = rows_to_dict(rows, limit)
+    timestamps = [b["timestamp"] for b in bars]
+    opens      = [b["open"]      for b in bars]
+    highs      = [b["high"]      for b in bars]
+    lows       = [b["low"]       for b in bars]
+    closes     = [b["close"]     for b in bars]
+    volume     = [b["volume"]    for b in bars]
 
-    sma20_vals = sma(prices, 20)
-    sma50_vals = sma(prices, 50)
-    ema20_vals = ema(prices, 20)
-    rsi_vals = rsi(prices, 14)
-    macd_line, signal_line, hist_vals = macd(prices)
-    upper_band, lower_band = bollinger_bands(prices, 20)
-    z_vals = zscore(prices, 20)
-    vol_vals = volatility(prices, 20)
-    prediction = linear_regression_prediction(prices)
+    sma20_vals             = sma(closes, 20)
+    sma50_vals             = sma(closes, 50)
+    ema20_vals             = ema(closes, 20)
+    rsi_vals               = rsi(closes, 14)
+    macd_line, sig, hist_v = macd(closes)
+    upper_band, lower_band = bollinger_bands(closes, 20)
+    z_vals                 = zscore(closes, 20)
+    vol_vals               = volatility(closes, 20)
+    prediction             = linear_regression_prediction(closes)
 
-    return jsonify(
-        {
-            "timestamps": timestamps,
-            "prices": prices,
-            "open": prices,
-            "high": prices,
-            "low": prices,
-            "close": prices,
-            "volume": volume,
-            "sma20": sma20_vals,
-            "sma50": sma50_vals,
-            "ema20": ema20_vals,
-            "rsi": rsi_vals,
-            "macd": macd_line,
-            "signal": signal_line,
-            "histogram": hist_vals,
-            "upper_band": upper_band,
-            "lower_band": lower_band,
-            "zscore": z_vals,
-            "volatility": vol_vals,
-            "prediction": prediction,
-        }
-    )
+    result = {
+        "timestamps": timestamps,
+        "open":       opens,
+        "high":       highs,
+        "low":        lows,
+        "close":      closes,
+        "prices":     closes,     # keep for any legacy callers
+        "volume":     volume,
+        "sma20":      sma20_vals,
+        "sma50":      sma50_vals,
+        "ema20":      ema20_vals,
+        "rsi":        rsi_vals,
+        "macd":       macd_line,
+        "signal":     sig,
+        "histogram":  hist_v,
+        "upper_band": upper_band,
+        "lower_band": lower_band,
+        "zscore":     z_vals,
+        "volatility": vol_vals,
+        "prediction": prediction,
+    }
+
+    _cache.set(cache_key, result, ttl=_CHART_TTL)
+    return jsonify(result)
+
+
+@app.route("/sparkline")
+def sparkline() -> tuple:
+    """Return 30-day close prices for a symbol (used by watchlist sparklines)."""
+    symbol = request.args.get("symbol", "AAPL").upper()
+    cache_key = f"sparkline:{symbol}"
+
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
+    bars = get_ohlc_history(symbol, "1mo", "1d")
+    result = {
+        "timestamps": [b["timestamp"] for b in bars],
+        "close":      [b["close"]     for b in bars],
+    }
+    _cache.set(cache_key, result, ttl=_CHART_TTL)
+    return jsonify(result)
 
 
 @app.route("/watchlist")

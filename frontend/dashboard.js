@@ -57,6 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
     buildTickerTape();
     setInterval(buildTickerTape, CFG.TICKER_REFRESH_MS);
     initPortfolio();
+    loadAllSparklines();
+    setInterval(loadAllSparklines, 3_600_000); // refresh sparklines hourly
 });
 
 // ============================================================
@@ -169,10 +171,6 @@ function initTimeframes() {
     });
 }
 
-function tfToLimit(tf) {
-    return { "1D": 78, "5D": 390, "1M": 300, "3M": 900, "6M": 1800, "1Y": 3600 }[tf] ?? 300;
-}
-
 // ============================================================
 // INDICATOR TOGGLES
 // ============================================================
@@ -212,8 +210,7 @@ async function loadDashboard(sym) {
 // ============================================================
 
 async function loadChart(sym) {
-    const limit = tfToLimit(state.timeframe);
-    const res   = await fetch(`${CFG.API}/price_history?symbol=${sym}&limit=${limit}`);
+    const res = await fetch(`${CFG.API}/price_history?symbol=${sym}&tf=${state.timeframe}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     state.chartData = await res.json();
     renderChart(state.chartData);
@@ -569,20 +566,36 @@ function updateIndicatorsPanel(d) {
 
 function renderWatchlist() {
     const el = document.getElementById("watchlist");
-    el.innerHTML = WATCHLIST.map(({ symbol, name }) => `
-        <div class="watchlist-item ${symbol === state.symbol ? "active" : ""}"
-             data-symbol="${symbol}"
-             onclick="switchSymbol('${symbol}')">
-            <div class="wl-left">
-                <span class="wl-symbol">${symbol}</span>
-                <span class="wl-name">${name}</span>
+    el.innerHTML = "";
+
+    for (const { symbol, name } of WATCHLIST) {
+        const item = document.createElement("div");
+        item.className   = `watchlist-item ${symbol === state.symbol ? "active" : ""}`;
+        item.dataset.symbol = symbol;
+        item.addEventListener("click", () => switchSymbol(symbol));
+
+        // Price row
+        item.innerHTML = `
+            <div class="wl-top">
+                <div class="wl-left">
+                    <span class="wl-symbol">${symbol}</span>
+                    <span class="wl-name">${name}</span>
+                </div>
+                <div class="wl-right">
+                    <span class="wl-price neutral" id="wlp-${symbol}">——</span>
+                    <span class="wl-change"        id="wlc-${symbol}">——</span>
+                </div>
             </div>
-            <div class="wl-right">
-                <span class="wl-price neutral" id="wlp-${symbol}">——</span>
-                <span class="wl-change"        id="wlc-${symbol}">——</span>
-            </div>
-        </div>
-    `).join("");
+        `;
+
+        // Sparkline canvas — Chart.js will render into this
+        const canvas = document.createElement("canvas");
+        canvas.className = "wl-sparkline";
+        canvas.id = `spark-${symbol}`;
+        item.appendChild(canvas);
+
+        el.appendChild(item);
+    }
 }
 
 async function refreshWatchlistPrices() {
@@ -823,6 +836,69 @@ function fmt(n) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
+}
+
+// ============================================================
+// WATCHLIST SPARKLINES (Chart.js)
+// ============================================================
+
+const _sparklineCharts = new Map(); // symbol → Chart.js instance
+
+async function loadAllSparklines() {
+    await Promise.allSettled(WATCHLIST.map(({ symbol }) => loadSparkline(symbol)));
+}
+
+async function loadSparkline(symbol) {
+    try {
+        const res = await fetch(`${CFG.API}/sparkline?symbol=${symbol}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const closes = data.close || [];
+        if (closes.length < 2) return;
+
+        const canvas = document.getElementById(`spark-${symbol}`);
+        if (!canvas) return;
+
+        // Destroy any existing Chart.js instance on this canvas
+        const existing = _sparklineCharts.get(symbol);
+        if (existing) existing.destroy();
+
+        const isUp    = closes[closes.length - 1] >= closes[0];
+        const color   = isUp ? "#00e87a" : "#ff2d55";
+        const fill    = isUp ? "rgba(0,232,122,0.07)" : "rgba(255,45,85,0.07)";
+
+        const chart = new Chart(canvas, {
+            type: "line",
+            data: {
+                labels:   closes.map((_, i) => i),
+                datasets: [{
+                    data:            closes,
+                    borderColor:     color,
+                    borderWidth:     1.5,
+                    fill:            true,
+                    backgroundColor: fill,
+                    pointRadius:     0,
+                    tension:         0.35,
+                }],
+            },
+            options: {
+                responsive:          true,
+                maintainAspectRatio: false,
+                animation:           false,
+                plugins: {
+                    legend:  { display: false },
+                    tooltip: { enabled: false },
+                },
+                scales: {
+                    x: { display: false },
+                    y: { display: false },
+                },
+            },
+        });
+
+        _sparklineCharts.set(symbol, chart);
+    } catch (_) { /* non-fatal — sparkline failure shouldn't affect anything */ }
 }
 
 // ============================================================
