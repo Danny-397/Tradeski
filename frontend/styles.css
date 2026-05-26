@@ -1284,3 +1284,194 @@ body::before {
 }
 .ski-send-btn:hover { opacity: 0.85; box-shadow: 0 0 10px var(--cyan); }
 .ski-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ===== SCREENER ===== */
+
+.screener-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: 1px solid var(--border-hover);
+    color: var(--cyan);
+    transition: border-color var(--t) var(--ease), background var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.screener-btn:hover {
+    border-color: var(--cyan);
+    background: var(--cyan-faint);
+    box-shadow: var(--glow-sm);
+}
+
+.modal-wide {
+    width: min(92vw, 960px);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.screener-filters {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.filter-range {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filter-input {
+    width: 72px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 5px 8px;
+    border-radius: var(--radius-sm);
+    font-family: var(--mono);
+    font-size: 11px;
+    transition: border-color var(--t) var(--ease);
+}
+.filter-input:focus { border-color: var(--cyan); }
+.filter-input::placeholder { color: var(--text-muted); }
+
+.filter-select {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 5px 8px;
+    border-radius: var(--radius-sm);
+    font-family: var(--mono);
+    font-size: 11px;
+    transition: border-color var(--t) var(--ease);
+    min-width: 140px;
+}
+.filter-select:focus { border-color: var(--cyan); }
+
+.filter-sep {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.filter-reset {
+    margin-left: auto;
+    align-self: flex-end;
+    padding: 5px 12px;
+    font-size: 10px;
+}
+
+.screener-table-wrap {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+}
+
+.screener-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.screener-table thead {
+    position: sticky;
+    top: 0;
+    background: #0a1220;
+    z-index: 1;
+}
+
+.screener-table th {
+    padding: 9px 12px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.screener-table th.sortable {
+    cursor: pointer;
+    transition: color var(--t) var(--ease);
+}
+.screener-table th.sortable:hover { color: var(--text-secondary); }
+.screener-table th.sortable.sorted { color: var(--cyan); }
+
+.sort-icon {
+    font-size: 10px;
+    opacity: 0.5;
+    margin-left: 3px;
+}
+.screener-table th.sorted .sort-icon { opacity: 1; }
+
+.screener-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.05);
+    color: var(--text-primary);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.screener-row { transition: background var(--t) var(--ease); }
+.screener-row:hover { background: var(--bg-hover); }
+.screener-row:last-child td { border-bottom: none; }
+
+.sc-symbol {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--cyan);
+    cursor: pointer;
+    font-size: 12px;
+}
+.sc-symbol:hover { text-decoration: underline; }
+
+.sc-name { color: var(--text-secondary); max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.sc-price, .sc-pe, .sc-mcap, .sc-high, .sc-low { font-family: var(--mono); }
+.sc-sector {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+}
+
+.sc-perf {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 12px;
+}
+.sc-perf.positive { color: var(--green); }
+.sc-perf.negative { color: var(--red); }
+
+.screener-loading {
+    text-align: center;
+    padding: 40px !important;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}

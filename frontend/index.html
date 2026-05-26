@@ -34,6 +34,7 @@
         </div>
 
         <div class="header-right">
+            <button class="screener-btn" id="open-screener-btn" title="Stock Screener">⊞ SCREENER</button>
             <div class="ws-indicator" id="ws-status">
                 <span class="ws-dot" id="ws-dot"></span>
                 <span class="ws-label">CONNECTING</span>
@@ -245,6 +246,70 @@
                     <input type="number" id="alert-threshold" class="form-input" placeholder="e.g. 200.00" step="0.01" min="0">
                 </div>
                 <button class="btn-primary full-width" id="submit-alert-btn">CREATE ALERT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SCREENER MODAL ===== -->
+    <div class="modal-overlay" id="screener-modal" style="display:none">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <span class="panel-title">STOCK SCREENER</span>
+                <span class="badge" id="screener-count">—</span>
+                <button class="btn-icon" id="close-screener-btn">✕</button>
+            </div>
+            <div class="screener-filters">
+                <div class="filter-group">
+                    <label class="filter-label">P/E RATIO</label>
+                    <div class="filter-range">
+                        <input type="number" id="pe-min" class="filter-input" placeholder="Min" min="0" step="0.5">
+                        <span class="filter-sep">–</span>
+                        <input type="number" id="pe-max" class="filter-input" placeholder="Max" min="0" step="0.5">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">MARKET CAP</label>
+                    <select id="mcap-filter" class="filter-select">
+                        <option value="">Any</option>
+                        <option value="mega">Mega (&gt;$200B)</option>
+                        <option value="large">Large ($10B–$200B)</option>
+                        <option value="mid">Mid ($2B–$10B)</option>
+                        <option value="small">Small (&lt;$2B)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">SECTOR</label>
+                    <select id="sector-filter" class="filter-select">
+                        <option value="">All Sectors</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">52W PERF %</label>
+                    <div class="filter-range">
+                        <input type="number" id="perf-min" class="filter-input" placeholder="Min" step="5">
+                        <span class="filter-sep">–</span>
+                        <input type="number" id="perf-max" class="filter-input" placeholder="Max" step="5">
+                    </div>
+                </div>
+                <button class="btn-secondary filter-reset" id="reset-filters-btn">Reset</button>
+            </div>
+            <div class="screener-table-wrap">
+                <table class="screener-table" id="screener-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="symbol">SYMBOL <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="name">NAME <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="price">PRICE <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="pe">P/E <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="market_cap">MKT CAP <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="sector">SECTOR <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="high_52w">52W HIGH <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="low_52w">52W LOW <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="perf_52w">52W PERF <span class="sort-icon">↕</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="screener-tbody"></tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -13,6 +13,7 @@ eventlet.monkey_patch()
 import time
 import datetime
 from typing import List, Tuple, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -24,7 +25,7 @@ from cache import SimpleCache
 from tracker import database
 from tracker.fred import get_macro_snapshot, format_macro_context
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
-from tracker.price_fetcher import get_stock_price, get_ohlc_history
+from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
 from tracker.analyzer import (
     sma,
     ema,
@@ -46,9 +47,25 @@ socketio = SocketIO(
 )
 
 _cache = SimpleCache()
-_FRED_TTL  = 3600   # refresh FRED data at most once per hour
-_CHART_TTL = 300    # price history / stats cache: 5 minutes
-_NEWS_TTL  = 1800   # news + sentiment cache: 30 minutes
+_FRED_TTL     = 3600   # refresh FRED data at most once per hour
+_CHART_TTL    = 300    # price history / stats cache: 5 minutes
+_NEWS_TTL     = 1800   # news + sentiment cache: 30 minutes
+_SCREENER_TTL = 600    # screener fundamentals cache: 10 minutes
+
+_SCREENER_UNIVERSE = [
+    # Mega-cap tech
+    "AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "TSLA", "AMD", "INTC", "ORCL",
+    # Financials
+    "JPM", "BAC", "GS", "V", "MA",
+    # Healthcare
+    "JNJ", "UNH", "LLY", "ABBV", "MRK",
+    # Energy
+    "XOM", "CVX", "COP",
+    # Consumer
+    "WMT", "COST", "HD", "MCD",
+    # Broad-market ETFs
+    "SPY", "QQQ",
+]
 
 # Timeframe → (yfinance period, interval)
 _TF_MAP: dict[str, tuple[str, str]] = {
@@ -498,6 +515,36 @@ def _get_news_context(symbol: str) -> str:
     if not articles:
         return ""
     return format_news_context(symbol, articles, aggregate_sentiment(articles))
+
+
+# ─────────────────────────────────────────────────────────────
+# Screener Endpoint
+# ─────────────────────────────────────────────────────────────
+
+def _fetch_screener_row(symbol: str) -> dict | None:
+    """Return cached screener row for symbol, fetching from yfinance if stale."""
+    cache_key = f"screener:{symbol}"
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        return cached
+    row = get_screener_data(symbol)
+    if row:
+        _cache.set(cache_key, row, ttl=_SCREENER_TTL)
+    return row
+
+
+@app.route("/screener")
+def screener() -> tuple:
+    """Return fundamental data for the built-in stock universe (parallel fetch, cached)."""
+    stocks: list = []
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = {pool.submit(_fetch_screener_row, sym): sym for sym in _SCREENER_UNIVERSE}
+        for future in as_completed(futures):
+            row = future.result()
+            if row:
+                stocks.append(row)
+    stocks.sort(key=lambda r: r["symbol"])
+    return jsonify({"stocks": stocks, "universe_size": len(_SCREENER_UNIVERSE)})
 
 
 _SKI_SYSTEM_PROMPT = """You are Ski, a financial Q&A assistant built into the Tradeski real-time market analytics platform. \

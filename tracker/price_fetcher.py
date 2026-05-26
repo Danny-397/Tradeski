@@ -5,6 +5,47 @@ from typing import Optional
 import yfinance as yf
 
 
+def get_screener_data(symbol: str) -> dict | None:
+    """
+    Fetch fundamental screening data for a symbol via yfinance.info.
+    Returns price, P/E, market cap, sector, 52W range and performance.
+    Returns None on any failure or missing price.
+    """
+    try:
+        info  = yf.Ticker(symbol).info
+        price = (
+            info.get("currentPrice")
+            or info.get("regularMarketPrice")
+            or info.get("previousClose")
+        )
+        if not price:
+            return None
+
+        pe     = info.get("trailingPE") or info.get("forwardPE")
+        mcap   = info.get("marketCap")
+        sector = info.get("sector") or (
+            "ETF" if info.get("quoteType") in ("ETF", "INDEX") else None
+        )
+        high52 = info.get("fiftyTwoWeekHigh")
+        low52  = info.get("fiftyTwoWeekLow")
+        perf52 = info.get("52WeekChange")
+        name   = info.get("shortName") or info.get("longName") or symbol
+
+        return {
+            "symbol":     symbol,
+            "name":       name,
+            "price":      round(float(price), 2),
+            "pe":         round(float(pe), 2) if pe is not None else None,
+            "market_cap": int(mcap) if mcap else None,
+            "sector":     sector or "—",
+            "high_52w":   round(float(high52), 2) if high52 else None,
+            "low_52w":    round(float(low52), 2) if low52 else None,
+            "perf_52w":   round(float(perf52) * 100, 2) if perf52 is not None else None,
+        }
+    except Exception:
+        return None
+
+
 def get_stock_price(symbol: str) -> Optional[float]:
     """
     Return the latest closing price for a symbol, or None on failure.

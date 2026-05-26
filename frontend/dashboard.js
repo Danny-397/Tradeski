@@ -1206,6 +1206,7 @@ async function loadMacroRibbon() {
 document.addEventListener("DOMContentLoaded", () => {
     loadMacroRibbon();
     setInterval(loadMacroRibbon, 3_600_000); // refresh every hour
+    initScreener();
 });
 
 // ============================================================
@@ -1277,4 +1278,200 @@ async function loadNews(sym) {
         feed.innerHTML = '<div class="feed-empty">News unavailable</div>';
         if (chip) { chip.textContent = "—"; chip.className = "sentiment-chip"; }
     }
+}
+
+// ============================================================
+// STOCK SCREENER
+// ============================================================
+
+const screenerState = {
+    data:    [],
+    filtered: [],
+    sortCol: "symbol",
+    sortDir: 1,        // 1 = asc, -1 = desc
+    loaded:  false,
+};
+
+function initScreener() {
+    document.getElementById("open-screener-btn").addEventListener("click", openScreener);
+    document.getElementById("close-screener-btn").addEventListener("click", closeScreener);
+    document.getElementById("reset-filters-btn").addEventListener("click", resetScreenerFilters);
+
+    document.getElementById("screener-modal").addEventListener("click", e => {
+        if (e.target.id === "screener-modal") closeScreener();
+    });
+
+    document.querySelectorAll(".screener-table th.sortable").forEach(th => {
+        th.addEventListener("click", () => sortScreener(th.dataset.col));
+    });
+
+    ["pe-min", "pe-max", "perf-min", "perf-max"].forEach(id => {
+        document.getElementById(id).addEventListener("input", applyScreenerFilters);
+    });
+    ["mcap-filter", "sector-filter"].forEach(id => {
+        document.getElementById(id).addEventListener("change", applyScreenerFilters);
+    });
+}
+
+function openScreener() {
+    document.getElementById("screener-modal").style.display = "flex";
+    if (!screenerState.loaded) loadScreener();
+}
+
+function closeScreener() {
+    document.getElementById("screener-modal").style.display = "none";
+}
+
+async function loadScreener() {
+    const tbody = document.getElementById("screener-tbody");
+    tbody.innerHTML = `<tr><td colspan="9" class="screener-loading">
+        <div class="loading-spinner"></div> Fetching screening data…</td></tr>`;
+
+    try {
+        const res = await fetch(`${CFG.API}/screener`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        screenerState.data   = data.stocks || [];
+        screenerState.loaded = true;
+
+        // Populate sector select dynamically from returned data
+        const sectorSel = document.getElementById("sector-filter");
+        const sectors = [...new Set(
+            screenerState.data.map(s => s.sector).filter(s => s && s !== "—")
+        )].sort();
+        sectors.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            sectorSel.appendChild(opt);
+        });
+
+        applyScreenerFilters();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="9" class="feed-empty">
+            Failed to load screener — ${e.message}</td></tr>`;
+    }
+}
+
+function applyScreenerFilters() {
+    const peMinEl   = document.getElementById("pe-min");
+    const peMaxEl   = document.getElementById("pe-max");
+    const perfMinEl = document.getElementById("perf-min");
+    const perfMaxEl = document.getElementById("perf-max");
+
+    const peMin   = peMinEl.value   !== "" ? parseFloat(peMinEl.value)   : null;
+    const peMax   = peMaxEl.value   !== "" ? parseFloat(peMaxEl.value)   : null;
+    const perfMin = perfMinEl.value !== "" ? parseFloat(perfMinEl.value) : null;
+    const perfMax = perfMaxEl.value !== "" ? parseFloat(perfMaxEl.value) : null;
+    const mcap    = document.getElementById("mcap-filter").value;
+    const sector  = document.getElementById("sector-filter").value;
+
+    screenerState.filtered = screenerState.data.filter(s => {
+        if (peMin   !== null && (s.pe      === null || s.pe      < peMin))   return false;
+        if (peMax   !== null && (s.pe      === null || s.pe      > peMax))   return false;
+        if (perfMin !== null && (s.perf_52w === null || s.perf_52w < perfMin)) return false;
+        if (perfMax !== null && (s.perf_52w === null || s.perf_52w > perfMax)) return false;
+        if (sector && s.sector !== sector) return false;
+        if (mcap) {
+            const mc = s.market_cap;
+            if (mc === null) return false;
+            if (mcap === "mega"  && mc <  200e9)              return false;
+            if (mcap === "large" && (mc < 10e9 || mc >= 200e9)) return false;
+            if (mcap === "mid"   && (mc <  2e9 || mc >=  10e9)) return false;
+            if (mcap === "small" && mc >=  2e9)               return false;
+        }
+        return true;
+    });
+
+    sortScreenerData();
+    renderScreenerTable();
+}
+
+function sortScreener(col) {
+    if (screenerState.sortCol === col) {
+        screenerState.sortDir *= -1;
+    } else {
+        screenerState.sortCol = col;
+        // Default string columns ascending, numeric columns descending
+        screenerState.sortDir = (col === "symbol" || col === "name" || col === "sector") ? 1 : -1;
+    }
+
+    document.querySelectorAll(".screener-table th.sortable").forEach(th => {
+        const icon = th.querySelector(".sort-icon");
+        const active = th.dataset.col === screenerState.sortCol;
+        icon.textContent = active ? (screenerState.sortDir === 1 ? "↑" : "↓") : "↕";
+        th.classList.toggle("sorted", active);
+    });
+
+    sortScreenerData();
+    renderScreenerTable();
+}
+
+function sortScreenerData() {
+    const { sortCol: col, sortDir: dir } = screenerState;
+    screenerState.filtered.sort((a, b) => {
+        const av = a[col], bv = b[col];
+        if (av === null || av === undefined || av === "—") return 1;
+        if (bv === null || bv === undefined || bv === "—") return -1;
+        if (typeof av === "string") return dir * av.localeCompare(bv);
+        return dir * (av - bv);
+    });
+}
+
+function fmtMcap(mc) {
+    if (mc === null || mc === undefined) return "—";
+    if (mc >= 1e12) return `$${(mc / 1e12).toFixed(2)}T`;
+    if (mc >= 1e9)  return `$${(mc / 1e9).toFixed(1)}B`;
+    if (mc >= 1e6)  return `$${(mc / 1e6).toFixed(0)}M`;
+    return `$${mc.toLocaleString()}`;
+}
+
+function renderScreenerTable() {
+    const tbody = document.getElementById("screener-tbody");
+    const count = document.getElementById("screener-count");
+    const rows  = screenerState.filtered;
+
+    count.textContent = `${rows.length} result${rows.length !== 1 ? "s" : ""}`;
+
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="9" class="feed-empty">No stocks match the current filters</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = "";
+    for (const s of rows) {
+        const perf    = s.perf_52w;
+        const perfCls = perf === null ? "" : perf >= 0 ? "positive" : "negative";
+        const perfStr = perf === null ? "—" : `${perf >= 0 ? "+" : ""}${perf.toFixed(2)}%`;
+
+        const tr = document.createElement("tr");
+        tr.className = "screener-row";
+        tr.innerHTML = `
+            <td class="sc-symbol">${escapeHtml(s.symbol)}</td>
+            <td class="sc-name">${escapeHtml(s.name || "")}</td>
+            <td class="sc-price">${s.price !== null ? "$" + s.price.toFixed(2) : "—"}</td>
+            <td class="sc-pe">${s.pe !== null ? s.pe.toFixed(1) : "—"}</td>
+            <td class="sc-mcap">${fmtMcap(s.market_cap)}</td>
+            <td class="sc-sector">${escapeHtml(s.sector || "—")}</td>
+            <td class="sc-high">${s.high_52w !== null ? "$" + s.high_52w.toFixed(2) : "—"}</td>
+            <td class="sc-low">${s.low_52w  !== null ? "$" + s.low_52w.toFixed(2)  : "—"}</td>
+            <td class="sc-perf ${perfCls}">${perfStr}</td>
+        `;
+
+        tr.querySelector(".sc-symbol").addEventListener("click", () => {
+            closeScreener();
+            switchSymbol(s.symbol);
+        });
+
+        tbody.appendChild(tr);
+    }
+}
+
+function resetScreenerFilters() {
+    ["pe-min", "pe-max", "perf-min", "perf-max"].forEach(id => {
+        document.getElementById(id).value = "";
+    });
+    document.getElementById("mcap-filter").value = "";
+    document.getElementById("sector-filter").value = "";
+    applyScreenerFilters();
 }
