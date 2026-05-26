@@ -213,6 +213,39 @@
         <span class="status-brand">Tradeski v2.0 · Real-Time Market Analytics</span>
     </footer>
 
+    <!-- ===== SKI CHATBOT WIDGET ===== -->
+    <div class="ski-fab" id="ski-fab" title="Ask Ski">
+        <span class="ski-fab-icon">◈</span>
+        <span class="ski-fab-label">SKI</span>
+        <span class="ski-fab-badge" id="ski-badge" style="display:none">1</span>
+    </div>
+
+    <div class="ski-panel" id="ski-panel">
+        <div class="ski-header">
+            <div class="ski-header-left">
+                <span class="ski-icon">◈</span>
+                <div>
+                    <div class="ski-title">SKI</div>
+                    <div class="ski-subtitle">Financial Intelligence</div>
+                </div>
+            </div>
+            <button class="btn-icon" id="ski-close-btn">✕</button>
+        </div>
+        <div class="ski-messages" id="ski-messages">
+            <div class="ski-message ski-message-assistant">
+                <div class="ski-bubble">
+                    Hey — I'm Ski, your financial intelligence assistant. Ask me anything: market concepts, macro trends, indicator signals, sector analysis. What do you want to know?
+                </div>
+            </div>
+        </div>
+        <div class="ski-input-row">
+            <input type="text" class="ski-input" id="ski-input" placeholder="Ask a financial question..." autocomplete="off" />
+            <button class="ski-send-btn" id="ski-send-btn">
+                <span>↑</span>
+            </button>
+        </div>
+    </div>
+
     <script src="dashboard.js"></script>
 </body>
 </html>

@@ -823,3 +823,99 @@ function fmt(n) {
         maximumFractionDigits: 2,
     });
 }
+
+// ============================================================
+// SKI CHATBOT
+// ============================================================
+
+const skiState = {
+    open: false,
+    history: [],   // [{role, content}]
+    busy: false,
+};
+
+function initSki() {
+    const fab    = document.getElementById("ski-fab");
+    const panel  = document.getElementById("ski-panel");
+    const close  = document.getElementById("ski-close-btn");
+    const input  = document.getElementById("ski-input");
+    const send   = document.getElementById("ski-send-btn");
+
+    panel.classList.add("hidden");
+
+    fab.addEventListener("click", () => skiToggle());
+    close.addEventListener("click", () => skiToggle(false));
+
+    send.addEventListener("click", skiSend);
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); skiSend(); }
+    });
+}
+
+function skiToggle(forceOpen) {
+    const panel = document.getElementById("ski-panel");
+    const badge = document.getElementById("ski-badge");
+    skiState.open = forceOpen !== undefined ? forceOpen : !skiState.open;
+    if (skiState.open) {
+        panel.classList.remove("hidden");
+        badge.style.display = "none";
+        document.getElementById("ski-input").focus();
+    } else {
+        panel.classList.add("hidden");
+    }
+}
+
+function skiAppendMessage(role, content, isLoading = false) {
+    const container = document.getElementById("ski-messages");
+    const wrap = document.createElement("div");
+    wrap.className = `ski-message ski-message-${role}`;
+    const bubble = document.createElement("div");
+    bubble.className = "ski-bubble" + (isLoading ? " loading" : "");
+    bubble.textContent = content;
+    wrap.appendChild(bubble);
+    container.appendChild(wrap);
+    container.scrollTop = container.scrollHeight;
+    return bubble;
+}
+
+async function skiSend() {
+    if (skiState.busy) return;
+    const input = document.getElementById("ski-input");
+    const send  = document.getElementById("ski-send-btn");
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = "";
+    skiState.busy = true;
+    send.disabled = true;
+
+    skiAppendMessage("user", message);
+    skiState.history.push({ role: "user", content: message });
+
+    const loadingBubble = skiAppendMessage("assistant", "Thinking...", true);
+
+    try {
+        const res = await fetch(`${CFG.API}/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message, history: skiState.history.slice(0, -1) }),
+        });
+        const data = await res.json();
+        const reply = data.reply || data.error || "No response.";
+        loadingBubble.textContent = reply;
+        loadingBubble.classList.remove("loading");
+        skiState.history.push({ role: "assistant", content: reply });
+        // Trim history to last 20 turns to avoid unbounded growth
+        if (skiState.history.length > 20) skiState.history = skiState.history.slice(-20);
+    } catch {
+        loadingBubble.textContent = "Connection error — check that the backend is running.";
+        loadingBubble.classList.remove("loading");
+        skiState.history.pop();
+    } finally {
+        skiState.busy = false;
+        send.disabled = false;
+        document.getElementById("ski-input").focus();
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => { initSki(); });

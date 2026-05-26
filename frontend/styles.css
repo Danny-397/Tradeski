@@ -785,3 +785,201 @@ body::before {
     from { opacity: 0; }
     to   { opacity: 1; }
 }
+
+@keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== SKI CHATBOT ===== */
+
+.ski-fab {
+    position: fixed;
+    bottom: calc(var(--status-h) + 18px);
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--cyan);
+    border-radius: 24px;
+    cursor: pointer;
+    z-index: 500;
+    box-shadow: var(--glow-md);
+    transition: box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
+    user-select: none;
+}
+.ski-fab:hover {
+    box-shadow: var(--glow-lg);
+    border-color: var(--border-strong);
+}
+.ski-fab-icon {
+    font-size: 14px;
+    color: var(--cyan);
+    filter: drop-shadow(0 0 5px var(--cyan));
+}
+.ski-fab-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    color: var(--cyan);
+}
+.ski-fab-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--red);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+}
+
+.ski-panel {
+    position: fixed;
+    bottom: calc(var(--status-h) + 72px);
+    right: 20px;
+    width: 360px;
+    height: 500px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    z-index: 500;
+    box-shadow: var(--glow-lg), 0 8px 40px rgba(0,0,0,0.6);
+    backdrop-filter: blur(16px);
+    animation: slide-up 0.22s var(--ease);
+    overflow: hidden;
+}
+.ski-panel.hidden { display: none; }
+
+.ski-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+.ski-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.ski-icon {
+    font-size: 18px;
+    color: var(--cyan);
+    filter: drop-shadow(0 0 6px var(--cyan));
+    animation: pulse-icon 4s ease-in-out infinite;
+}
+.ski-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--cyan);
+}
+.ski-subtitle {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+}
+
+.ski-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ski-message {
+    display: flex;
+    animation: fade-in 0.18s var(--ease);
+}
+.ski-message-user   { justify-content: flex-end; }
+.ski-message-assistant { justify-content: flex-start; }
+
+.ski-bubble {
+    max-width: 82%;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    font-size: 12.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.ski-message-user .ski-bubble {
+    background: var(--cyan-dim);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    color: var(--text-primary);
+    border-bottom-right-radius: var(--radius-xs);
+}
+.ski-message-assistant .ski-bubble {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-bottom-left-radius: var(--radius-xs);
+}
+.ski-message-assistant .ski-bubble.loading {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.ski-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    background: rgba(0,0,0,0.25);
+    flex-shrink: 0;
+}
+
+.ski-input {
+    flex: 1;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--text-primary);
+    transition: border-color var(--t) var(--ease);
+}
+.ski-input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(0,212,255,0.15);
+}
+.ski-input::placeholder { color: var(--text-muted); }
+
+.ski-send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--cyan);
+    border: none;
+    color: var(--bg-primary);
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.ski-send-btn:hover { opacity: 0.85; box-shadow: 0 0 10px var(--cyan); }
+.ski-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
