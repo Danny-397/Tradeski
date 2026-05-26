@@ -269,6 +269,141 @@ def _get_macro_context() -> str:
     return format_macro_context(cached)
 
 
+# ─────────────────────────────────────────────────────────────
+# Portfolio Endpoints
+# ─────────────────────────────────────────────────────────────
+
+def _enrich_holding(h: dict) -> dict:
+    """Add current price, market value, and P&L to a raw holding dict."""
+    symbol = h["symbol"]
+    shares = h["shares"]
+    avg_cost = h.get("avg_cost")
+
+    rows = database.get_recent_prices(symbol, limit=1)
+    if rows:
+        current_price = rows[0][1]
+    else:
+        current_price = get_stock_price(symbol)
+
+    market_value = round(shares * current_price, 2) if current_price else None
+
+    pnl_pct = None
+    pnl_abs = None
+    if current_price and avg_cost:
+        pnl_pct = round((current_price - avg_cost) / avg_cost * 100, 2)
+        pnl_abs = round((current_price - avg_cost) * shares, 2)
+
+    return {
+        **h,
+        "current_price": round(current_price, 4) if current_price else None,
+        "market_value": market_value,
+        "pnl_pct": pnl_pct,
+        "pnl_abs": pnl_abs,
+    }
+
+
+@app.route("/portfolio", methods=["GET"])
+def get_portfolio_route() -> tuple:
+    """Return all holdings enriched with current prices and P&L."""
+    holdings = [_enrich_holding(h) for h in database.get_portfolio()]
+
+    total_value = sum(h["market_value"] for h in holdings if h["market_value"])
+    cost_basis = sum(
+        h["shares"] * h["avg_cost"]
+        for h in holdings
+        if h["avg_cost"]
+    )
+    total_pnl_pct = (
+        round((total_value - cost_basis) / cost_basis * 100, 2)
+        if cost_basis else None
+    )
+    total_pnl_abs = round(total_value - cost_basis, 2) if cost_basis else None
+
+    return jsonify({
+        "holdings": holdings,
+        "total_value": round(total_value, 2),
+        "total_pnl_pct": total_pnl_pct,
+        "total_pnl_abs": total_pnl_abs,
+    })
+
+
+@app.route("/portfolio", methods=["POST"])
+def add_holding_route() -> tuple:
+    """Add or update a portfolio holding."""
+    data = request.json or {}
+    symbol = (data.get("symbol") or "").strip().upper()
+    shares = data.get("shares")
+    avg_cost = data.get("avg_cost")
+
+    if not symbol:
+        return jsonify({"error": "symbol is required"}), 400
+    try:
+        shares = float(shares)
+        if shares <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"error": "shares must be a positive number"}), 400
+    if avg_cost is not None:
+        try:
+            avg_cost = float(avg_cost)
+            if avg_cost < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"error": "avg_cost must be a non-negative number"}), 400
+
+    holding_id = database.upsert_holding(symbol, shares, avg_cost)
+    return jsonify({"status": "ok", "id": holding_id})
+
+
+@app.route("/portfolio/<int:holding_id>", methods=["DELETE"])
+def delete_holding_route(holding_id: int) -> tuple:
+    """Remove a portfolio holding."""
+    database.delete_holding(holding_id)
+    return jsonify({"status": "deleted"})
+
+
+def _get_portfolio_context() -> str:
+    """Format the user's portfolio for injection into Ski's context."""
+    holdings = [_enrich_holding(h) for h in database.get_portfolio()]
+    if not holdings:
+        return ""
+
+    lines = [f"USER'S PORTFOLIO — {datetime.date.today()}:"]
+    total_value = 0.0
+    total_cost = 0.0
+
+    for h in holdings:
+        symbol = h["symbol"]
+        shares = h["shares"]
+        avg_cost = h.get("avg_cost")
+        current = h.get("current_price")
+        mv = h.get("market_value")
+
+        line = f"  {symbol}: {shares} shares"
+        if avg_cost:
+            line += f" @ ${avg_cost:.2f} avg cost"
+        if current:
+            line += f" | price ${current:.2f}"
+        if mv:
+            line += f" | value ${mv:,.2f}"
+            total_value += mv
+        if avg_cost:
+            total_cost += shares * avg_cost
+        if h.get("pnl_pct") is not None:
+            sign = "+" if h["pnl_pct"] >= 0 else ""
+            line += f" | P&L {sign}{h['pnl_pct']:.1f}% (${h['pnl_abs']:+,.2f})"
+        lines.append(line)
+
+    if total_value:
+        lines.append(f"  TOTAL VALUE: ${total_value:,.2f}")
+    if total_cost and total_value:
+        pnl = (total_value - total_cost) / total_cost * 100
+        sign = "+" if pnl >= 0 else ""
+        lines.append(f"  TOTAL P&L: {sign}{pnl:.1f}%")
+
+    return "\n".join(lines)
+
+
 _SKI_SYSTEM_PROMPT = """You are Ski, a financial Q&A assistant built into the Tradeski real-time market analytics platform. \
 You are sharp, concise, and authoritative — like a seasoned Wall Street analyst who can explain complex concepts clearly \
 to retail traders.
@@ -367,6 +502,10 @@ def chat() -> tuple:
     macro_ctx = _get_macro_context()
     if macro_ctx:
         system_blocks.append({"type": "text", "text": macro_ctx})
+
+    portfolio_ctx = _get_portfolio_context()
+    if portfolio_ctx:
+        system_blocks.append({"type": "text", "text": portfolio_ctx})
 
     response = client.messages.create(
         model="claude-opus-4-7",

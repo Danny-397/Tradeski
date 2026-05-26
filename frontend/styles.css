@@ -311,6 +311,118 @@ body::before {
     letter-spacing: 1px;
 }
 
+/* ===== PORTFOLIO PANEL ===== */
+.portfolio-total-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--cyan);
+    letter-spacing: 0.5px;
+}
+
+.portfolio-list {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.portfolio-item {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: background var(--t) var(--ease);
+}
+.portfolio-item:last-child { border-bottom: none; }
+.portfolio-item:hover { background: var(--bg-hover); }
+
+.pf-row1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pf-symbol {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.pf-delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color var(--t) var(--ease);
+}
+.pf-delete-btn:hover { color: var(--red); }
+
+.pf-row2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.pf-shares {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.pf-value {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.pf-pnl {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+}
+.pf-pnl.up   { color: var(--green); }
+.pf-pnl.down { color: var(--red); }
+
+.pf-no-price {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.portfolio-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.portfolio-form-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.pf-input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 7px;
+    font-size: 11px;
+}
+
+.pf-add-btn {
+    flex-shrink: 0;
+    padding: 5px 9px;
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
 /* ===== APP BODY ===== */
 .app-body {
     display: flex;

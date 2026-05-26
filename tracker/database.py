@@ -56,6 +56,18 @@ def init_db() -> None:
         """
     )
 
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS portfolio (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol     TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+            shares     REAL    NOT NULL CHECK (shares > 0),
+            avg_cost   REAL,
+            added_at   TEXT    DEFAULT (datetime('now'))
+        )
+        """
+    )
+
     conn.commit()
     conn.close()
 
@@ -235,5 +247,75 @@ def delete_alert(alert_id: int) -> None:
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
+    conn.commit()
+    conn.close()
+
+
+# ------------------------------------------------------------------------------
+# Portfolio
+# ------------------------------------------------------------------------------
+
+def upsert_holding(
+    symbol: str,
+    shares: float,
+    avg_cost: Optional[float] = None,
+) -> int:
+    """Insert a new holding or update shares/avg_cost if the symbol already exists."""
+    sym = symbol.upper().strip()
+    conn = _connect()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO portfolio (symbol, shares, avg_cost, added_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(symbol) DO UPDATE SET
+            shares   = excluded.shares,
+            avg_cost = excluded.avg_cost,
+            added_at = excluded.added_at
+        """,
+        (sym, shares, avg_cost),
+    )
+
+    conn.commit()
+    row_id: int = cursor.execute(
+        "SELECT id FROM portfolio WHERE symbol = ?", (sym,)
+    ).fetchone()[0]
+    conn.close()
+    return row_id
+
+
+def get_portfolio() -> List[dict]:
+    """Return all portfolio holdings ordered by symbol."""
+    conn = _connect()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, symbol, shares, avg_cost, added_at
+        FROM portfolio
+        ORDER BY symbol ASC
+        """
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+    return [
+        {
+            "id": r[0],
+            "symbol": r[1],
+            "shares": r[2],
+            "avg_cost": r[3],
+            "added_at": r[4],
+        }
+        for r in rows
+    ]
+
+
+def delete_holding(holding_id: int) -> None:
+    """Remove a portfolio holding by id."""
+    conn = _connect()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM portfolio WHERE id = ?", (holding_id,))
     conn.commit()
     conn.close()

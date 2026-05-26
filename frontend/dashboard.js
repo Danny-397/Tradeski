@@ -56,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(refreshWatchlistPrices, CFG.WATCHLIST_REFRESH_MS);
     buildTickerTape();
     setInterval(buildTickerTape, CFG.TICKER_REFRESH_MS);
+    initPortfolio();
 });
 
 // ============================================================
@@ -822,6 +823,155 @@ function fmt(n) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
+}
+
+// ============================================================
+// PORTFOLIO
+// ============================================================
+
+function initPortfolio() {
+    document.getElementById("pf-add-btn").addEventListener("click", submitHolding);
+    document.getElementById("pf-symbol").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitHolding();
+    });
+    document.getElementById("pf-avgcost").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitHolding();
+    });
+    loadPortfolio();
+    setInterval(loadPortfolio, CFG.WATCHLIST_REFRESH_MS);
+}
+
+async function loadPortfolio() {
+    try {
+        const res  = await fetch(`${CFG.API}/portfolio`);
+        const data = await res.json();
+        renderPortfolio(data);
+    } catch {
+        // silently ignore if backend not up
+    }
+}
+
+function renderPortfolio(data) {
+    const list  = document.getElementById("portfolio-list");
+    const badge = document.getElementById("portfolio-total-badge");
+
+    const holdings = data.holdings || [];
+    const total    = data.total_value || 0;
+    const pnl      = data.total_pnl_pct;
+
+    // Update header badge
+    if (total > 0) {
+        const pnlStr = pnl != null
+            ? ` (${pnl >= 0 ? "+" : ""}${pnl.toFixed(1)}%)`
+            : "";
+        badge.textContent = `$${total.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}${pnlStr}`;
+        badge.style.color = pnl == null ? "" : pnl >= 0 ? "var(--green)" : "var(--red)";
+    } else {
+        badge.textContent = "—";
+        badge.style.color = "";
+    }
+
+    if (holdings.length === 0) {
+        list.innerHTML = '<div class="feed-empty">No holdings — add one below</div>';
+        return;
+    }
+
+    list.innerHTML = "";
+    for (const h of holdings) {
+        const item = document.createElement("div");
+        item.className = "portfolio-item";
+
+        // Row 1: symbol + delete
+        const row1 = document.createElement("div");
+        row1.className = "pf-row1";
+
+        const sym = document.createElement("span");
+        sym.className = "pf-symbol";
+        sym.textContent = h.symbol;
+
+        const del = document.createElement("button");
+        del.className = "pf-delete-btn";
+        del.textContent = "✕";
+        del.title = `Remove ${h.symbol}`;
+        del.addEventListener("click", () => deleteHolding(h.id, h.symbol));
+
+        row1.appendChild(sym);
+        row1.appendChild(del);
+
+        // Row 2: shares · value · P&L
+        const row2 = document.createElement("div");
+        row2.className = "pf-row2";
+
+        const shares = document.createElement("span");
+        shares.className = "pf-shares";
+        shares.textContent = `${h.shares} sh`;
+
+        row2.appendChild(shares);
+
+        if (h.current_price != null) {
+            const val = document.createElement("span");
+            val.className = "pf-value";
+            val.textContent = h.market_value != null
+                ? `$${h.market_value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                : `@ $${h.current_price.toFixed(2)}`;
+            row2.appendChild(val);
+
+            if (h.pnl_pct != null) {
+                const pnlEl = document.createElement("span");
+                pnlEl.className = `pf-pnl ${h.pnl_pct >= 0 ? "up" : "down"}`;
+                pnlEl.textContent = `${h.pnl_pct >= 0 ? "+" : ""}${h.pnl_pct.toFixed(1)}%`;
+                row2.appendChild(pnlEl);
+            }
+        } else {
+            const noPrice = document.createElement("span");
+            noPrice.className = "pf-no-price";
+            noPrice.textContent = "price pending";
+            row2.appendChild(noPrice);
+        }
+
+        item.appendChild(row1);
+        item.appendChild(row2);
+        list.appendChild(item);
+    }
+}
+
+async function submitHolding() {
+    const symEl  = document.getElementById("pf-symbol");
+    const shEl   = document.getElementById("pf-shares");
+    const costEl = document.getElementById("pf-avgcost");
+
+    const symbol   = symEl.value.trim().toUpperCase();
+    const shares   = parseFloat(shEl.value);
+    const avg_cost = costEl.value.trim() ? parseFloat(costEl.value) : null;
+
+    if (!symbol || isNaN(shares) || shares <= 0) return;
+
+    const btn = document.getElementById("pf-add-btn");
+    btn.disabled = true;
+    btn.textContent = "...";
+
+    try {
+        const res = await fetch(`${CFG.API}/portfolio`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ symbol, shares, avg_cost }),
+        });
+        if (res.ok) {
+            symEl.value  = "";
+            shEl.value   = "";
+            costEl.value = "";
+            await loadPortfolio();
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "+ ADD";
+    }
+}
+
+async function deleteHolding(id, symbol) {
+    if (!confirm(`Remove ${symbol} from portfolio?`)) return;
+    await fetch(`${CFG.API}/portfolio/${id}`, { method: "DELETE" });
+    await loadPortfolio();
 }
 
 // ============================================================

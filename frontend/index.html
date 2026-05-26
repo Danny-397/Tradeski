@@ -91,6 +91,29 @@
                 </div>
             </div>
 
+            <!-- PORTFOLIO PANEL -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">PORTFOLIO</span>
+                    <span class="portfolio-total-badge" id="portfolio-total-badge">—</span>
+                </div>
+                <div id="portfolio-list" class="portfolio-list">
+                    <div class="feed-empty">No holdings — add one below</div>
+                </div>
+                <div class="panel-footer">
+                    <div class="portfolio-form">
+                        <div class="portfolio-form-row">
+                            <input type="text"   id="pf-symbol"   class="form-input pf-input" placeholder="Symbol" maxlength="10" />
+                            <input type="number" id="pf-shares"   class="form-input pf-input" placeholder="Shares" min="0.0001" step="any" />
+                        </div>
+                        <div class="portfolio-form-row">
+                            <input type="number" id="pf-avgcost"  class="form-input pf-input" placeholder="Avg cost (opt)" min="0" step="any" />
+                            <button class="btn-primary pf-add-btn" id="pf-add-btn">+ ADD</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </aside>
 
         <!-- MAIN CHART AREA -->
