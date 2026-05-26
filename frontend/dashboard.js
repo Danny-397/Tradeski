@@ -5,8 +5,8 @@
 // ============================================================
 
 const CFG = {
-    API: "http://localhost:5000",
-    WS:  "http://localhost:5000",
+    API: "https://tradeski-backend.onrender.com",
+    WS:  "https://tradeski-backend.onrender.com",
     WATCHLIST_REFRESH_MS: 30_000,
     TICKER_REFRESH_MS:    60_000,
 };
