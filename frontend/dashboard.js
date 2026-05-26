@@ -203,6 +203,9 @@ async function loadDashboard(sym) {
         setStatus(`Error: ${e.message}`);
         showChartLoading(false);
     }
+
+    // Non-blocking — news loads independently after core data
+    loadNews(sym);
 }
 
 // ============================================================
@@ -1124,7 +1127,7 @@ async function skiSend() {
         const res = await fetch(`${CFG.API}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message, history: skiState.history.slice(0, -1) }),
+            body: JSON.stringify({ message, history: skiState.history.slice(0, -1), symbol: state.symbol }),
         });
         const data = await res.json();
         const reply = data.reply || data.error || "No response.";
@@ -1204,3 +1207,74 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMacroRibbon();
     setInterval(loadMacroRibbon, 3_600_000); // refresh every hour
 });
+
+// ============================================================
+// NEWS FEED + SENTIMENT
+// ============================================================
+
+function escapeHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function timeAgo(isoStr) {
+    if (!isoStr) return "";
+    const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
+    if (diff < 60)   return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+}
+
+async function loadNews(sym) {
+    const feed   = document.getElementById("news-feed");
+    const chip   = document.getElementById("agg-sentiment-chip");
+    if (!feed) return;
+
+    feed.innerHTML = '<div class="feed-empty">Loading news…</div>';
+
+    try {
+        const res  = await fetch(`${CFG.API}/news?symbol=${encodeURIComponent(sym)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const articles = data.articles || [];
+        const agg      = data.aggregate || {};
+
+        // Update aggregate chip
+        if (chip) {
+            const label = agg.label || "neutral";
+            const sign  = (agg.score || 0) >= 0 ? "+" : "";
+            chip.textContent  = `${label.toUpperCase()} ${sign}${(agg.score || 0).toFixed(2)}`;
+            chip.className    = `sentiment-chip ${label}`;
+        }
+
+        if (!articles.length) {
+            feed.innerHTML = '<div class="feed-empty">No news available</div>';
+            return;
+        }
+
+        feed.innerHTML = "";
+        for (const a of articles) {
+            const lbl   = a.sentiment_label || "neutral";
+            const score = typeof a.sentiment === "number" ? (a.sentiment >= 0 ? "+" : "") + a.sentiment.toFixed(2) : "";
+            const item  = document.createElement("div");
+            item.className = "news-item";
+            item.innerHTML = `
+                <div class="news-item-header">
+                    <span class="news-sentiment ${lbl}">${lbl.toUpperCase()} ${score}</span>
+                </div>
+                <a class="news-title" href="${escapeHtml(a.url || "#")}" target="_blank" rel="noopener">
+                    ${escapeHtml(a.title || "")}
+                </a>
+                <div class="news-meta">
+                    <span class="news-source">${escapeHtml(a.source || "")}</span>
+                    <span class="news-time">${timeAgo(a.published_at)}</span>
+                </div>
+            `;
+            feed.appendChild(item);
+        }
+    } catch {
+        feed.innerHTML = '<div class="feed-empty">News unavailable</div>';
+        if (chip) { chip.textContent = "—"; chip.className = "sentiment-chip"; }
+    }
+}

@@ -11,3 +11,4 @@ scikit-learn==1.4.2
 apscheduler
 pytest
 anthropic
+vaderSentiment

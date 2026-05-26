@@ -1175,5 +1175,112 @@ body::before {
     flex-shrink: 0;
     transition: opacity var(--t) var(--ease), box-shadow var(--t) var(--ease);
 }
+
+/* ===== NEWS FEED ===== */
+
+.news-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+    max-height: 340px;
+}
+
+.news-item {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    transition: background var(--t) var(--ease);
+    animation: fade-in 0.2s var(--ease);
+}
+.news-item:last-child { border-bottom: none; }
+.news-item:hover { background: var(--bg-hover); }
+
+.news-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.news-sentiment {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+.news-sentiment.bullish {
+    background: var(--green-dim);
+    border: 1px solid rgba(0, 232, 122, 0.3);
+    color: var(--green);
+}
+.news-sentiment.bearish {
+    background: var(--red-dim);
+    border: 1px solid rgba(255, 45, 85, 0.3);
+    color: var(--red);
+}
+.news-sentiment.neutral {
+    background: rgba(94, 126, 154, 0.15);
+    border: 1px solid rgba(94, 126, 154, 0.25);
+    color: var(--text-secondary);
+}
+
+.news-title {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 4px;
+}
+.news-title:hover { color: var(--cyan); }
+
+.news-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.news-source {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--cyan);
+    opacity: 0.7;
+}
+.news-time {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--text-muted);
+}
+
+/* Aggregate sentiment chip in panel header */
+.sentiment-chip {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(94, 126, 154, 0.15);
+    border: 1px solid rgba(94, 126, 154, 0.25);
+    color: var(--text-secondary);
+    transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.sentiment-chip.bullish {
+    background: var(--green-dim);
+    border-color: rgba(0, 232, 122, 0.3);
+    color: var(--green);
+}
+.sentiment-chip.bearish {
+    background: var(--red-dim);
+    border-color: rgba(255, 45, 85, 0.3);
+    color: var(--red);
+}
+.sentiment-chip.neutral {
+    background: rgba(255, 214, 10, 0.1);
+    border-color: rgba(255, 214, 10, 0.25);
+    color: var(--yellow);
+}
 .ski-send-btn:hover { opacity: 0.85; box-shadow: 0 0 10px var(--cyan); }
 .ski-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }

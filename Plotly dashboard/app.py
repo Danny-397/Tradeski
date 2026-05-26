@@ -23,6 +23,7 @@ import anthropic
 from cache import SimpleCache
 from tracker import database
 from tracker.fred import get_macro_snapshot, format_macro_context
+from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history
 from tracker.analyzer import (
     sma,
@@ -47,6 +48,7 @@ socketio = SocketIO(
 _cache = SimpleCache()
 _FRED_TTL  = 3600   # refresh FRED data at most once per hour
 _CHART_TTL = 300    # price history / stats cache: 5 minutes
+_NEWS_TTL  = 1800   # news + sentiment cache: 30 minutes
 
 # Timeframe → (yfinance period, interval)
 _TF_MAP: dict[str, tuple[str, str]] = {
@@ -452,6 +454,52 @@ def _get_portfolio_context() -> str:
     return "\n".join(lines)
 
 
+# ─────────────────────────────────────────────────────────────
+# News + Sentiment Endpoints
+# ─────────────────────────────────────────────────────────────
+
+def _fetch_cached_news(symbol: str) -> list:
+    """Return cached article list for symbol, fetching if stale."""
+    news_key = os.environ.get("NEWS_API_KEY", "")
+    if not news_key:
+        return []
+    cache_key = f"news:{symbol}"
+    articles = _cache.get(cache_key)
+    if articles is None:
+        articles = fetch_news(symbol, news_key)
+        _cache.set(cache_key, articles, ttl=_NEWS_TTL)
+    return articles
+
+
+@app.route("/news")
+def news_endpoint() -> tuple:
+    """Return scored headlines + aggregate sentiment for a symbol."""
+    symbol   = request.args.get("symbol", "AAPL").upper()
+    news_key = os.environ.get("NEWS_API_KEY", "")
+
+    if not news_key:
+        return jsonify({"error": "NEWS_API_KEY not configured"}), 503
+
+    articles = _fetch_cached_news(symbol)
+    agg      = aggregate_sentiment(articles)
+
+    return jsonify({
+        "symbol":    symbol,
+        "articles":  articles,
+        "aggregate": agg,
+    })
+
+
+def _get_news_context(symbol: str) -> str:
+    """Format recent news sentiment as a context string for Ski."""
+    if not symbol:
+        return ""
+    articles = _fetch_cached_news(symbol)
+    if not articles:
+        return ""
+    return format_news_context(symbol, articles, aggregate_sentiment(articles))
+
+
 _SKI_SYSTEM_PROMPT = """You are Ski, a financial Q&A assistant built into the Tradeski real-time market analytics platform. \
 You are sharp, concise, and authoritative — like a seasoned Wall Street analyst who can explain complex concepts clearly \
 to retail traders.
@@ -523,6 +571,7 @@ def chat() -> tuple:
     data = request.json or {}
     message = (data.get("message") or "").strip()
     history = data.get("history") or []
+    symbol  = (data.get("symbol") or "").strip().upper()
 
     if not message:
         return jsonify({"error": "No message provided"}), 400
@@ -554,6 +603,10 @@ def chat() -> tuple:
     portfolio_ctx = _get_portfolio_context()
     if portfolio_ctx:
         system_blocks.append({"type": "text", "text": portfolio_ctx})
+
+    news_ctx = _get_news_context(symbol)
+    if news_ctx:
+        system_blocks.append({"type": "text", "text": news_ctx})
 
     response = client.messages.create(
         model="claude-opus-4-7",
