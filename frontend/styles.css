@@ -541,7 +541,8 @@ body::before {
 .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 10px; }
 .toolbar-label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-muted); }
 
-.symbol-dropdown {
+.symbol-search-wrap { display: flex; align-items: center; gap: 4px; }
+.symbol-input {
     background: rgba(0,0,0,0.35);
     border: 1px solid var(--border);
     color: var(--text-primary);
@@ -550,10 +551,35 @@ body::before {
     font-weight: 600;
     padding: 4px 10px;
     border-radius: var(--radius-sm);
+    width: 140px;
     transition: border-color var(--t);
 }
-.symbol-dropdown:hover, .symbol-dropdown:focus { border-color: var(--cyan); }
-.symbol-dropdown option { background: #0c1120; }
+.symbol-input::placeholder { color: var(--text-muted); font-weight: 400; }
+.symbol-input:focus { outline: none; border-color: var(--cyan); }
+.symbol-go-btn {
+    background: var(--cyan);
+    color: #000;
+    border: none;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: opacity var(--t);
+}
+.symbol-go-btn:hover { opacity: 0.8; }
+.wl-remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color var(--t);
+}
+.wl-remove-btn:hover { color: #f87171; }
 
 .timeframe-group { display: flex; gap: 1px; }
 .tf-btn {

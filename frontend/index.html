@@ -123,17 +123,12 @@
 
             <div class="chart-toolbar">
                 <div class="toolbar-left">
-                    <select id="symbol-select" class="symbol-dropdown">
-                        <option value="AAPL">AAPL — Apple</option>
-                        <option value="MSFT">MSFT — Microsoft</option>
-                        <option value="TSLA">TSLA — Tesla</option>
-                        <option value="NVDA">NVDA — NVIDIA</option>
-                        <option value="AMZN">AMZN — Amazon</option>
-                        <option value="GOOGL">GOOGL — Alphabet</option>
-                        <option value="META">META — Meta</option>
-                        <option value="SPY">SPY — S&amp;P 500 ETF</option>
-                        <option value="QQQ">QQQ — Nasdaq ETF</option>
-                    </select>
+                    <div class="symbol-search-wrap">
+                        <input id="symbol-input" type="text" class="symbol-input"
+                               placeholder="Ticker… e.g. SOFI" autocomplete="off"
+                               spellcheck="false" maxlength="10" />
+                        <button id="symbol-go-btn" class="symbol-go-btn">GO</button>
+                    </div>
 
                     <div class="timeframe-group" id="timeframe-group">
                         <button class="tf-btn" data-tf="1D">1D</button>

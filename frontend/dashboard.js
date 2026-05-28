@@ -11,15 +11,34 @@ const CFG = {
     TICKER_REFRESH_MS:    60_000,
 };
 
-const WATCHLIST = [
+const DEFAULT_WATCHLIST = [
     { symbol: "AAPL",  name: "Apple" },
     { symbol: "MSFT",  name: "Microsoft" },
     { symbol: "NVDA",  name: "NVIDIA" },
     { symbol: "TSLA",  name: "Tesla" },
     { symbol: "AMZN",  name: "Amazon" },
+    { symbol: "SOFI",  name: "SoFi Technologies" },
+    { symbol: "RDW",   name: "Redwire Corp" },
 ];
 
-const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "SPY", "QQQ"];
+function _loadWatchlist() {
+    try {
+        const saved = localStorage.getItem("tradeski_watchlist");
+        return saved ? JSON.parse(saved) : DEFAULT_WATCHLIST;
+    } catch { return DEFAULT_WATCHLIST; }
+}
+
+function _saveWatchlist() {
+    localStorage.setItem("tradeski_watchlist", JSON.stringify(WATCHLIST));
+}
+
+let WATCHLIST = _loadWatchlist();
+
+const TICKER_EXTRA = ["GOOGL", "META", "SPY", "QQQ"];
+function getTickerSyms() {
+    const wl = WATCHLIST.map(w => w.symbol);
+    return [...new Set([...wl, ...TICKER_EXTRA])];
+}
 
 // ============================================================
 // STATE
@@ -141,19 +160,50 @@ function onAlertTriggered(alert) {
 // ============================================================
 
 function initSymbolSelect() {
-    document.getElementById("symbol-select").addEventListener("change", (e) => {
-        switchSymbol(e.target.value);
+    const input = document.getElementById("symbol-input");
+    const btn   = document.getElementById("symbol-go-btn");
+
+    function go() {
+        const sym = input.value.trim().toUpperCase();
+        if (sym) { input.value = ""; switchSymbol(sym); }
+    }
+
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    btn.addEventListener("click", go);
+
+    document.getElementById("add-symbol-btn").addEventListener("click", async () => {
+        const sym = prompt("Enter ticker symbol to add to watchlist:")?.trim().toUpperCase();
+        if (sym) await addToWatchlist(sym);
     });
 }
 
 function switchSymbol(sym) {
     state.symbol = sym;
-    document.getElementById("symbol-select").value = sym;
     document.getElementById("current-symbol-badge").textContent = sym;
     document.querySelectorAll(".watchlist-item").forEach(el => {
         el.classList.toggle("active", el.dataset.symbol === sym);
     });
     loadDashboard(sym);
+}
+
+async function addToWatchlist(sym) {
+    if (!sym || WATCHLIST.some(w => w.symbol === sym)) return;
+    try {
+        const res = await fetch(`${CFG.API}/stats?symbol=${sym}`);
+        if (!res.ok) { alert(`"${sym}" not found — check the ticker and try again.`); return; }
+    } catch { alert("Could not reach backend — check your connection."); return; }
+    WATCHLIST.push({ symbol: sym, name: sym });
+    _saveWatchlist();
+    renderWatchlist();
+    refreshWatchlistPrices();
+    loadAllSparklines();
+}
+
+function removeFromWatchlist(sym) {
+    WATCHLIST = WATCHLIST.filter(w => w.symbol !== sym);
+    _saveWatchlist();
+    renderWatchlist();
+    if (state.symbol === sym) switchSymbol(WATCHLIST[0]?.symbol || "AAPL");
 }
 
 // ============================================================
@@ -577,7 +627,6 @@ function renderWatchlist() {
         item.dataset.symbol = symbol;
         item.addEventListener("click", () => switchSymbol(symbol));
 
-        // Price row
         item.innerHTML = `
             <div class="wl-top">
                 <div class="wl-left">
@@ -587,9 +636,14 @@ function renderWatchlist() {
                 <div class="wl-right">
                     <span class="wl-price neutral" id="wlp-${symbol}">——</span>
                     <span class="wl-change"        id="wlc-${symbol}">——</span>
+                    <button class="wl-remove-btn" title="Remove">×</button>
                 </div>
             </div>
         `;
+        item.querySelector(".wl-remove-btn").addEventListener("click", (e) => {
+            e.stopPropagation();
+            removeFromWatchlist(symbol);
+        });
 
         // Sparkline canvas — Chart.js will render into this
         const canvas = document.createElement("canvas");
@@ -645,7 +699,7 @@ async function buildTickerTape() {
     const tape    = document.getElementById("ticker-tape");
     const results = [];
 
-    for (const sym of TICKER_SYMS) {
+    for (const sym of getTickerSyms()) {
         try {
             const res = await fetch(`${CFG.API}/stats?symbol=${sym}`);
             if (!res.ok) continue;
