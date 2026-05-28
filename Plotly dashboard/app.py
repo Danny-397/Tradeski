@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-import anthropic
+from groq import Groq
 
 from cache import SimpleCache
 from tracker import database
@@ -624,13 +624,25 @@ def chat() -> tuple:
     if not message:
         return jsonify({"error": "No message provided"}), 400
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
         return jsonify({"error": "AI service not configured"}), 503
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = Groq(api_key=api_key)
 
-    messages = []
+    # Build system prompt by joining all context blocks into one string
+    system_parts = [_SKI_SYSTEM_PROMPT]
+    macro_ctx = _get_macro_context()
+    if macro_ctx:
+        system_parts.append(macro_ctx)
+    portfolio_ctx = _get_portfolio_context()
+    if portfolio_ctx:
+        system_parts.append(portfolio_ctx)
+    news_ctx = _get_news_context(symbol)
+    if news_ctx:
+        system_parts.append(news_ctx)
+
+    messages = [{"role": "system", "content": "\n\n".join(system_parts)}]
     for turn in history[-10:]:
         role = turn.get("role")
         content = turn.get("content", "").strip()
@@ -638,32 +650,13 @@ def chat() -> tuple:
             messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": message})
 
-    system_blocks: list = [{
-        "type": "text",
-        "text": _SKI_SYSTEM_PROMPT,
-        "cache_control": {"type": "ephemeral"},
-    }]
-
-    macro_ctx = _get_macro_context()
-    if macro_ctx:
-        system_blocks.append({"type": "text", "text": macro_ctx})
-
-    portfolio_ctx = _get_portfolio_context()
-    if portfolio_ctx:
-        system_blocks.append({"type": "text", "text": portfolio_ctx})
-
-    news_ctx = _get_news_context(symbol)
-    if news_ctx:
-        system_blocks.append({"type": "text", "text": news_ctx})
-
-    response = client.messages.create(
-        model="claude-opus-4-7",
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
         max_tokens=1024,
-        system=system_blocks,
         messages=messages,
     )
 
-    return jsonify({"reply": response.content[0].text})
+    return jsonify({"reply": response.choices[0].message.content})
 
 
 # ─────────────────────────────────────────────────────────────
