@@ -6,6 +6,9 @@ services:
     startCommand: gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --bind 0.0.0.0:$PORT wsgi:app
     healthCheckPath: /health
     envVars:
+      # Comma-separated allowed frontend origins — add Netlify URL here once deployed
+      - key: ALLOWED_ORIGINS
+        value: https://tradeski.onrender.com
       # Non-secret defaults — safe to commit
       - key: STOCK_SYMBOLS
         value: AAPL,MSFT,TSLA,NVDA,AMZN

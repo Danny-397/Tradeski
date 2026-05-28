@@ -35,11 +35,15 @@ from tracker.analyzer import (
 )
 
 app = Flask(__name__)
-CORS(app)
+
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "https://tradeski.onrender.com")
+ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+CORS(app, origins=ALLOWED_ORIGINS)
 
 socketio = SocketIO(
     app,
-    cors_allowed_origins="*",
+    cors_allowed_origins=ALLOWED_ORIGINS,
     async_mode="gevent",
 )
 
