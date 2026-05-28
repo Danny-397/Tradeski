@@ -7,9 +7,6 @@ import os
 # Insert it so `tracker` can always be found regardless of working directory.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import eventlet
-eventlet.monkey_patch()
-
 import time
 import datetime
 from typing import List, Tuple, Optional
