@@ -9,19 +9,19 @@
     --bg-primary:      #07090D;
     --bg-secondary:    #0C0F16;
     --bg-card:         #0C0F16;
-    --bg-hover:        rgba(245, 158, 11, 0.04);
+    --bg-hover:        rgba(59, 130, 246, 0.04);
 
-    /* Amber accent — primary */
-    --amber:           #F59E0B;
-    --amber-dim:       rgba(245, 158, 11, 0.16);
-    --amber-faint:     rgba(245, 158, 11, 0.06);
+    /* Blue accent — primary */
+    --amber:           #3B82F6;
+    --amber-dim:       rgba(59, 130, 246, 0.16);
+    --amber-faint:     rgba(59, 130, 246, 0.06);
 
     /* Legacy aliases — keep for any runtime reads */
-    --cyan:            #F59E0B;
-    --cyan-dim:        rgba(245, 158, 11, 0.16);
-    --cyan-faint:      rgba(245, 158, 11, 0.06);
-    --purple:          #F59E0B;
-    --purple-dim:      rgba(245, 158, 11, 0.16);
+    --cyan:            #3B82F6;
+    --cyan-dim:        rgba(59, 130, 246, 0.16);
+    --cyan-faint:      rgba(59, 130, 246, 0.06);
+    --purple:          #3B82F6;
+    --purple-dim:      rgba(59, 130, 246, 0.16);
 
     /* Semantic */
     --green:           #16A34A;
@@ -38,13 +38,13 @@
 
     /* Borders */
     --border:          rgba(255, 255, 255, 0.07);
-    --border-hover:    rgba(245, 158, 11, 0.30);
-    --border-strong:   rgba(245, 158, 11, 0.55);
+    --border-hover:    rgba(59, 130, 246, 0.30);
+    --border-strong:   rgba(59, 130, 246, 0.55);
 
     /* Shadows — restrained */
-    --glow-sm:         0 0 12px rgba(245, 158, 11, 0.08);
-    --glow-md:         0 0 22px rgba(245, 158, 11, 0.13);
-    --glow-lg:         0 0 36px rgba(245, 158, 11, 0.18);
+    --glow-sm:         0 0 12px rgba(59, 130, 246, 0.08);
+    --glow-md:         0 0 22px rgba(59, 130, 246, 0.13);
+    --glow-lg:         0 0 36px rgba(59, 130, 246, 0.18);
 
     /* Layout */
     --header-h:        54px;
@@ -454,7 +454,7 @@ body::before {
     overflow: hidden;
     transition: border-color var(--t) var(--ease);
 }
-.panel:hover { border-color: rgba(245, 158, 11, 0.18); }
+.panel:hover { border-color: rgba(59, 130, 246, 0.18); }
 .panel-grow { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .panel-grow > .alerts-feed { flex: 1; overflow-y: auto; }
 
@@ -494,7 +494,7 @@ body::before {
     margin-bottom: 2px;
 }
 .watchlist-item:hover  { background: var(--bg-hover); border-color: var(--border); }
-.watchlist-item.active { background: rgba(245, 158, 11, 0.06); border-color: var(--amber-dim); }
+.watchlist-item.active { background: rgba(59, 130, 246, 0.06); border-color: var(--amber-dim); }
 
 .wl-top  { display: flex; align-items: center; justify-content: space-between; }
 .wl-left { display: flex; flex-direction: column; gap: 1px; }
@@ -819,7 +819,7 @@ body::before {
     padding: 7px 10px;
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     border-left: 2px solid var(--amber);
-    background: rgba(245, 158, 11, 0.04);
+    background: rgba(59, 130, 246, 0.04);
     font-size: 11px;
     line-height: 1.4;
 }
@@ -903,7 +903,7 @@ body::before {
     text-transform: uppercase;
     transition: all var(--t) var(--ease);
 }
-.btn-primary:hover { background: rgba(245, 158, 11, 0.12); }
+.btn-primary:hover { background: rgba(59, 130, 246, 0.12); }
 
 .full-width { width: 100%; }
 
@@ -1155,7 +1155,7 @@ body::before {
 }
 .ski-message-user .ski-bubble {
     background: var(--amber-dim);
-    border: 1px solid rgba(245, 158, 11, 0.22);
+    border: 1px solid rgba(59, 130, 246, 0.22);
     color: var(--text-primary);
     font-family: var(--sans);
 }

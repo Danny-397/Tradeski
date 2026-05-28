@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 
 # When run via gunicorn --chdir, the repo root is the parent of this file's directory.
 # Insert it so `tracker` can always be found regardless of working directory.
@@ -37,13 +38,21 @@ from tracker.analyzer import (
 app = Flask(__name__)
 
 _raw_origins = os.environ.get("ALLOWED_ORIGINS", "https://tradeski.onrender.com")
-ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+_origin_list = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
-CORS(app, origins=ALLOWED_ORIGINS)
+# Allow any *.netlify.app subdomain (covers preview deploys) + exact list from env
+_netlify_re = re.compile(r"^https://[^/]+\.netlify\.app$")
+
+
+def _is_allowed_origin(origin):
+    return bool(origin and (origin in _origin_list or _netlify_re.match(origin)))
+
+
+CORS(app, origins=_is_allowed_origin)
 
 socketio = SocketIO(
     app,
-    cors_allowed_origins=ALLOWED_ORIGINS,
+    cors_allowed_origins="*",
     async_mode="gevent",
 )
 

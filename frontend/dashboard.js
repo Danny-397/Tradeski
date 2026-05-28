@@ -1191,7 +1191,7 @@ async function skiSend() {
         // Trim history to last 20 turns to avoid unbounded growth
         if (skiState.history.length > 20) skiState.history = skiState.history.slice(-20);
     } catch {
-        loadingBubble.textContent = "Connection error — check that the backend is running.";
+        loadingBubble.textContent = "Backend is starting up — Render free tier spins down after inactivity. Wait ~30 seconds and try again.";
         loadingBubble.classList.remove("loading");
         skiState.history.pop();
     } finally {
