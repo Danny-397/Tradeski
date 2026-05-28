@@ -5,8 +5,8 @@
 // ============================================================
 
 const CFG = {
-    API: "https://tradeski.onrender.com",
-    WS:  "https://tradeski.onrender.com",
+    API: "/api",                            // Netlify proxies /api/* → Render (no CORS)
+    WS:  "https://tradeski.onrender.com",  // WebSocket must connect directly
     WATCHLIST_REFRESH_MS: 30_000,
     TICKER_REFRESH_MS:    60_000,
 };
