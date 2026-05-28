@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-from groq import Groq
+import google.generativeai as genai
 
 from cache import SimpleCache
 from tracker import database
@@ -615,7 +615,7 @@ investment advice — always clarify you're providing educational information, n
 
 @app.route("/chat", methods=["POST"])
 def chat() -> tuple:
-    """Ski financial Q&A chatbot powered by Claude."""
+    """Ski financial Q&A chatbot powered by Gemini Flash."""
     data = request.json or {}
     message = (data.get("message") or "").strip()
     history = data.get("history") or []
@@ -624,13 +624,13 @@ def chat() -> tuple:
     if not message:
         return jsonify({"error": "No message provided"}), 400
 
-    api_key = os.environ.get("GROQ_API_KEY", "")
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         return jsonify({"error": "AI service not configured"}), 503
 
-    client = Groq(api_key=api_key)
+    genai.configure(api_key=api_key)
 
-    # Build system prompt by joining all context blocks into one string
+    # Build system prompt
     system_parts = [_SKI_SYSTEM_PROMPT]
     macro_ctx = _get_macro_context()
     if macro_ctx:
@@ -642,21 +642,31 @@ def chat() -> tuple:
     if news_ctx:
         system_parts.append(news_ctx)
 
-    messages = [{"role": "system", "content": "\n\n".join(system_parts)}]
+    model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash",
+        system_instruction="\n\n".join(system_parts),
+    )
+
+    # Convert history to Gemini format; enforce strict user/model alternation
+    gemini_history = []
+    expected_role = "user"
     for turn in history[-10:]:
         role = turn.get("role")
         content = turn.get("content", "").strip()
-        if role in ("user", "assistant") and content:
-            messages.append({"role": role, "content": content})
-    messages.append({"role": "user", "content": message})
+        if not content:
+            continue
+        gemini_role = "model" if role == "assistant" else "user"
+        if gemini_role != expected_role:
+            continue
+        gemini_history.append({"role": gemini_role, "parts": [content]})
+        expected_role = "model" if expected_role == "user" else "user"
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        max_tokens=1024,
-        messages=messages,
-    )
-
-    return jsonify({"reply": response.choices[0].message.content})
+    try:
+        chat_session = model.start_chat(history=gemini_history)
+        response = chat_session.send_message(message)
+        return jsonify({"reply": response.text})
+    except Exception as exc:
+        return jsonify({"error": f"AI service error: {exc}"}), 502
 
 
 # ─────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ services:
       - key: CHECK_INTERVAL
         value: "60"
       # Secrets — set these in the Render dashboard after connecting the repo
-      - key: GROQ_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: FRED_API_KEY
         sync: false

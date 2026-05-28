@@ -10,5 +10,5 @@ gunicorn
 numpy==1.26.4
 apscheduler
 pytest
-groq
+google-generativeai
 vaderSentiment
