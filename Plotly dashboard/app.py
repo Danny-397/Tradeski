@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-import google.generativeai as genai
+import anthropic
 
 from cache import SimpleCache
 from tracker import database
@@ -612,7 +612,7 @@ investment advice — always clarify you're providing educational information, n
 
 @app.route("/chat", methods=["POST"])
 def chat() -> tuple:
-    """Ski financial Q&A chatbot powered by Gemini Flash."""
+    """Ski financial Q&A chatbot powered by Claude."""
     data = request.json or {}
     message = (data.get("message") or "").strip()
     history = data.get("history") or []
@@ -621,11 +621,9 @@ def chat() -> tuple:
     if not message:
         return jsonify({"error": "No message provided"}), 400
 
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         return jsonify({"error": "AI service not configured"}), 503
-
-    genai.configure(api_key=api_key)
 
     # Build system prompt
     system_parts = [_SKI_SYSTEM_PROMPT]
@@ -639,29 +637,34 @@ def chat() -> tuple:
     if news_ctx:
         system_parts.append(news_ctx)
 
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
-        system_instruction="\n\n".join(system_parts),
-    )
-
-    # Convert history to Gemini format; enforce strict user/model alternation
-    gemini_history = []
+    # Build messages list — Anthropic requires strict user/assistant alternation
+    messages = []
     expected_role = "user"
     for turn in history[-10:]:
-        role = turn.get("role")
-        content = turn.get("content", "").strip()
+        role = (turn.get("role") or "").strip()
+        content = (turn.get("content") or "").strip()
         if not content:
             continue
-        gemini_role = "model" if role == "assistant" else "user"
-        if gemini_role != expected_role:
+        if role != expected_role:
             continue
-        gemini_history.append({"role": gemini_role, "parts": [content]})
-        expected_role = "model" if expected_role == "user" else "user"
+        messages.append({"role": role, "content": content})
+        expected_role = "assistant" if expected_role == "user" else "user"
+
+    # Current message must go last as "user"
+    if messages and messages[-1]["role"] == "user":
+        messages.append({"role": "assistant", "content": "..."})
+    messages.append({"role": "user", "content": message})
 
     try:
-        chat_session = model.start_chat(history=gemini_history)
-        response = chat_session.send_message(message)
-        return jsonify({"reply": response.text})
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            system="\n\n".join(system_parts),
+            messages=messages,
+        )
+        reply = response.content[0].text
+        return jsonify({"reply": reply})
     except Exception as exc:
         return jsonify({"error": f"AI service error: {exc}"}), 502
 

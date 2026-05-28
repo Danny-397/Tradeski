@@ -47,6 +47,9 @@ function getTickerSyms() {
 let state = {
     symbol:     "AAPL",
     timeframe:  "1M",
+    chartType:  "line",
+    showRsi:    false,
+    showMacd:   false,
     indicators: { bb: true, sma: true, ema: true, vol: true },
     chartData:  null,
     alerts:     [],
@@ -226,11 +229,39 @@ function initTimeframes() {
 // ============================================================
 
 function initIndicatorToggles() {
-    document.querySelectorAll(".ind-btn").forEach(btn => {
+    // Overlay toggles (BB, SMA, EMA, VOL)
+    document.querySelectorAll(".ind-btn[data-ind]").forEach(btn => {
         btn.addEventListener("click", () => {
             const k = btn.dataset.ind;
             state.indicators[k] = !state.indicators[k];
             btn.classList.toggle("active", state.indicators[k]);
+            if (state.chartData) renderChart(state.chartData);
+        });
+    });
+
+    // Chart type toggle (LINE / CANDLE)
+    document.querySelectorAll("#chart-type-group [data-type]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            state.chartType = btn.dataset.type;
+            document.querySelectorAll("#chart-type-group [data-type]").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            if (state.chartData) renderChart(state.chartData);
+        });
+    });
+
+    // Subpanel toggles (RSI / MACD)
+    document.querySelectorAll("[data-panel]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const p = btn.dataset.panel;
+            if (p === "rsi") {
+                state.showRsi = !state.showRsi;
+                btn.textContent = (state.showRsi ? "− RSI" : "+ RSI");
+                btn.classList.toggle("active", state.showRsi);
+            } else if (p === "macd") {
+                state.showMacd = !state.showMacd;
+                btn.textContent = (state.showMacd ? "− MACD" : "+ MACD");
+                btn.classList.toggle("active", state.showMacd);
+            }
             if (state.chartData) renderChart(state.chartData);
         });
     });
@@ -273,143 +304,181 @@ async function loadChart(sym) {
 function renderChart(d) {
     const traces = [];
     const ts = d.timestamps;
+    const showRsi  = state.showRsi;
+    const showMacd = state.showMacd;
 
-    // Candlestick
-    traces.push({
-        type: "candlestick",
-        x: ts,
-        open: d.open, high: d.high, low: d.low, close: d.close,
-        name: state.symbol,
-        increasing: { line: { color: "#00e87a", width: 1 }, fillcolor: "rgba(0,232,122,0.15)" },
-        decreasing: { line: { color: "#ff2d55", width: 1 }, fillcolor: "rgba(255,45,85,0.15)" },
-        xaxis: "x", yaxis: "y",
-        whiskerwidth: 0.3,
-    });
+    // ── Main price trace ─────────────────────────────────────
+    if (state.chartType === "candle") {
+        traces.push({
+            type: "candlestick",
+            x: ts, open: d.open, high: d.high, low: d.low, close: d.close,
+            name: state.symbol,
+            increasing: { line: { color: "#16A34A", width: 1 }, fillcolor: "rgba(22,163,74,0.18)" },
+            decreasing: { line: { color: "#DC2626", width: 1 }, fillcolor: "rgba(220,38,38,0.18)" },
+            xaxis: "x", yaxis: "y",
+            whiskerwidth: 0.3,
+        });
+    } else {
+        traces.push({
+            type: "scatter", mode: "lines",
+            x: ts, y: d.close,
+            name: state.symbol,
+            line: { color: "#3B82F6", width: 2 },
+            fill: "tozeroy",
+            fillcolor: "rgba(59,130,246,0.05)",
+            xaxis: "x", yaxis: "y",
+        });
+    }
 
     // Volume
     if (state.indicators.vol && d.volume) {
         const cols = d.close.map((c, i) =>
-            c == null ? "rgba(90,90,90,0.4)"
-            : (d.open[i] == null || c >= d.open[i])
-                ? "rgba(0,232,122,0.45)"
-                : "rgba(255,45,85,0.45)"
+            c == null ? "rgba(90,90,90,0.35)"
+            : (d.open[i] == null || c >= d.open[i]) ? "rgba(22,163,74,0.4)" : "rgba(220,38,38,0.4)"
         );
         traces.push({
             type: "bar", x: ts, y: d.volume,
             name: "Volume", marker: { color: cols },
-            xaxis: "x", yaxis: "y2", opacity: 0.8,
+            xaxis: "x", yaxis: "y2", opacity: 0.75,
         });
     }
 
     // SMA
     if (state.indicators.sma) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.sma20, name: "SMA20",
-            line: { color: "#2196f3", width: 1.5 }, xaxis: "x", yaxis: "y" });
+            line: { color: "#60A5FA", width: 1.5 }, xaxis: "x", yaxis: "y" });
         if (d.sma50) {
             traces.push({ type: "scatter", mode: "lines", x: ts, y: d.sma50, name: "SMA50",
-                line: { color: "#9c27b0", width: 1.5, dash: "dot" }, xaxis: "x", yaxis: "y" });
+                line: { color: "#A78BFA", width: 1.5, dash: "dot" }, xaxis: "x", yaxis: "y" });
         }
     }
 
     // EMA
     if (state.indicators.ema) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.ema20, name: "EMA20",
-            line: { color: "#ff9800", width: 1.5 }, xaxis: "x", yaxis: "y" });
+            line: { color: "#FB923C", width: 1.5 }, xaxis: "x", yaxis: "y" });
     }
 
-    // Bollinger Bands — fill between
+    // Bollinger Bands
     if (state.indicators.bb) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.upper_band, name: "BB Upper",
-            line: { color: "rgba(120,90,220,0.55)", width: 1 },
+            line: { color: "rgba(139,92,246,0.5)", width: 1 },
             xaxis: "x", yaxis: "y", showlegend: true });
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.lower_band, name: "BB Lower",
-            line: { color: "rgba(120,90,220,0.55)", width: 1 },
-            fill: "tonexty", fillcolor: "rgba(90,60,180,0.06)",
+            line: { color: "rgba(139,92,246,0.5)", width: 1 },
+            fill: "tonexty", fillcolor: "rgba(109,40,217,0.05)",
             xaxis: "x", yaxis: "y", showlegend: false });
     }
 
-    // RSI
-    traces.push({ type: "scatter", mode: "lines", x: ts, y: d.rsi, name: "RSI",
-        line: { color: "#e91e63", width: 1.5 }, xaxis: "x2", yaxis: "y3" });
+    // RSI subpanel (toggled)
+    if (showRsi) {
+        traces.push({ type: "scatter", mode: "lines", x: ts, y: d.rsi, name: "RSI",
+            line: { color: "#F472B6", width: 1.5 }, xaxis: "x2", yaxis: "y3" });
+        const rsiRef = (y) => ({
+            type: "scatter", mode: "lines",
+            x: [ts[0], ts[ts.length - 1]], y: [y, y],
+            line: { color: y === 70 ? "rgba(220,38,38,0.3)" : "rgba(22,163,74,0.3)", width: 1, dash: "dash" },
+            xaxis: "x2", yaxis: "y3", showlegend: false,
+        });
+        traces.push(rsiRef(70));
+        traces.push(rsiRef(30));
+    }
 
-    const rsiEdge = (y) => ({
-        type: "scatter", mode: "lines",
-        x: [ts[0], ts[ts.length - 1]], y: [y, y],
-        line: { color: y === 70 ? "rgba(255,45,85,0.3)" : "rgba(0,232,122,0.3)", width: 1, dash: "dash" },
-        xaxis: "x2", yaxis: "y3", showlegend: false,
-    });
-    traces.push(rsiEdge(70));
-    traces.push(rsiEdge(30));
+    // MACD subpanel (toggled)
+    if (showMacd) {
+        traces.push({ type: "scatter", mode: "lines", x: ts, y: d.macd, name: "MACD",
+            line: { color: "#38BDF8", width: 1.5 }, xaxis: "x3", yaxis: "y4" });
+        traces.push({ type: "scatter", mode: "lines", x: ts, y: d.signal, name: "Signal",
+            line: { color: "#FB923C", width: 1.5 }, xaxis: "x3", yaxis: "y4" });
+        const histCols = (d.histogram || []).map(v =>
+            v == null ? "rgba(80,80,80,0.35)" : (v >= 0 ? "rgba(22,163,74,0.55)" : "rgba(220,38,38,0.55)"));
+        traces.push({ type: "bar", x: ts, y: d.histogram, name: "Histogram",
+            marker: { color: histCols }, xaxis: "x3", yaxis: "y4", opacity: 0.9 });
+    }
 
-    // MACD
-    traces.push({ type: "scatter", mode: "lines", x: ts, y: d.macd, name: "MACD",
-        line: { color: "#03a9f4", width: 1.5 }, xaxis: "x3", yaxis: "y4" });
-    traces.push({ type: "scatter", mode: "lines", x: ts, y: d.signal, name: "Signal",
-        line: { color: "#ff5722", width: 1.5 }, xaxis: "x3", yaxis: "y4" });
+    // ── Layout domains ────────────────────────────────────────
+    let mainDom, rsiDom, macdDom;
+    const shapes = [];
 
-    const histCols = (d.histogram || []).map(v => v == null ? "rgba(80,80,80,0.4)" : (v >= 0 ? "rgba(0,232,122,0.55)" : "rgba(255,45,85,0.55)"));
-    traces.push({ type: "bar", x: ts, y: d.histogram, name: "Histogram",
-        marker: { color: histCols }, xaxis: "x3", yaxis: "y4", opacity: 0.9 });
+    if (!showRsi && !showMacd) {
+        mainDom = [0, 1];
+    } else if (showRsi && !showMacd) {
+        mainDom = [0.34, 1.0];
+        rsiDom  = [0.0,  0.31];
+        shapes.push({ type: "line", x0: 0, x1: 1, xref: "paper", y0: 0.33, y1: 0.33, yref: "paper",
+            line: { color: "rgba(255,255,255,0.07)", width: 1 } });
+    } else if (!showRsi && showMacd) {
+        mainDom = [0.34, 1.0];
+        macdDom = [0.0,  0.31];
+        shapes.push({ type: "line", x0: 0, x1: 1, xref: "paper", y0: 0.33, y1: 0.33, yref: "paper",
+            line: { color: "rgba(255,255,255,0.07)", width: 1 } });
+    } else {
+        mainDom = [0.44, 1.0];
+        rsiDom  = [0.24, 0.41];
+        macdDom = [0.0,  0.21];
+        shapes.push(
+            { type: "line", x0: 0, x1: 1, xref: "paper", y0: 0.43, y1: 0.43, yref: "paper",
+                line: { color: "rgba(255,255,255,0.07)", width: 1 } },
+            { type: "line", x0: 0, x1: 1, xref: "paper", y0: 0.23, y1: 0.23, yref: "paper",
+                line: { color: "rgba(255,255,255,0.07)", width: 1 } }
+        );
+    }
 
     const ax = {
-        gridcolor:   "rgba(255,255,255,0.04)",
-        linecolor:   "rgba(255,255,255,0.07)",
-        zerolinecolor: "rgba(255,255,255,0.08)",
-        tickfont: { family: "JetBrains Mono, monospace", size: 10, color: "#5e7e9a" },
+        gridcolor:     "rgba(255,255,255,0.04)",
+        linecolor:     "rgba(255,255,255,0.07)",
+        zerolinecolor: "rgba(255,255,255,0.06)",
+        tickfont: { family: "JetBrains Mono, monospace", size: 10, color: "#6B7280" },
         showgrid: true, zeroline: false, showline: false,
     };
 
     const layout = {
-        paper_bgcolor: "#07090f",
-        plot_bgcolor:  "#07090f",
-        font: { color: "#d8eaf5", family: "Inter, sans-serif", size: 11 },
+        paper_bgcolor: "#07090D",
+        plot_bgcolor:  "#07090D",
+        font: { color: "#D1D5DB", family: "Space Grotesk, sans-serif", size: 11 },
         showlegend: true,
         legend: {
             x: 0.01, y: 0.99,
             xanchor: "left", yanchor: "top",
             orientation: "h",
-            font: { size: 10, family: "JetBrains Mono, monospace", color: "#5e7e9a" },
+            font: { size: 10, family: "JetBrains Mono, monospace", color: "#6B7280" },
             bgcolor: "transparent",
         },
         margin: { t: 8, l: 10, r: 65, b: 8 },
-
-        xaxis:  { ...ax, domain: [0, 1], anchor: "y",  type: "date", rangeslider: { visible: false } },
-        yaxis:  { ...ax, domain: [0.44, 1.0], side: "right", title: { text: "Price", font: { size: 9 } } },
+        xaxis:  { ...ax, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
+        yaxis:  { ...ax, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
         yaxis2: { ...ax, overlaying: "y", side: "left", showgrid: false, visible: false },
-
-        xaxis2:  { ...ax, domain: [0, 1], anchor: "y3", showticklabels: false },
-        yaxis3:  { ...ax, domain: [0.24, 0.41], side: "right", range: [0, 100], title: { text: "RSI", font: { size: 9 } } },
-
-        xaxis3:  { ...ax, domain: [0, 1], anchor: "y4", showticklabels: false },
-        yaxis4:  { ...ax, domain: [0.0, 0.21], side: "right", title: { text: "MACD", font: { size: 9 } } },
-
         dragmode: "pan",
         hovermode: "x unified",
         hoverlabel: {
-            bgcolor: "#0c1120",
-            bordercolor: "rgba(0,212,255,0.3)",
-            font: { family: "JetBrains Mono, monospace", size: 11, color: "#d8eaf5" },
+            bgcolor: "#0C0F16",
+            bordercolor: "rgba(59,130,246,0.3)",
+            font: { family: "JetBrains Mono, monospace", size: 11, color: "#D1D5DB" },
             namelength: -1,
         },
-        shapes: [
-            { type: "line", x0: 0, x1: 1, xref: "paper", y0: 0.43, y1: 0.43, yref: "paper",
-              line: { color: "rgba(255,255,255,0.07)", width: 1 } },
-            { type: "line", x0: 0, x1: 1, xref: "paper", y0: 0.23, y1: 0.23, yref: "paper",
-              line: { color: "rgba(255,255,255,0.07)", width: 1 } },
-        ],
+        shapes,
     };
 
+    if (showRsi) {
+        layout.xaxis2 = { ...ax, domain: [0, 1], anchor: "y3", matches: "x",
+            type: "date", showticklabels: !showMacd };
+        layout.yaxis3 = { ...ax, domain: rsiDom, side: "right", range: [0, 100],
+            title: { text: "RSI", font: { size: 9 } } };
+    }
+    if (showMacd) {
+        layout.xaxis3 = { ...ax, domain: [0, 1], anchor: "y4", matches: "x",
+            type: "date", showticklabels: false };
+        layout.yaxis4 = { ...ax, domain: macdDom, side: "right",
+            title: { text: "MACD", font: { size: 9 } } };
+    }
+
     const config = {
-        responsive:  true,
-        displaylogo: false,
-        scrollZoom:  true,
-        displayModeBar: true,
+        responsive: true, displaylogo: false,
+        scrollZoom: true, displayModeBar: true,
         modeBarButtonsToRemove: ["select2d", "lasso2d", "toImage"],
     };
 
-    const container = document.getElementById("price-chart");
-    if (!container) return;
-
+    if (!document.getElementById("price-chart")) return;
     Plotly.react("price-chart", traces, layout, config);
     updateIndicatorsPanel(d);
 }

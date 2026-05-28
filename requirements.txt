@@ -10,6 +10,5 @@ gunicorn
 numpy==1.26.4
 apscheduler
 pytest
-google-generativeai>=0.8.0
-grpcio>=1.60.0
+anthropic>=0.40.0
 vaderSentiment
