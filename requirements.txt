@@ -4,7 +4,8 @@ python-dotenv
 flask
 flask-cors
 flask-socketio
-eventlet>=0.37.0
+gevent>=23.9.0
+gevent-websocket
 gunicorn
 numpy==1.26.4
 apscheduler
