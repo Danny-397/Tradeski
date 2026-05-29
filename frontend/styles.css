@@ -542,7 +542,6 @@ body::before {
 }
 .panel:hover { border-color: rgba(59, 130, 246, 0.18); }
 .panel-grow { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.panel-grow > .alerts-feed { flex: 1; overflow-y: auto; }
 
 .panel-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -929,8 +928,58 @@ body::before {
     color: var(--text-muted);
 }
 
+/* ===== SIDEBAR TABS ===== */
+.sidebar-tabs {
+    display: flex;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: color var(--t) var(--ease), border-color var(--t) var(--ease);
+    text-transform: uppercase;
+    margin-bottom: -1px;
+}
+.sidebar-tab:hover  { color: var(--text-primary); }
+.sidebar-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+.tab-pane {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* News tab sentiment row */
+.news-tab-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.news-tab-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
 /* ===== INDICATORS PANEL ===== */
-.indicators-panel { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.indicators-panel { padding: 5px; display: flex; flex-direction: column; gap: 3px; }
 
 .ind-card {
     border: 1px solid var(--border);
@@ -940,42 +989,17 @@ body::before {
 }
 .ind-card:hover { border-color: var(--border-hover); }
 
-.ind-header {
+.ind-header-static {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
-    cursor: pointer;
-    user-select: none;
-    transition: background var(--t);
+    padding: 5px 8px;
 }
-.ind-header:hover { background: var(--bg-hover); }
-
-.ind-header-left {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-
-.ind-toggle {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-family: var(--mono);
-    font-size: 14px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 2px;
-    transition: color var(--t);
-    flex-shrink: 0;
-}
-.ind-header:hover .ind-toggle { color: var(--text-primary); }
 
 .ind-detail {
-    padding: 4px 10px 8px;
+    padding: 2px 8px 6px;
     border-top: 1px solid var(--border);
 }
-.ind-detail.collapsed { display: none; }
 
 .ind-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -983,23 +1007,25 @@ body::before {
 }
 .ind-name {
     font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    color: var(--text-muted);
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
     text-transform: uppercase;
 }
-.ind-val { font-family: var(--mono); font-size: 14px; font-weight: 600; }
-.ind-sub { font-family: var(--mono); font-size: 10px; color: var(--text-secondary); }
+.ind-val   { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.ind-sub   { font-family: var(--mono); font-size: 9px; color: var(--text-secondary); }
+.ind-trend { font-family: var(--mono); font-size: 9px; font-weight: 600; }
 
 .signal-chip {
     font-family: var(--mono);
-    font-size: 8px;
-    padding: 2px 6px;
+    font-size: 7px;
+    padding: 1px 5px;
     border-radius: var(--radius-xs);
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
     font-weight: 600;
     border: 1px solid transparent;
+    flex-shrink: 0;
 }
 .signal-chip.buy     { color: var(--green); background: var(--green-dim); border-color: rgba(22,163,74,0.25); }
 .signal-chip.sell    { color: var(--red);   background: var(--red-dim);   border-color: rgba(220,38,38,0.25); }

@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initTimeframes();
     initIndicatorToggles();
     initAlertModal();
-    document.getElementById("clear-feed-btn").addEventListener("click", clearFeed);
+    initSidebarTabs();
     loadDashboard(state.symbol);
     loadAlerts();
     buildTickerTape();
@@ -218,7 +218,7 @@ async function loadDashboard(sym) {
         showChartLoading(false);
     }
 
-    loadHeaderNews(sym);
+    loadNews(sym);
 }
 
 // ============================================================
@@ -593,43 +593,14 @@ async function loadStats(sym) {
 // INDICATORS PANEL
 // ============================================================
 
-let _indPanelOpen = false;
-
-function toggleIndicatorsPanel() {
-    _indPanelOpen = !_indPanelOpen;
-    const panel = document.getElementById("indicators-panel");
-    const btn   = document.getElementById("indicators-panel-toggle");
-    if (panel) panel.style.display = _indPanelOpen ? "" : "none";
-    if (btn)   btn.textContent = _indPanelOpen ? "−" : "+";
-}
-
-const _indExpanded = {};
-
-function toggleInd(key) {
-    _indExpanded[key] = !_indExpanded[key];
-    const header = document.querySelector(`.ind-header[data-key="${key}"]`);
-    if (!header) return;
-    const detail = header.closest(".ind-card").querySelector(".ind-detail");
-    const btn    = header.querySelector(".ind-toggle");
-    if (detail) detail.classList.toggle("collapsed", !_indExpanded[key]);
-    if (btn)    btn.textContent = _indExpanded[key] ? "−" : "+";
-}
-
-function _indCard(key, name, badge, detailHtml) {
-    const open = !!_indExpanded[key];
-    return `
-        <div class="ind-card">
-            <div class="ind-header" data-key="${key}" onclick="toggleInd('${key}')">
-                <div class="ind-header-left">
-                    <span class="ind-name">${name}</span>
-                    ${badge}
-                </div>
-                <button class="ind-toggle">${open ? "−" : "+"}</button>
-            </div>
-            <div class="ind-detail${open ? "" : " collapsed"}">
-                ${detailHtml}
-            </div>
-        </div>`;
+function _indBlock(name, badge, detailHtml) {
+    return `<div class="ind-card">
+        <div class="ind-header-static">
+            <span class="ind-name">${name}</span>
+            ${badge}
+        </div>
+        <div class="ind-detail">${detailHtml}</div>
+    </div>`;
 }
 
 function updateIndicatorsPanel(d) {
@@ -640,22 +611,22 @@ function updateIndicatorsPanel(d) {
         return null;
     };
 
-    const rsiVal  = last(d.rsi);
-    const macdVal = last(d.macd);
-    const sigVal  = last(d.signal);
-    const upper   = last(d.upper_band);
-    const lower   = last(d.lower_band);
+    const rsiVal   = last(d.rsi);
+    const macdVal  = last(d.macd);
+    const sigVal   = last(d.signal);
+    const upper    = last(d.upper_band);
+    const lower    = last(d.lower_band);
     const closeVal = last(d.close);
-    const zVal    = last(d.zscore);
-    const sma20   = last(d.sma20);
-    const sma50   = last(d.sma50);
-    const ema20   = last(d.ema20);
+    const zVal     = last(d.zscore);
+    const sma20    = last(d.sma20);
+    const sma50    = last(d.sma50);
+    const ema20    = last(d.ema20);
 
     // RSI
     let rsiSig = "neutral", rsiLabel = "NEUTRAL";
     if (rsiVal != null) {
-        if (rsiVal > 70) { rsiSig = "sell"; rsiLabel = "OVERBOUGHT"; }
-        else if (rsiVal < 30) { rsiSig = "buy"; rsiLabel = "OVERSOLD"; }
+        if (rsiVal > 70)      { rsiSig = "sell"; rsiLabel = "OVERBOUGHT"; }
+        else if (rsiVal < 30) { rsiSig = "buy";  rsiLabel = "OVERSOLD"; }
     }
     const rsiPct   = rsiVal != null ? Math.min(100, Math.max(0, rsiVal)) : 0;
     const rsiClass = rsiVal > 70 ? "overbought" : rsiVal < 30 ? "oversold" : "neutral";
@@ -679,18 +650,20 @@ function updateIndicatorsPanel(d) {
     // Z-Score
     let zSig = "neutral", zLabel = "NORMAL";
     if (zVal != null) {
-        if (zVal > 2)       { zSig = "sell"; zLabel = "HIGH"; }
-        else if (zVal < -2) { zSig = "buy";  zLabel = "LOW"; }
+        if (zVal > 2)        { zSig = "sell"; zLabel = "HIGH"; }
+        else if (zVal < -2)  { zSig = "buy";  zLabel = "LOW"; }
     }
 
-    // SMA/EMA helpers
-    const smaColor = v => closeVal && v ? (closeVal > v ? "var(--green)" : "var(--red)") : "var(--text-muted)";
-    const smaArrow = v => closeVal && v ? (closeVal > v ? "▲ Above" : "▼ Below") : "—";
-    const chip = (sig, label) => `<span class="signal-chip ${sig}">${label}</span>`;
-    const trendBadge = v => `<span style="font-size:10px;color:${smaColor(v)}">${smaArrow(v)}</span>`;
+    const smaColor  = v => closeVal && v ? (closeVal > v ? "var(--green)" : "var(--red)") : "var(--text-muted)";
+    const smaArrow  = v => closeVal && v ? (closeVal > v ? "▲ Above" : "▼ Below") : "—";
+    const chip      = (sig, label) => `<span class="signal-chip ${sig}">${label}</span>`;
+    const trendBadge = v => `<span class="ind-trend" style="color:${smaColor(v)}">${smaArrow(v)}</span>`;
 
-    document.getElementById("indicators-panel").innerHTML =
-        _indCard("rsi", "RSI (14)", chip(rsiSig, rsiLabel), `
+    const panel = document.getElementById("indicators-panel");
+    if (!panel) return;
+
+    panel.innerHTML =
+        _indBlock("RSI (14)", chip(rsiSig, rsiLabel), `
             <div class="ind-row">
                 <span class="ind-val">${rsiVal != null ? rsiVal.toFixed(1) : "—"}</span>
             </div>
@@ -702,29 +675,37 @@ function updateIndicatorsPanel(d) {
                 <div class="gauge-fill ${rsiClass}" style="width:${rsiPct}%"></div>
             </div>`) +
 
-        _indCard("macd", "MACD", chip(macdSig, macdLabel), `
+        _indBlock("MACD", chip(macdSig, macdLabel), `
             <div class="ind-row">
                 <span class="ind-val">${macdVal != null ? macdVal.toFixed(3) : "—"}</span>
                 <span class="ind-sub">SIG ${sigVal != null ? sigVal.toFixed(3) : "—"}</span>
             </div>`) +
 
-        _indCard("bb", "Bollinger Bands", chip(bbSig, bbLabel), `
+        _indBlock("Bollinger Bands", chip(bbSig, bbLabel), `
             <div class="ind-row">
                 <span class="ind-sub">U: ${upper ? "$" + fmt(upper) : "—"}</span>
                 <span class="ind-sub">L: ${lower ? "$" + fmt(lower) : "—"}</span>
             </div>`) +
 
-        _indCard("zscore", "Z-Score (20)", chip(zSig, zLabel), `
-            <div class="ind-val">${zVal != null ? zVal.toFixed(2) : "—"}</div>`) +
+        _indBlock("Z-Score (20)", chip(zSig, zLabel), `
+            <div class="ind-row">
+                <span class="ind-val">${zVal != null ? zVal.toFixed(2) : "—"}</span>
+            </div>`) +
 
-        _indCard("sma20", "SMA 20", trendBadge(sma20), `
-            <div class="ind-val">${sma20 ? "$" + fmt(sma20) : "—"}</div>`) +
+        _indBlock("SMA 20", trendBadge(sma20), `
+            <div class="ind-row">
+                <span class="ind-val">${sma20 ? "$" + fmt(sma20) : "—"}</span>
+            </div>`) +
 
-        (sma50 ? _indCard("sma50", "SMA 50", trendBadge(sma50), `
-            <div class="ind-val">$${fmt(sma50)}</div>`) : "") +
+        (sma50 ? _indBlock("SMA 50", trendBadge(sma50), `
+            <div class="ind-row">
+                <span class="ind-val">$${fmt(sma50)}</span>
+            </div>`) : "") +
 
-        _indCard("ema20", "EMA 20", trendBadge(ema20), `
-            <div class="ind-val">${ema20 ? "$" + fmt(ema20) : "—"}</div>`);
+        _indBlock("EMA 20", trendBadge(ema20), `
+            <div class="ind-row">
+                <span class="ind-val">${ema20 ? "$" + fmt(ema20) : "—"}</span>
+            </div>`);
 }
 
 // ============================================================
@@ -883,27 +864,20 @@ async function submitAlert() {
 }
 
 // ============================================================
-// SIGNAL FEED
+// SIDEBAR TABS
 // ============================================================
 
-function pushFeed(message, type = "") {
-    const feed  = document.getElementById("alerts-feed");
-    const empty = feed.querySelector(".feed-empty");
-    if (empty) empty.remove();
-
-    const now = new Date().toLocaleTimeString("en-US", { hour12: false });
-    const el  = document.createElement("div");
-    el.className = `feed-item ${type}`;
-    el.innerHTML = `${message}<time class="feed-time">${now}</time>`;
-    feed.prepend(el);
-
-    const items = feed.querySelectorAll(".feed-item");
-    if (items.length > 60) items[items.length - 1].remove();
-}
-
-function clearFeed() {
-    document.getElementById("alerts-feed").innerHTML =
-        `<div class="feed-empty">Feed cleared — monitoring active</div>`;
+function initSidebarTabs() {
+    document.querySelectorAll(".sidebar-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll(".sidebar-tab").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            document.querySelectorAll(".tab-pane").forEach(p => { p.style.display = "none"; });
+            const pane = document.getElementById(`tab-${tab}`);
+            if (pane) pane.style.display = "";
+        });
+    });
 }
 
 // ============================================================
@@ -1252,41 +1226,56 @@ function timeAgo(isoStr) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-async function loadHeaderNews(sym) {
-    const ticker = document.getElementById("news-header-ticker");
-    if (!ticker) return;
+async function loadNews(sym) {
+    const feed = document.getElementById("news-feed");
+    const chip = document.getElementById("agg-sentiment-chip");
+    if (!feed) return;
+
+    feed.innerHTML = '<div class="feed-empty">Loading news…</div>';
 
     try {
         const res  = await fetch(`${CFG.API}/news?symbol=${encodeURIComponent(sym)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+
         const articles = data.articles || [];
+        const agg      = data.aggregate || {};
+
+        if (chip) {
+            const label = agg.label || "neutral";
+            const sign  = (agg.score || 0) >= 0 ? "+" : "";
+            chip.textContent = `${label.toUpperCase()} ${sign}${(agg.score || 0).toFixed(2)}`;
+            chip.className   = `sentiment-chip ${label}`;
+        }
 
         if (!articles.length) {
-            ticker.innerHTML = `<span class="news-tick-item news-tick-loading">No news for ${sym}</span>`;
+            feed.innerHTML = '<div class="feed-empty">No news available</div>';
             return;
         }
 
-        const items = articles.map(a => {
-            const lbl  = a.sentiment_label || "neutral";
-            const dot  = lbl === "bullish" ? "▲" : lbl === "bearish" ? "▼" : "●";
-            const href = escapeHtml(a.url || "#");
-            const title = escapeHtml(a.title || "");
-            const src   = escapeHtml(a.source || "");
-            return `<a class="news-tick-item news-tick-${lbl}" href="${href}" target="_blank" rel="noopener">
-                <span class="news-tick-dot">${dot}</span>
-                <span class="news-tick-title">${title}</span>
-                <span class="news-tick-source">${src}</span>
-            </a>`;
-        }).join('<span class="news-tick-sep">·</span>');
-
-        // Duplicate for seamless loop
-        ticker.innerHTML = items + '<span class="news-tick-sep">·</span>' + items;
-        ticker.style.animation = "none";
-        void ticker.offsetWidth;
-        ticker.style.animation = "";
+        feed.innerHTML = "";
+        for (const a of articles) {
+            const lbl   = a.sentiment_label || "neutral";
+            const score = typeof a.sentiment === "number" ? (a.sentiment >= 0 ? "+" : "") + a.sentiment.toFixed(2) : "";
+            const item  = document.createElement("div");
+            item.className = "news-item";
+            item.innerHTML = `
+                <div class="news-item-header">
+                    <span class="news-sentiment ${lbl}">${lbl.toUpperCase()} ${score}</span>
+                </div>
+                <a class="news-title" href="${escapeHtml(a.url || "#")}" target="_blank" rel="noopener">
+                    ${escapeHtml(a.title || "")}
+                </a>
+                <div class="news-meta">
+                    <span class="news-source">${escapeHtml(a.source || "")}</span>
+                    <span class="news-time">${timeAgo(a.published_at)}</span>
+                </div>
+            `;
+            feed.appendChild(item);
+        }
     } catch {
-        ticker.innerHTML = `<span class="news-tick-item news-tick-loading">News unavailable</span>`;
+        feed.innerHTML = '<div class="feed-empty">News unavailable</div>';
+        if (chip) { chip.textContent = "—"; chip.className = "sentiment-chip"; }
     }
 }
 

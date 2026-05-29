@@ -28,14 +28,6 @@
             </div>
         </div>
 
-        <div class="header-center">
-            <div class="news-header-wrap">
-                <div class="news-header-ticker" id="news-header-ticker">
-                    <span class="news-tick-item news-tick-loading">Awaiting news…</span>
-                </div>
-            </div>
-        </div>
-
         <div class="header-right">
             <button class="screener-btn" id="open-screener-btn" title="Stock Screener">⊞ SCREENER</button>
         </div>
@@ -164,23 +156,26 @@
         <!-- RIGHT SIDEBAR -->
         <aside class="sidebar-right">
 
-            <div class="panel">
-                <div class="panel-header" id="indicators-panel-header" onclick="toggleIndicatorsPanel()" style="cursor:pointer;user-select:none">
-                    <span class="panel-title">INDICATORS</span>
-                    <button class="btn-icon" id="indicators-panel-toggle" title="Expand/collapse">+</button>
-                </div>
-                <div id="indicators-panel" class="indicators-panel" style="display:none">
-                    <div class="feed-empty">Loading indicators...</div>
-                </div>
-            </div>
-
             <div class="panel panel-grow">
-                <div class="panel-header">
-                    <span class="panel-title">SIGNAL FEED</span>
-                    <button class="btn-icon" id="clear-feed-btn" title="Clear feed">✕</button>
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" data-tab="indicators">INDICATORS</button>
+                    <button class="sidebar-tab" data-tab="news">NEWS</button>
                 </div>
-                <div id="alerts-feed" class="alerts-feed">
-                    <div class="feed-empty">Monitoring active — no signals yet</div>
+
+                <div id="tab-indicators" class="tab-pane">
+                    <div id="indicators-panel" class="indicators-panel">
+                        <div class="feed-empty">Loading indicators...</div>
+                    </div>
+                </div>
+
+                <div id="tab-news" class="tab-pane" style="display:none">
+                    <div class="news-tab-meta">
+                        <span class="news-tab-label">SENTIMENT</span>
+                        <span class="sentiment-chip" id="agg-sentiment-chip">—</span>
+                    </div>
+                    <div id="news-feed" class="news-feed">
+                        <div class="feed-empty">Select a symbol to load news</div>
+                    </div>
                 </div>
             </div>
 
