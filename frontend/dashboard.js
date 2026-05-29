@@ -313,8 +313,8 @@ function renderChart(d) {
             type: "candlestick",
             x: ts, open: d.open, high: d.high, low: d.low, close: d.close,
             name: state.symbol,
-            increasing: { line: { color: "#16A34A", width: 1 }, fillcolor: "rgba(22,163,74,0.18)" },
-            decreasing: { line: { color: "#DC2626", width: 1 }, fillcolor: "rgba(220,38,38,0.18)" },
+            increasing: { line: { color: "#16A34A", width: 1 }, fillcolor: "rgba(22,163,74,0.25)" },
+            decreasing: { line: { color: "#DC2626", width: 1 }, fillcolor: "rgba(220,38,38,0.25)" },
             xaxis: "x", yaxis: "y",
             whiskerwidth: 0.3,
         });
@@ -327,73 +327,87 @@ function renderChart(d) {
             fill: "tozeroy",
             fillcolor: "rgba(59,130,246,0.05)",
             xaxis: "x", yaxis: "y",
-        });
-    }
-
-    // Volume
-    if (state.indicators.vol && d.volume) {
-        const cols = d.close.map((c, i) =>
-            c == null ? "rgba(90,90,90,0.35)"
-            : (d.open[i] == null || c >= d.open[i]) ? "rgba(22,163,74,0.4)" : "rgba(220,38,38,0.4)"
-        );
-        traces.push({
-            type: "bar", x: ts, y: d.volume,
-            name: "Volume", marker: { color: cols },
-            xaxis: "x", yaxis: "y2", opacity: 0.75,
+            hovertemplate: "<b>$%{y:.2f}</b><extra>" + state.symbol + "</extra>",
         });
     }
 
     // SMA
     if (state.indicators.sma) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.sma20, name: "SMA20",
-            line: { color: "#60A5FA", width: 1.5 }, xaxis: "x", yaxis: "y" });
+            line: { color: "#60A5FA", width: 1.5 }, xaxis: "x", yaxis: "y",
+            hovertemplate: "<b>%{y:.2f}</b><extra>SMA20</extra>" });
         if (d.sma50) {
             traces.push({ type: "scatter", mode: "lines", x: ts, y: d.sma50, name: "SMA50",
-                line: { color: "#A78BFA", width: 1.5, dash: "dot" }, xaxis: "x", yaxis: "y" });
+                line: { color: "#A78BFA", width: 1.5, dash: "dot" }, xaxis: "x", yaxis: "y",
+                hovertemplate: "<b>%{y:.2f}</b><extra>SMA50</extra>" });
         }
     }
 
     // EMA
     if (state.indicators.ema) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.ema20, name: "EMA20",
-            line: { color: "#FB923C", width: 1.5 }, xaxis: "x", yaxis: "y" });
+            line: { color: "#FB923C", width: 1.5 }, xaxis: "x", yaxis: "y",
+            hovertemplate: "<b>%{y:.2f}</b><extra>EMA20</extra>" });
     }
 
     // Bollinger Bands
     if (state.indicators.bb) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.upper_band, name: "BB Upper",
             line: { color: "rgba(139,92,246,0.5)", width: 1 },
-            xaxis: "x", yaxis: "y", showlegend: true });
+            xaxis: "x", yaxis: "y", showlegend: true,
+            hovertemplate: "<b>%{y:.2f}</b><extra>BB Upper</extra>" });
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.lower_band, name: "BB Lower",
             line: { color: "rgba(139,92,246,0.5)", width: 1 },
             fill: "tonexty", fillcolor: "rgba(109,40,217,0.05)",
-            xaxis: "x", yaxis: "y", showlegend: false });
+            xaxis: "x", yaxis: "y", showlegend: false,
+            hovertemplate: "<b>%{y:.2f}</b><extra>BB Lower</extra>" });
     }
 
     // RSI subpanel (toggled)
     if (showRsi) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.rsi, name: "RSI",
-            line: { color: "#F472B6", width: 1.5 }, xaxis: "x2", yaxis: "y3" });
-        const rsiRef = (y) => ({
+            line: { color: "#F472B6", width: 1.5 }, xaxis: "x2", yaxis: "y3",
+            hovertemplate: "<b>%{y:.1f}</b><extra>RSI</extra>" });
+        traces.push({
             type: "scatter", mode: "lines",
-            x: [ts[0], ts[ts.length - 1]], y: [y, y],
-            line: { color: y === 70 ? "rgba(220,38,38,0.3)" : "rgba(22,163,74,0.3)", width: 1, dash: "dash" },
-            xaxis: "x2", yaxis: "y3", showlegend: false,
+            x: [ts[0], ts[ts.length - 1]], y: [70, 70],
+            line: { color: "rgba(220,38,38,0.3)", width: 1, dash: "dash" },
+            xaxis: "x2", yaxis: "y3", showlegend: false, hoverinfo: "skip",
         });
-        traces.push(rsiRef(70));
-        traces.push(rsiRef(30));
+        traces.push({
+            type: "scatter", mode: "lines",
+            x: [ts[0], ts[ts.length - 1]], y: [30, 30],
+            line: { color: "rgba(22,163,74,0.3)", width: 1, dash: "dash" },
+            xaxis: "x2", yaxis: "y3", showlegend: false, hoverinfo: "skip",
+        });
     }
 
     // MACD subpanel (toggled)
     if (showMacd) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.macd, name: "MACD",
-            line: { color: "#38BDF8", width: 1.5 }, xaxis: "x3", yaxis: "y4" });
+            line: { color: "#38BDF8", width: 1.5 }, xaxis: "x3", yaxis: "y4",
+            hovertemplate: "<b>%{y:.4f}</b><extra>MACD</extra>" });
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.signal, name: "Signal",
-            line: { color: "#FB923C", width: 1.5 }, xaxis: "x3", yaxis: "y4" });
+            line: { color: "#FB923C", width: 1.5 }, xaxis: "x3", yaxis: "y4",
+            hovertemplate: "<b>%{y:.4f}</b><extra>Signal</extra>" });
         const histCols = (d.histogram || []).map(v =>
             v == null ? "rgba(80,80,80,0.35)" : (v >= 0 ? "rgba(22,163,74,0.55)" : "rgba(220,38,38,0.55)"));
         traces.push({ type: "bar", x: ts, y: d.histogram, name: "Histogram",
-            marker: { color: histCols }, xaxis: "x3", yaxis: "y4", opacity: 0.9 });
+            marker: { color: histCols }, xaxis: "x3", yaxis: "y4", opacity: 0.9,
+            hovertemplate: "<b>%{y:.4f}</b><extra>Histogram</extra>" });
+    }
+
+    // Cursor dot — line mode only, always last trace, updated by hover listener
+    if (state.chartType === "line") {
+        traces.push({
+            type: "scatter", mode: "markers",
+            x: [], y: [],
+            name: "__cursor__",
+            marker: { size: 9, color: "#3B82F6", line: { color: "#ffffff", width: 1.5 } },
+            hoverinfo: "skip",
+            showlegend: false,
+            xaxis: "x", yaxis: "y",
+        });
     }
 
     // ── Layout domains ────────────────────────────────────────
@@ -424,6 +438,15 @@ function renderChart(d) {
         );
     }
 
+    const spike = {
+        showspikes: true,
+        spikemode: "across",
+        spikesnap: "cursor",
+        spikecolor: "rgba(148,163,184,0.4)",
+        spikedash: "dot",
+        spikethickness: 1,
+    };
+
     const ax = {
         gridcolor:     "rgba(255,255,255,0.04)",
         linecolor:     "rgba(255,255,255,0.07)",
@@ -445,11 +468,10 @@ function renderChart(d) {
             bgcolor: "transparent",
         },
         margin: { t: 8, l: 10, r: 65, b: 8 },
-        xaxis:  { ...ax, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
-        yaxis:  { ...ax, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
-        yaxis2: { ...ax, overlaying: "y", side: "left", showgrid: false, visible: false },
+        xaxis:  { ...ax, ...spike, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
+        yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
         dragmode: "pan",
-        hovermode: "x unified",
+        hovermode: "closest",
         hoverlabel: {
             bgcolor: "#0C0F16",
             bordercolor: "rgba(59,130,246,0.3)",
@@ -460,15 +482,15 @@ function renderChart(d) {
     };
 
     if (showRsi) {
-        layout.xaxis2 = { ...ax, domain: [0, 1], anchor: "y3", matches: "x",
+        layout.xaxis2 = { ...ax, ...spike, domain: [0, 1], anchor: "y3", matches: "x",
             type: "date", showticklabels: !showMacd };
-        layout.yaxis3 = { ...ax, domain: rsiDom, side: "right", range: [0, 100],
+        layout.yaxis3 = { ...ax, ...spike, domain: rsiDom, side: "right", range: [0, 100],
             title: { text: "RSI", font: { size: 9 } } };
     }
     if (showMacd) {
-        layout.xaxis3 = { ...ax, domain: [0, 1], anchor: "y4", matches: "x",
+        layout.xaxis3 = { ...ax, ...spike, domain: [0, 1], anchor: "y4", matches: "x",
             type: "date", showticklabels: false };
-        layout.yaxis4 = { ...ax, domain: macdDom, side: "right",
+        layout.yaxis4 = { ...ax, ...spike, domain: macdDom, side: "right",
             title: { text: "MACD", font: { size: 9 } } };
     }
 
@@ -480,7 +502,34 @@ function renderChart(d) {
 
     if (!document.getElementById("price-chart")) return;
     Plotly.react("price-chart", traces, layout, config);
+    initChartHoverListeners();
     updateIndicatorsPanel(d);
+}
+
+function initChartHoverListeners() {
+    const el = document.getElementById("price-chart");
+    if (!el || el._tradeskiHoverInit) return;
+    el._tradeskiHoverInit = true;
+
+    el.on("plotly_hover", function(data) {
+        if (state.chartType !== "line") return;
+        const gd = document.getElementById("price-chart");
+        const cursorIdx = (gd.data || []).findIndex(t => t.name === "__cursor__");
+        if (cursorIdx < 0) return;
+        const pt = data.points.find(p => p.data.name === state.symbol);
+        if (!pt) {
+            Plotly.restyle("price-chart", { x: [[]], y: [[]] }, [cursorIdx]);
+            return;
+        }
+        Plotly.restyle("price-chart", { x: [[pt.x]], y: [[pt.y]] }, [cursorIdx]);
+    });
+
+    el.on("plotly_unhover", function() {
+        const gd = document.getElementById("price-chart");
+        const cursorIdx = (gd.data || []).findIndex(t => t.name === "__cursor__");
+        if (cursorIdx < 0) return;
+        Plotly.restyle("price-chart", { x: [[]], y: [[]] }, [cursorIdx]);
+    });
 }
 
 function showChartLoading(on) {
