@@ -1,5 +1,9 @@
 """WSGI entry point for gunicorn / Render.com deployment."""
 
+# Must be the very first thing — patches stdlib sockets before any other import
+from gevent import monkey
+monkey.patch_all()
+
 import sys
 import os
 
