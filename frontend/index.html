@@ -24,23 +24,20 @@
             <div class="market-status" id="market-status">
                 <span class="status-dot" id="status-dot"></span>
                 <span id="status-label">CHECKING...</span>
+                <span class="status-time" id="status-time"></span>
             </div>
         </div>
 
-        <div class="header-center" id="header-price-display">
-            <div class="header-price-item skeleton">
-                <span class="hp-symbol">AAPL</span>
-                <span class="hp-price neutral">——</span>
+        <div class="header-center">
+            <div class="news-header-wrap">
+                <div class="news-header-ticker" id="news-header-ticker">
+                    <span class="news-tick-item news-tick-loading">Awaiting news…</span>
+                </div>
             </div>
         </div>
 
         <div class="header-right">
             <button class="screener-btn" id="open-screener-btn" title="Stock Screener">⊞ SCREENER</button>
-            <div class="ws-indicator" id="ws-status">
-                <span class="ws-dot" id="ws-dot"></span>
-                <span class="ws-label">CONNECTING</span>
-            </div>
-            <div class="clock" id="live-clock">--:--:--</div>
         </div>
     </header>
 
@@ -70,16 +67,6 @@
 
         <!-- LEFT SIDEBAR -->
         <aside class="sidebar-left">
-
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">WATCHLIST</span>
-                    <button class="btn-icon" id="add-symbol-btn" title="Coming soon: add symbol">+</button>
-                </div>
-                <div class="wl-tape-wrap">
-                    <div class="wl-tape" id="watchlist"></div>
-                </div>
-            </div>
 
             <div class="panel">
                 <div class="panel-header">
@@ -178,21 +165,12 @@
         <aside class="sidebar-right">
 
             <div class="panel">
-                <div class="panel-header">
+                <div class="panel-header" id="indicators-panel-header" onclick="toggleIndicatorsPanel()" style="cursor:pointer;user-select:none">
                     <span class="panel-title">INDICATORS</span>
+                    <button class="btn-icon" id="indicators-panel-toggle" title="Expand/collapse">+</button>
                 </div>
-                <div id="indicators-panel" class="indicators-panel">
+                <div id="indicators-panel" class="indicators-panel" style="display:none">
                     <div class="feed-empty">Loading indicators...</div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">NEWS FEED</span>
-                    <span class="sentiment-chip" id="agg-sentiment-chip">—</span>
-                </div>
-                <div id="news-feed" class="news-feed">
-                    <div class="feed-empty">Select a symbol to load news</div>
                 </div>
             </div>
 

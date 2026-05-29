@@ -7,38 +7,11 @@
 const CFG = {
     API: "https://tradeski.onrender.com",
     WS:  "https://tradeski.onrender.com",
-    WATCHLIST_REFRESH_MS: 30_000,
-    TICKER_REFRESH_MS:    60_000,
+    TICKER_REFRESH_MS: 60_000,
+    PORTFOLIO_REFRESH_MS: 30_000,
 };
 
-const DEFAULT_WATCHLIST = [
-    { symbol: "AAPL",  name: "Apple" },
-    { symbol: "MSFT",  name: "Microsoft" },
-    { symbol: "NVDA",  name: "NVIDIA" },
-    { symbol: "TSLA",  name: "Tesla" },
-    { symbol: "AMZN",  name: "Amazon" },
-    { symbol: "SOFI",  name: "SoFi Technologies" },
-    { symbol: "RDW",   name: "Redwire Corp" },
-];
-
-function _loadWatchlist() {
-    try {
-        const saved = localStorage.getItem("tradeski_watchlist");
-        return saved ? JSON.parse(saved) : DEFAULT_WATCHLIST;
-    } catch { return DEFAULT_WATCHLIST; }
-}
-
-function _saveWatchlist() {
-    localStorage.setItem("tradeski_watchlist", JSON.stringify(WATCHLIST));
-}
-
-let WATCHLIST = _loadWatchlist();
-
-const TICKER_EXTRA = ["GOOGL", "META", "SPY", "QQQ"];
-function getTickerSyms() {
-    const wl = WATCHLIST.map(w => w.symbol);
-    return [...new Set([...wl, ...TICKER_EXTRA])];
-}
+const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"];
 
 // ============================================================
 // STATE
@@ -62,7 +35,6 @@ let state = {
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
-    startClock();
     updateMarketStatus();
     setInterval(updateMarketStatus, 60_000);
     initWebSocket();
@@ -71,28 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
     initIndicatorToggles();
     initAlertModal();
     document.getElementById("clear-feed-btn").addEventListener("click", clearFeed);
-    renderWatchlist();
     loadDashboard(state.symbol);
     loadAlerts();
-    refreshWatchlistPrices();
-    setInterval(refreshWatchlistPrices, CFG.WATCHLIST_REFRESH_MS);
     buildTickerTape();
     setInterval(buildTickerTape, CFG.TICKER_REFRESH_MS);
     initPortfolio();
-    loadAllSparklines();
-    setInterval(loadAllSparklines, 3_600_000); // refresh sparklines hourly
 });
-
-// ============================================================
-// CLOCK
-// ============================================================
-
-function startClock() {
-    const el = document.getElementById("live-clock");
-    const tick = () => { el.textContent = new Date().toLocaleTimeString("en-US", { hour12: false }); };
-    tick();
-    setInterval(tick, 1000);
-}
 
 // ============================================================
 // MARKET STATUS
@@ -101,9 +57,15 @@ function startClock() {
 function updateMarketStatus() {
     const dot   = document.getElementById("status-dot");
     const label = document.getElementById("status-label");
-    const now   = new Date();
-    const day   = now.getDay();
-    const h     = now.getHours() + now.getMinutes() / 60;
+    const timeEl = document.getElementById("status-time");
+
+    const estStr = new Date().toLocaleString("en-US", { timeZone: "America/New_York",
+        hour: "2-digit", minute: "2-digit", hour12: false });
+    if (timeEl) timeEl.textContent = `${estStr} EST`;
+
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const day = now.getDay();
+    const h   = now.getHours() + now.getMinutes() / 60;
 
     if (day === 0 || day === 6) {
         dot.className = "status-dot closed";
@@ -141,13 +103,12 @@ function initWebSocket() {
 function setWs(connected) {
     const dot   = document.getElementById("ws-dot");
     const label = document.querySelector(".ws-label");
-    dot.className   = connected ? "ws-dot on" : "ws-dot";
-    label.textContent = connected ? "LIVE" : "OFFLINE";
+    if (dot)   dot.className    = connected ? "ws-dot on" : "ws-dot";
+    if (label) label.textContent = connected ? "LIVE" : "OFFLINE";
 }
 
 function onPriceUpdate(msg) {
     const pct = msg.change_pct ?? null;
-    updateWatchlistPrice(msg.symbol, msg.price, pct);
     if (msg.symbol === state.symbol) {
         renderHeaderPrice(msg.symbol, msg.price, pct);
         setLastUpdate();
@@ -173,41 +134,13 @@ function initSymbolSelect() {
 
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
     btn.addEventListener("click", go);
-
-    document.getElementById("add-symbol-btn").addEventListener("click", async () => {
-        const sym = prompt("Enter ticker symbol to add to watchlist:")?.trim().toUpperCase();
-        if (sym) await addToWatchlist(sym);
-    });
 }
 
 function switchSymbol(sym) {
     state.symbol = sym;
     const badge = document.getElementById("current-symbol-badge");
     if (badge) badge.textContent = sym;
-    document.querySelectorAll(".wl-chip").forEach(el => {
-        el.classList.toggle("active", el.dataset.symbol === sym);
-    });
     loadDashboard(sym);
-}
-
-async function addToWatchlist(sym) {
-    if (!sym || WATCHLIST.some(w => w.symbol === sym)) return;
-    try {
-        const res = await fetch(`${CFG.API}/stats?symbol=${sym}`);
-        if (!res.ok) { alert(`"${sym}" not found — check the ticker and try again.`); return; }
-    } catch { alert("Could not reach backend — check your connection."); return; }
-    WATCHLIST.push({ symbol: sym, name: sym });
-    _saveWatchlist();
-    renderWatchlist();
-    refreshWatchlistPrices();
-    loadAllSparklines();
-}
-
-function removeFromWatchlist(sym) {
-    WATCHLIST = WATCHLIST.filter(w => w.symbol !== sym);
-    _saveWatchlist();
-    renderWatchlist();
-    if (state.symbol === sym) switchSymbol(WATCHLIST[0]?.symbol || "AAPL");
 }
 
 // ============================================================
@@ -274,7 +207,6 @@ function initIndicatorToggles() {
 
 async function loadDashboard(sym) {
     setStatus(`Loading ${sym}…`);
-    document.getElementById("current-symbol-badge").textContent = sym;
     showChartLoading(true);
     renderHeaderPrice(sym, null, null);
 
@@ -286,8 +218,7 @@ async function loadDashboard(sym) {
         showChartLoading(false);
     }
 
-    // Non-blocking — news loads independently after core data
-    loadNews(sym);
+    loadHeaderNews(sym);
 }
 
 // ============================================================
@@ -662,6 +593,16 @@ async function loadStats(sym) {
 // INDICATORS PANEL
 // ============================================================
 
+let _indPanelOpen = false;
+
+function toggleIndicatorsPanel() {
+    _indPanelOpen = !_indPanelOpen;
+    const panel = document.getElementById("indicators-panel");
+    const btn   = document.getElementById("indicators-panel-toggle");
+    if (panel) panel.style.display = _indPanelOpen ? "" : "none";
+    if (btn)   btn.textContent = _indPanelOpen ? "−" : "+";
+}
+
 const _indExpanded = {};
 
 function toggleInd(key) {
@@ -787,85 +728,6 @@ function updateIndicatorsPanel(d) {
 }
 
 // ============================================================
-// WATCHLIST
-// ============================================================
-
-function renderWatchlist() {
-    const el = document.getElementById("watchlist");
-    el.innerHTML = "";
-
-    // Duplicate list for seamless scroll loop; only first pass gets IDs
-    for (let pass = 0; pass < 2; pass++) {
-        for (const { symbol } of WATCHLIST) {
-            const chip = document.createElement("div");
-            chip.className = `wl-chip ${symbol === state.symbol ? "active" : ""}`;
-            chip.dataset.symbol = symbol;
-            chip.addEventListener("click", () => switchSymbol(symbol));
-
-            const priceId  = pass === 0 ? ` id="wlp-${symbol}"` : "";
-            const changeId = pass === 0 ? ` id="wlc-${symbol}"` : "";
-            chip.innerHTML = `
-                <span class="wl-symbol">${symbol}</span>
-                <div class="wl-price-row">
-                    <span class="wl-price neutral"${priceId}>——</span>
-                    <span class="wl-change"${changeId}>——</span>
-                </div>
-            `;
-
-            if (pass === 0) {
-                const removeBtn = document.createElement("button");
-                removeBtn.className = "wl-remove-btn";
-                removeBtn.title = "Remove";
-                removeBtn.textContent = "×";
-                removeBtn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    removeFromWatchlist(symbol);
-                });
-                chip.appendChild(removeBtn);
-            }
-
-            el.appendChild(chip);
-        }
-    }
-}
-
-async function refreshWatchlistPrices() {
-    for (const { symbol } of WATCHLIST) {
-        try {
-            const res = await fetch(`${CFG.API}/stats?symbol=${symbol}`);
-            if (!res.ok) continue;
-            const d   = await res.json();
-            const pct = d.open > 0 ? ((d.close - d.open) / d.open * 100) : 0;
-            updateWatchlistPrice(symbol, d.close, pct);
-        } catch (_) {}
-    }
-}
-
-function updateWatchlistPrice(symbol, price, pct) {
-    const pEl = document.getElementById(`wlp-${symbol}`);
-    const cEl = document.getElementById(`wlc-${symbol}`);
-    if (!pEl || price == null) return;
-
-    const prev = state.lastPrices[symbol];
-    const dir  = prev != null ? (price > prev ? "up" : price < prev ? "down" : "neutral") : "neutral";
-    state.lastPrices[symbol] = price;
-
-    pEl.textContent = `$${fmt(price)}`;
-    pEl.className   = `wl-price ${dir}`;
-
-    if (pct != null) {
-        const sign = pct >= 0 ? "+" : "";
-        cEl.textContent = `${sign}${pct.toFixed(2)}%`;
-        cEl.className   = `wl-change ${pct >= 0 ? "up" : "down"}`;
-    }
-
-    if (dir !== "neutral") {
-        pEl.classList.add(`flash-${dir}`);
-        setTimeout(() => pEl.classList.remove(`flash-${dir}`), 950);
-    }
-}
-
-// ============================================================
 // TICKER TAPE
 // ============================================================
 
@@ -873,7 +735,7 @@ async function buildTickerTape() {
     const tape    = document.getElementById("ticker-tape");
     const results = [];
 
-    for (const sym of getTickerSyms()) {
+    for (const sym of TICKER_SYMS) {
         try {
             const res = await fetch(`${CFG.API}/stats?symbol=${sym}`);
             if (!res.ok) continue;
@@ -910,6 +772,7 @@ async function buildTickerTape() {
 
 function renderHeaderPrice(symbol, price, pct) {
     const el = document.getElementById("header-price-display");
+    if (!el) return;
     if (price == null) {
         el.innerHTML = `<div class="header-price-item skeleton">
             <span class="hp-symbol">${symbol}</span>
@@ -1070,69 +933,6 @@ function fmt(n) {
 }
 
 // ============================================================
-// WATCHLIST SPARKLINES (Chart.js)
-// ============================================================
-
-const _sparklineCharts = new Map(); // symbol → Chart.js instance
-
-async function loadAllSparklines() {
-    await Promise.allSettled(WATCHLIST.map(({ symbol }) => loadSparkline(symbol)));
-}
-
-async function loadSparkline(symbol) {
-    try {
-        const res = await fetch(`${CFG.API}/sparkline?symbol=${symbol}`);
-        if (!res.ok) return;
-        const data = await res.json();
-
-        const closes = data.close || [];
-        if (closes.length < 2) return;
-
-        const canvas = document.getElementById(`spark-${symbol}`);
-        if (!canvas) return;
-
-        // Destroy any existing Chart.js instance on this canvas
-        const existing = _sparklineCharts.get(symbol);
-        if (existing) existing.destroy();
-
-        const isUp    = closes[closes.length - 1] >= closes[0];
-        const color   = isUp ? "#00e87a" : "#ff2d55";
-        const fill    = isUp ? "rgba(0,232,122,0.07)" : "rgba(255,45,85,0.07)";
-
-        const chart = new Chart(canvas, {
-            type: "line",
-            data: {
-                labels:   closes.map((_, i) => i),
-                datasets: [{
-                    data:            closes,
-                    borderColor:     color,
-                    borderWidth:     1.5,
-                    fill:            true,
-                    backgroundColor: fill,
-                    pointRadius:     0,
-                    tension:         0.35,
-                }],
-            },
-            options: {
-                responsive:          true,
-                maintainAspectRatio: false,
-                animation:           false,
-                plugins: {
-                    legend:  { display: false },
-                    tooltip: { enabled: false },
-                },
-                scales: {
-                    x: { display: false },
-                    y: { display: false },
-                },
-            },
-        });
-
-        _sparklineCharts.set(symbol, chart);
-    } catch (_) { /* non-fatal — sparkline failure shouldn't affect anything */ }
-}
-
-// ============================================================
 // PORTFOLIO
 // ============================================================
 
@@ -1145,7 +945,7 @@ function initPortfolio() {
         if (e.key === "Enter") submitHolding();
     });
     loadPortfolio();
-    setInterval(loadPortfolio, CFG.WATCHLIST_REFRESH_MS);
+    setInterval(loadPortfolio, CFG.PORTFOLIO_REFRESH_MS);
 }
 
 async function loadPortfolio() {
@@ -1452,57 +1252,41 @@ function timeAgo(isoStr) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-async function loadNews(sym) {
-    const feed   = document.getElementById("news-feed");
-    const chip   = document.getElementById("agg-sentiment-chip");
-    if (!feed) return;
-
-    feed.innerHTML = '<div class="feed-empty">Loading news…</div>';
+async function loadHeaderNews(sym) {
+    const ticker = document.getElementById("news-header-ticker");
+    if (!ticker) return;
 
     try {
         const res  = await fetch(`${CFG.API}/news?symbol=${encodeURIComponent(sym)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-
         const articles = data.articles || [];
-        const agg      = data.aggregate || {};
-
-        // Update aggregate chip
-        if (chip) {
-            const label = agg.label || "neutral";
-            const sign  = (agg.score || 0) >= 0 ? "+" : "";
-            chip.textContent  = `${label.toUpperCase()} ${sign}${(agg.score || 0).toFixed(2)}`;
-            chip.className    = `sentiment-chip ${label}`;
-        }
 
         if (!articles.length) {
-            feed.innerHTML = '<div class="feed-empty">No news available</div>';
+            ticker.innerHTML = `<span class="news-tick-item news-tick-loading">No news for ${sym}</span>`;
             return;
         }
 
-        feed.innerHTML = "";
-        for (const a of articles) {
-            const lbl   = a.sentiment_label || "neutral";
-            const score = typeof a.sentiment === "number" ? (a.sentiment >= 0 ? "+" : "") + a.sentiment.toFixed(2) : "";
-            const item  = document.createElement("div");
-            item.className = "news-item";
-            item.innerHTML = `
-                <div class="news-item-header">
-                    <span class="news-sentiment ${lbl}">${lbl.toUpperCase()} ${score}</span>
-                </div>
-                <a class="news-title" href="${escapeHtml(a.url || "#")}" target="_blank" rel="noopener">
-                    ${escapeHtml(a.title || "")}
-                </a>
-                <div class="news-meta">
-                    <span class="news-source">${escapeHtml(a.source || "")}</span>
-                    <span class="news-time">${timeAgo(a.published_at)}</span>
-                </div>
-            `;
-            feed.appendChild(item);
-        }
+        const items = articles.map(a => {
+            const lbl  = a.sentiment_label || "neutral";
+            const dot  = lbl === "bullish" ? "▲" : lbl === "bearish" ? "▼" : "●";
+            const href = escapeHtml(a.url || "#");
+            const title = escapeHtml(a.title || "");
+            const src   = escapeHtml(a.source || "");
+            return `<a class="news-tick-item news-tick-${lbl}" href="${href}" target="_blank" rel="noopener">
+                <span class="news-tick-dot">${dot}</span>
+                <span class="news-tick-title">${title}</span>
+                <span class="news-tick-source">${src}</span>
+            </a>`;
+        }).join('<span class="news-tick-sep">·</span>');
+
+        // Duplicate for seamless loop
+        ticker.innerHTML = items + '<span class="news-tick-sep">·</span>' + items;
+        ticker.style.animation = "none";
+        void ticker.offsetWidth;
+        ticker.style.animation = "";
     } catch {
-        feed.innerHTML = '<div class="feed-empty">News unavailable</div>';
-        if (chip) { chip.textContent = "—"; chip.className = "sentiment-chip"; }
+        ticker.innerHTML = `<span class="news-tick-item news-tick-loading">News unavailable</span>`;
     }
 }
 
