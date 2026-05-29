@@ -533,6 +533,64 @@ function initChartHoverListeners() {
         if (cursorIdx < 0) return;
         Plotly.restyle("price-chart", { x: [[]], y: [[]] }, [cursorIdx]);
     });
+
+    el.on("plotly_click", function(data) {
+        if (state.chartType !== "candle") return;
+        const pt = data.points.find(p => p.data.type === "candlestick");
+        if (!pt) return;
+
+        const idx   = pt.pointIndex;
+        const open  = pt.data.open[idx];
+        const high  = pt.data.high[idx];
+        const low   = pt.data.low[idx];
+        const close = pt.data.close[idx];
+        const xVal  = pt.x;
+        const dateStr = typeof xVal === "string"
+            ? xVal.slice(0, 10)
+            : new Date(xVal).toISOString().slice(0, 10);
+
+        const pct   = open > 0 ? ((close - open) / open * 100) : 0;
+        const dir   = close >= open ? "up" : "down";
+        const arrow = close >= open ? "▲" : "▼";
+        const range = high - low;
+
+        const strip = document.getElementById("market-data-strip");
+        if (!strip) return;
+        strip.innerHTML = `
+            <div class="md-item md-selected">
+                <span class="md-label">Date</span>
+                <span class="md-value" style="font-size:11px">${dateStr}</span>
+            </div>
+            <div class="md-item">
+                <span class="md-label">Open</span>
+                <span class="md-value">$${fmt(open)}</span>
+            </div>
+            <div class="md-item">
+                <span class="md-label">High</span>
+                <span class="md-value up">$${fmt(high)}</span>
+            </div>
+            <div class="md-item">
+                <span class="md-label">Low</span>
+                <span class="md-value down">$${fmt(low)}</span>
+            </div>
+            <div class="md-item">
+                <span class="md-label">Close</span>
+                <span class="md-value ${dir}">$${fmt(close)}</span>
+            </div>
+            <div class="md-item">
+                <span class="md-label">Change</span>
+                <span class="md-value ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>
+            </div>
+            <div class="md-item">
+                <span class="md-label">Candle Range</span>
+                <span class="md-value">$${fmt(range)}</span>
+            </div>
+            <div class="md-item" style="cursor:pointer;opacity:0.6" onclick="loadStats(state.symbol)" title="Reset to current day">
+                <span class="md-label">↩ Reset</span>
+                <span class="md-value" style="font-size:10px">Today</span>
+            </div>
+        `;
+    });
 }
 
 function showChartLoading(on) {
@@ -1347,13 +1405,11 @@ async function loadMacroRibbon() {
 
     try {
         const res = await fetch(`${CFG.API}/macro`);
-        if (!res.ok) {
-            inner.innerHTML = '<div class="macro-item"><span class="macro-error">FRED data unavailable — set FRED_API_KEY</span></div>';
-            return;
-        }
-        const data = await res.json();
-        if (data.error) {
-            inner.innerHTML = `<div class="macro-item"><span class="macro-error">${data.error}</span></div>`;
+        let data;
+        try { data = await res.json(); } catch { data = {}; }
+        if (!res.ok || data.error) {
+            const msg = data.error || `HTTP ${res.status}`;
+            inner.innerHTML = `<div class="macro-item"><span class="macro-error">FRED: ${msg}</span></div>`;
             return;
         }
 

@@ -718,6 +718,7 @@ body::before {
     transition: background var(--t);
 }
 .md-item:hover { background: var(--bg-hover); }
+.md-selected { border-right-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.05) !important; }
 
 .md-label {
     font-family: var(--mono);

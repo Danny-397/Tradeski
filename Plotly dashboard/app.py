@@ -311,11 +311,27 @@ def macro() -> tuple:
     """Return latest FRED macro indicator snapshot (cached 1 h)."""
     fred_key = os.environ.get("FRED_API_KEY", "")
     if not fred_key:
-        return jsonify({"error": "FRED_API_KEY not configured"}), 503
+        return jsonify({"error": "FRED_API_KEY not configured — add it in the Render dashboard Environment tab"}), 503
 
     cached = _cache.get("macro_snapshot")
     if cached is not None:
         return jsonify(cached)
+
+    # Quick key validation — one cheap request before running all 7 series
+    import requests as _req
+    try:
+        probe = _req.get(
+            "https://api.stlouisfed.org/fred/series",
+            params={"series_id": "FEDFUNDS", "api_key": fred_key, "file_type": "json"},
+            timeout=8,
+        )
+        if probe.status_code == 400:
+            return jsonify({"error": f"FRED API key rejected — check the key is correct (FRED returned {probe.status_code})"}), 401
+        probe.raise_for_status()
+    except _req.exceptions.Timeout:
+        return jsonify({"error": "FRED API timed out — try again"}), 504
+    except Exception as e:
+        return jsonify({"error": f"FRED unreachable: {e}"}), 502
 
     snapshot = get_macro_snapshot(fred_key)
     _cache.set("macro_snapshot", snapshot, ttl=_FRED_TTL)
