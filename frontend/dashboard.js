@@ -182,8 +182,9 @@ function initSymbolSelect() {
 
 function switchSymbol(sym) {
     state.symbol = sym;
-    document.getElementById("current-symbol-badge").textContent = sym;
-    document.querySelectorAll(".watchlist-item").forEach(el => {
+    const badge = document.getElementById("current-symbol-badge");
+    if (badge) badge.textContent = sym;
+    document.querySelectorAll(".wl-chip").forEach(el => {
         el.classList.toggle("active", el.dataset.symbol === sym);
     });
     loadDashboard(sym);
@@ -472,6 +473,8 @@ function renderChart(d) {
         yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
         dragmode: "pan",
         hovermode: "closest",
+        hoverdistance: 80,
+        spikedistance: 100,
         hoverlabel: {
             bgcolor: "#0C0F16",
             bordercolor: "rgba(59,130,246,0.3)",
@@ -556,40 +559,42 @@ async function loadStats(sym) {
         ? ((d.close - d.low_52w) / (d.high_52w - d.low_52w) * 100).toFixed(1)
         : 50;
 
-    document.getElementById("stats-content").innerHTML = `
-        <div class="stat-cell">
-            <span class="stat-label">Open</span>
-            <span class="stat-value">$${fmt(d.open)}</span>
+    const strip = document.getElementById("market-data-strip");
+    if (!strip) return;
+    strip.innerHTML = `
+        <div class="md-item">
+            <span class="md-label">Symbol</span>
+            <span class="md-value" id="current-symbol-badge">${sym}</span>
         </div>
-        <div class="stat-cell">
-            <span class="stat-label">Close</span>
-            <span class="stat-value ${dir}">$${fmt(d.close)}</span>
+        <div class="md-item">
+            <span class="md-label">Open</span>
+            <span class="md-value">$${fmt(d.open)}</span>
         </div>
-        <div class="stat-cell">
-            <span class="stat-label">High</span>
-            <span class="stat-value up">$${fmt(d.high)}</span>
+        <div class="md-item">
+            <span class="md-label">High</span>
+            <span class="md-value up">$${fmt(d.high)}</span>
         </div>
-        <div class="stat-cell">
-            <span class="stat-label">Low</span>
-            <span class="stat-value down">$${fmt(d.low)}</span>
+        <div class="md-item">
+            <span class="md-label">Low</span>
+            <span class="md-value down">$${fmt(d.low)}</span>
         </div>
-        <div class="stat-cell">
-            <span class="stat-label">Change</span>
-            <span class="stat-value ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>
+        <div class="md-item">
+            <span class="md-label">Close</span>
+            <span class="md-value ${dir}">$${fmt(d.close)}</span>
         </div>
-        <div class="stat-cell">
-            <span class="stat-label">Day Range</span>
-            <span class="stat-value">$${fmt(d.high - d.low)}</span>
+        <div class="md-item">
+            <span class="md-label">Change</span>
+            <span class="md-value ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>
         </div>
-        <div class="range-cell">
-            <div class="range-label">52-WEEK RANGE</div>
-            <div class="range-track">
-                <div class="range-fill"></div>
-                <div class="range-cursor" style="left:${range52}%"></div>
-            </div>
-            <div class="range-extremes">
-                <span>$${fmt(d.low_52w)}</span>
-                <span>$${fmt(d.high_52w)}</span>
+        <div class="md-item">
+            <span class="md-label">Day Range</span>
+            <span class="md-value">$${fmt(d.high - d.low)}</span>
+        </div>
+        <div class="md-range-item">
+            <span class="md-label">52W &nbsp;$${fmt(d.low_52w)} — $${fmt(d.high_52w)}</span>
+            <div class="md-range-track">
+                <div class="md-range-fill" style="width:${range52}%"></div>
+                <div class="md-range-cursor" style="left:${range52}%"></div>
             </div>
         </div>
     `;
@@ -739,37 +744,38 @@ function renderWatchlist() {
     const el = document.getElementById("watchlist");
     el.innerHTML = "";
 
-    for (const { symbol, name } of WATCHLIST) {
-        const item = document.createElement("div");
-        item.className   = `watchlist-item ${symbol === state.symbol ? "active" : ""}`;
-        item.dataset.symbol = symbol;
-        item.addEventListener("click", () => switchSymbol(symbol));
+    // Duplicate list for seamless scroll loop; only first pass gets IDs
+    for (let pass = 0; pass < 2; pass++) {
+        for (const { symbol } of WATCHLIST) {
+            const chip = document.createElement("div");
+            chip.className = `wl-chip ${symbol === state.symbol ? "active" : ""}`;
+            chip.dataset.symbol = symbol;
+            chip.addEventListener("click", () => switchSymbol(symbol));
 
-        item.innerHTML = `
-            <div class="wl-top">
-                <div class="wl-left">
-                    <span class="wl-symbol">${symbol}</span>
-                    <span class="wl-name">${name}</span>
+            const priceId  = pass === 0 ? ` id="wlp-${symbol}"` : "";
+            const changeId = pass === 0 ? ` id="wlc-${symbol}"` : "";
+            chip.innerHTML = `
+                <span class="wl-symbol">${symbol}</span>
+                <div class="wl-price-row">
+                    <span class="wl-price neutral"${priceId}>——</span>
+                    <span class="wl-change"${changeId}>——</span>
                 </div>
-                <div class="wl-right">
-                    <span class="wl-price neutral" id="wlp-${symbol}">——</span>
-                    <span class="wl-change"        id="wlc-${symbol}">——</span>
-                    <button class="wl-remove-btn" title="Remove">×</button>
-                </div>
-            </div>
-        `;
-        item.querySelector(".wl-remove-btn").addEventListener("click", (e) => {
-            e.stopPropagation();
-            removeFromWatchlist(symbol);
-        });
+            `;
 
-        // Sparkline canvas — Chart.js will render into this
-        const canvas = document.createElement("canvas");
-        canvas.className = "wl-sparkline";
-        canvas.id = `spark-${symbol}`;
-        item.appendChild(canvas);
+            if (pass === 0) {
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "wl-remove-btn";
+                removeBtn.title = "Remove";
+                removeBtn.textContent = "×";
+                removeBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    removeFromWatchlist(symbol);
+                });
+                chip.appendChild(removeBtn);
+            }
 
-        el.appendChild(item);
+            el.appendChild(chip);
+        }
     }
 }
 

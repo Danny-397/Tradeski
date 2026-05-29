@@ -76,8 +76,8 @@
                     <span class="panel-title">WATCHLIST</span>
                     <button class="btn-icon" id="add-symbol-btn" title="Coming soon: add symbol">+</button>
                 </div>
-                <div id="watchlist" class="watchlist">
-                    <!-- Rendered by JS -->
+                <div class="wl-tape-wrap">
+                    <div class="wl-tape" id="watchlist"></div>
                 </div>
             </div>
 
@@ -168,20 +168,14 @@
                 </div>
             </div>
 
+            <div id="market-data-strip" class="market-data-strip">
+                <div class="md-item"><span class="md-label">Loading market data…</span></div>
+            </div>
+
         </main>
 
         <!-- RIGHT SIDEBAR -->
         <aside class="sidebar-right">
-
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">MARKET DATA</span>
-                    <span class="symbol-badge" id="current-symbol-badge">AAPL</span>
-                </div>
-                <div id="stats-content" class="stats-grid">
-                    <!-- Rendered by JS -->
-                </div>
-            </div>
 
             <div class="panel">
                 <div class="panel-header">

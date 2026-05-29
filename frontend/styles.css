@@ -519,6 +519,56 @@ body::before {
     opacity: 0.8;
 }
 
+/* ===== WATCHLIST TICKER ===== */
+.wl-tape-wrap {
+    overflow: hidden;
+    padding: 4px 4px;
+}
+.wl-tape {
+    display: flex;
+    gap: 4px;
+    width: max-content;
+    animation: scroll-left 28s linear infinite;
+    will-change: transform;
+}
+.wl-tape:hover { animation-play-state: paused; }
+
+.wl-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-base);
+    flex-shrink: 0;
+    transition: all var(--t) var(--ease);
+    position: relative;
+}
+.wl-chip:hover  { background: var(--bg-hover); border-color: rgba(59,130,246,0.35); }
+.wl-chip.active { background: rgba(59,130,246,0.06); border-color: var(--amber-dim); }
+
+.wl-chip .wl-symbol {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
+}
+.wl-chip .wl-price-row { display: flex; gap: 5px; align-items: center; }
+.wl-chip .wl-price  { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.wl-chip .wl-change { font-family: var(--mono); font-size: 9px; }
+.wl-chip .wl-remove-btn {
+    position: absolute;
+    top: 2px; right: 3px;
+    font-size: 9px;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity var(--t);
+}
+.wl-chip:hover .wl-remove-btn { opacity: 1; }
+
 /* ===== CHART AREA ===== */
 .chart-area {
     flex: 1;
@@ -636,6 +686,87 @@ body::before {
     z-index: 10;
 }
 .chart-loading.hidden { display: none; }
+
+/* Regular arrow cursor inside the chart instead of the large crosshair */
+#price-chart .drag,
+#price-chart .nsewdrag,
+#price-chart .ewdrag,
+#price-chart .nsdrag,
+#price-chart .nwse-drg,
+#price-chart .nesw-drg { cursor: default !important; }
+
+/* ===== MARKET DATA STRIP ===== */
+.market-data-strip {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.market-data-strip::-webkit-scrollbar { display: none; }
+
+.md-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 14px;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: background var(--t);
+}
+.md-item:hover { background: var(--bg-hover); }
+
+.md-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.md-value {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+.md-value.up   { color: var(--green); }
+.md-value.down { color: var(--red); }
+
+.md-range-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 14px;
+    flex: 1;
+    min-width: 160px;
+}
+.md-range-track {
+    position: relative;
+    height: 2px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 1px;
+}
+.md-range-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--cyan);
+    border-radius: 1px;
+}
+.md-range-cursor {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--cyan);
+    border: 1.5px solid var(--bg-card);
+}
 
 /* ===== STATS GRID ===== */
 .stats-grid {
