@@ -6,9 +6,9 @@ services:
     startCommand: gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --bind 0.0.0.0:$PORT wsgi:app
     healthCheckPath: /health
     envVars:
-      # Comma-separated allowed origins. *.netlify.app is always allowed automatically.
+      # Comma-separated allowed origins — add your Vercel URL here after deploying
       - key: ALLOWED_ORIGINS
-        value: https://tradeski.onrender.com
+        value: https://tradeski.onrender.com,https://tradeski.vercel.app
       # Non-secret defaults — safe to commit
       - key: STOCK_SYMBOLS
         value: AAPL,MSFT,TSLA,NVDA,AMZN

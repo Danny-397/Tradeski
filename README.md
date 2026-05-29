@@ -4,7 +4,6 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-46%20passing-brightgreen.svg)](#running-tests)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/c91acef0-d4f2-41b0-bbd5-bbaaf085f63c/deploy-status)](https://app.netlify.com/projects/tradeski/deploys)
 
 Tradeski is a full-stack, production-deployed financial analytics platform that streams live equity data, computes a complete suite of quantitative indicators, and delivers real-time market intelligence through a cyber-styled interactive dashboard. It combines a Python backend with a modern JavaScript frontend connected over WebSockets, and integrates AI-powered financial analysis through a built-in assistant named Ski.
 

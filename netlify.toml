@@ -1,2 +1,1 @@
-[build]
-  publish = "frontend/"
+# This project is now deployed on Vercel — see vercel.json
