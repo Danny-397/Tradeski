@@ -662,6 +662,35 @@ async function loadStats(sym) {
 // INDICATORS PANEL
 // ============================================================
 
+const _indExpanded = {};
+
+function toggleInd(key) {
+    _indExpanded[key] = !_indExpanded[key];
+    const header = document.querySelector(`.ind-header[data-key="${key}"]`);
+    if (!header) return;
+    const detail = header.closest(".ind-card").querySelector(".ind-detail");
+    const btn    = header.querySelector(".ind-toggle");
+    if (detail) detail.classList.toggle("collapsed", !_indExpanded[key]);
+    if (btn)    btn.textContent = _indExpanded[key] ? "−" : "+";
+}
+
+function _indCard(key, name, badge, detailHtml) {
+    const open = !!_indExpanded[key];
+    return `
+        <div class="ind-card">
+            <div class="ind-header" data-key="${key}" onclick="toggleInd('${key}')">
+                <div class="ind-header-left">
+                    <span class="ind-name">${name}</span>
+                    ${badge}
+                </div>
+                <button class="ind-toggle">${open ? "−" : "+"}</button>
+            </div>
+            <div class="ind-detail${open ? "" : " collapsed"}">
+                ${detailHtml}
+            </div>
+        </div>`;
+}
+
 function updateIndicatorsPanel(d) {
     const last = arr => {
         if (!arr) return null;
@@ -670,63 +699,59 @@ function updateIndicatorsPanel(d) {
         return null;
     };
 
-    const rsiVal    = last(d.rsi);
-    const macdVal   = last(d.macd);
-    const sigVal    = last(d.signal);
-    const histVal   = last(d.histogram);
-    const upper     = last(d.upper_band);
-    const lower     = last(d.lower_band);
-    const closeVal  = last(d.close);
-    const zVal      = last(d.zscore);
-    const sma20     = last(d.sma20);
-    const sma50     = last(d.sma50);
-    const ema20     = last(d.ema20);
+    const rsiVal  = last(d.rsi);
+    const macdVal = last(d.macd);
+    const sigVal  = last(d.signal);
+    const upper   = last(d.upper_band);
+    const lower   = last(d.lower_band);
+    const closeVal = last(d.close);
+    const zVal    = last(d.zscore);
+    const sma20   = last(d.sma20);
+    const sma50   = last(d.sma50);
+    const ema20   = last(d.ema20);
 
-    // RSI signal
+    // RSI
     let rsiSig = "neutral", rsiLabel = "NEUTRAL";
     if (rsiVal != null) {
         if (rsiVal > 70) { rsiSig = "sell"; rsiLabel = "OVERBOUGHT"; }
         else if (rsiVal < 30) { rsiSig = "buy"; rsiLabel = "OVERSOLD"; }
     }
-    const rsiPct     = rsiVal != null ? Math.min(100, Math.max(0, rsiVal)) : 0;
-    const rsiClass   = rsiVal > 70 ? "overbought" : rsiVal < 30 ? "oversold" : "neutral";
+    const rsiPct   = rsiVal != null ? Math.min(100, Math.max(0, rsiVal)) : 0;
+    const rsiClass = rsiVal > 70 ? "overbought" : rsiVal < 30 ? "oversold" : "neutral";
 
-    // MACD signal
+    // MACD
     let macdSig = "neutral", macdLabel = "FLAT";
     if (macdVal != null && sigVal != null) {
         macdSig   = macdVal > sigVal ? "buy" : "sell";
         macdLabel = macdVal > sigVal ? "BULLISH" : "BEARISH";
     }
 
-    // BB signal
+    // BB
     let bbSig = "neutral", bbLabel = "MID BAND";
     if (closeVal && upper && lower) {
         const span = upper - lower;
         const pct  = span > 0 ? (closeVal - lower) / span : 0.5;
-        if (pct > 0.85) { bbSig = "sell"; bbLabel = "NEAR UPPER"; }
-        else if (pct < 0.15) { bbSig = "buy"; bbLabel = "NEAR LOWER"; }
+        if (pct > 0.85)      { bbSig = "sell"; bbLabel = "NEAR UPPER"; }
+        else if (pct < 0.15) { bbSig = "buy";  bbLabel = "NEAR LOWER"; }
     }
 
-    // Z-Score signal
+    // Z-Score
     let zSig = "neutral", zLabel = "NORMAL";
     if (zVal != null) {
-        if (zVal > 2) { zSig = "sell"; zLabel = "HIGH"; }
-        else if (zVal < -2) { zSig = "buy"; zLabel = "LOW"; }
+        if (zVal > 2)       { zSig = "sell"; zLabel = "HIGH"; }
+        else if (zVal < -2) { zSig = "buy";  zLabel = "LOW"; }
     }
 
-    // SMA trend
-    const smaColor = (val) => closeVal && val ? (closeVal > val ? "var(--green)" : "var(--red)") : "var(--text-muted)";
-    const smaArrow = (val) => closeVal && val ? (closeVal > val ? "▲ Above" : "▼ Below") : "—";
+    // SMA/EMA helpers
+    const smaColor = v => closeVal && v ? (closeVal > v ? "var(--green)" : "var(--red)") : "var(--text-muted)";
+    const smaArrow = v => closeVal && v ? (closeVal > v ? "▲ Above" : "▼ Below") : "—";
+    const chip = (sig, label) => `<span class="signal-chip ${sig}">${label}</span>`;
+    const trendBadge = v => `<span style="font-size:10px;color:${smaColor(v)}">${smaArrow(v)}</span>`;
 
-    document.getElementById("indicators-panel").innerHTML = `
-        <div class="ind-card">
-            <div class="ind-row">
-                <span class="ind-name">RSI (14)</span>
-                <span class="signal-chip ${rsiSig}">${rsiLabel}</span>
-            </div>
+    document.getElementById("indicators-panel").innerHTML =
+        _indCard("rsi", "RSI (14)", chip(rsiSig, rsiLabel), `
             <div class="ind-row">
                 <span class="ind-val">${rsiVal != null ? rsiVal.toFixed(1) : "—"}</span>
-                <span class="ind-sub">&nbsp;</span>
             </div>
             <div class="gauge-track">
                 <div class="gauge-marks">
@@ -734,64 +759,31 @@ function updateIndicatorsPanel(d) {
                     <div class="gauge-mark" style="left:70%"></div>
                 </div>
                 <div class="gauge-fill ${rsiClass}" style="width:${rsiPct}%"></div>
-            </div>
-        </div>
+            </div>`) +
 
-        <div class="ind-card">
-            <div class="ind-row">
-                <span class="ind-name">MACD</span>
-                <span class="signal-chip ${macdSig}">${macdLabel}</span>
-            </div>
+        _indCard("macd", "MACD", chip(macdSig, macdLabel), `
             <div class="ind-row">
                 <span class="ind-val">${macdVal != null ? macdVal.toFixed(3) : "—"}</span>
                 <span class="ind-sub">SIG ${sigVal != null ? sigVal.toFixed(3) : "—"}</span>
-            </div>
-        </div>
+            </div>`) +
 
-        <div class="ind-card">
-            <div class="ind-row">
-                <span class="ind-name">Bollinger Bands</span>
-                <span class="signal-chip ${bbSig}">${bbLabel}</span>
-            </div>
+        _indCard("bb", "Bollinger Bands", chip(bbSig, bbLabel), `
             <div class="ind-row">
                 <span class="ind-sub">U: ${upper ? "$" + fmt(upper) : "—"}</span>
                 <span class="ind-sub">L: ${lower ? "$" + fmt(lower) : "—"}</span>
-            </div>
-        </div>
+            </div>`) +
 
-        <div class="ind-card">
-            <div class="ind-row">
-                <span class="ind-name">Z-Score (20)</span>
-                <span class="signal-chip ${zSig}">${zLabel}</span>
-            </div>
-            <div class="ind-val">${zVal != null ? zVal.toFixed(2) : "—"}</div>
-        </div>
+        _indCard("zscore", "Z-Score (20)", chip(zSig, zLabel), `
+            <div class="ind-val">${zVal != null ? zVal.toFixed(2) : "—"}</div>`) +
 
-        <div class="ind-card">
-            <div class="ind-row">
-                <span class="ind-name">SMA 20</span>
-                <span style="font-size:10px;color:${smaColor(sma20)}">${smaArrow(sma20)}</span>
-            </div>
-            <div class="ind-val">${sma20 ? "$" + fmt(sma20) : "—"}</div>
-        </div>
+        _indCard("sma20", "SMA 20", trendBadge(sma20), `
+            <div class="ind-val">${sma20 ? "$" + fmt(sma20) : "—"}</div>`) +
 
-        ${sma50 ? `
-        <div class="ind-card">
-            <div class="ind-row">
-                <span class="ind-name">SMA 50</span>
-                <span style="font-size:10px;color:${smaColor(sma50)}">${smaArrow(sma50)}</span>
-            </div>
-            <div class="ind-val">$${fmt(sma50)}</div>
-        </div>` : ""}
+        (sma50 ? _indCard("sma50", "SMA 50", trendBadge(sma50), `
+            <div class="ind-val">$${fmt(sma50)}</div>`) : "") +
 
-        <div class="ind-card">
-            <div class="ind-row">
-                <span class="ind-name">EMA 20</span>
-                <span style="font-size:10px;color:${smaColor(ema20)}">${smaArrow(ema20)}</span>
-            </div>
-            <div class="ind-val">${ema20 ? "$" + fmt(ema20) : "—"}</div>
-        </div>
-    `;
+        _indCard("ema20", "EMA 20", trendBadge(ema20), `
+            <div class="ind-val">${ema20 ? "$" + fmt(ema20) : "—"}</div>`);
 }
 
 // ============================================================

@@ -317,23 +317,12 @@ def macro() -> tuple:
     if cached is not None:
         return jsonify(cached)
 
-    # Quick key validation — one cheap request before running all 7 series
-    import requests as _req
-    try:
-        probe = _req.get(
-            "https://api.stlouisfed.org/fred/series",
-            params={"series_id": "FEDFUNDS", "api_key": fred_key, "file_type": "json"},
-            timeout=8,
-        )
-        if probe.status_code == 400:
-            return jsonify({"error": f"FRED API key rejected — check the key is correct (FRED returned {probe.status_code})"}), 401
-        probe.raise_for_status()
-    except _req.exceptions.Timeout:
-        return jsonify({"error": "FRED API timed out — try again"}), 504
-    except Exception as e:
-        return jsonify({"error": f"FRED unreachable: {e}"}), 502
-
     snapshot = get_macro_snapshot(fred_key)
+
+    # If every series returned None the key is almost certainly invalid
+    if all(v.get("value") is None for v in snapshot.values()):
+        return jsonify({"error": "FRED returned no data — API key is likely invalid or FRED is down. Get a free key at fred.stlouisfed.org/docs/api/api_key.html"}), 502
+
     _cache.set("macro_snapshot", snapshot, ttl=_FRED_TTL)
     return jsonify(snapshot)
 

@@ -844,16 +844,52 @@ body::before {
 }
 
 /* ===== INDICATORS PANEL ===== */
-.indicators-panel { padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.indicators-panel { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
 
 .ind-card {
-    padding: 8px 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: rgba(0,0,0,0.15);
     transition: border-color var(--t);
 }
 .ind-card:hover { border-color: var(--border-hover); }
+
+.ind-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--t);
+}
+.ind-header:hover { background: var(--bg-hover); }
+
+.ind-header-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.ind-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    transition: color var(--t);
+    flex-shrink: 0;
+}
+.ind-header:hover .ind-toggle { color: var(--text-primary); }
+
+.ind-detail {
+    padding: 4px 10px 8px;
+    border-top: 1px solid var(--border);
+}
+.ind-detail.collapsed { display: none; }
 
 .ind-row {
     display: flex; justify-content: space-between; align-items: center;
