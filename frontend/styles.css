@@ -724,7 +724,7 @@ body::before {
 }
 .wl-remove-btn:hover { color: var(--red); }
 
-.timeframe-group { display: flex; gap: 1px; }
+.chart-type-group, .timeframe-group { display: flex; gap: 1px; flex-shrink: 0; }
 .tf-btn {
     background: transparent;
     border: 1px solid transparent;
