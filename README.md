@@ -3,7 +3,7 @@
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-46%20passing-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-45%20passing-brightgreen.svg)](#running-tests)
 
 **Live demo:** [tradeski.vercel.app](https://tradeski.vercel.app)
 
@@ -135,7 +135,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme (~1,500 lines, CSS custom properties)
 │   └── dashboard.js           # Real-time logic: WebSocket, Plotly, Ski, screener
 │
-├── tests/                     # pytest suite (46 tests across 10 files)
+├── tests/                     # pytest suite (45 tests across 9 files)
 │   ├── test_analyzer.py       # Indicator correctness: shape, range, arithmetic
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trip tests for prices, alerts, portfolio
@@ -216,7 +216,7 @@ Tradeski/
 | Fonts | Space Grotesk + JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (46 tests) |
+| Testing | pytest (45 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -451,7 +451,7 @@ Open `http://localhost:8080`.
 python -m pytest -v
 ```
 
-**46 tests across 10 files**, covering:
+**45 tests across 9 files**, covering:
 
 | File | Coverage |
 |---|---|
