@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 import anthropic
 
@@ -42,6 +44,13 @@ socketio = SocketIO(
     app,
     cors_allowed_origins="*",
     async_mode="gevent",
+)
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
 )
 
 _cache = SimpleCache()
@@ -616,6 +625,7 @@ investment advice — always clarify you're providing educational information, n
 
 
 @app.route("/chat", methods=["POST"])
+@limiter.limit("20 per hour; 50 per day")
 def chat() -> tuple:
     """Ski financial Q&A chatbot powered by Claude."""
     data = request.json or {}

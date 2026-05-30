@@ -11,4 +11,5 @@ numpy==1.26.4
 apscheduler
 pytest
 anthropic>=0.40.0
+flask-limiter>=3.5.0
 vaderSentiment

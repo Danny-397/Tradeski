@@ -1131,6 +1131,12 @@ async function skiSend() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message, history: skiState.history.slice(0, -1), symbol: state.symbol }),
         });
+        if (res.status === 429) {
+            loadingBubble.textContent = "Rate limit reached — you can send up to 20 messages per hour. Try again later.";
+            loadingBubble.classList.remove("loading");
+            skiState.history.pop();
+            return;
+        }
         const data = await res.json();
         const reply = data.reply || data.error || "No response.";
         loadingBubble.textContent = reply;
