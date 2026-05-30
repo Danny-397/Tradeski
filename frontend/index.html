@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tradeski — Real-Time Fintech Dashboard</title>
-    <meta name="description" content="Tradeski is a real-time stock market dashboard with live prices, technical indicators, macro data, portfolio tracking, and Ski — an AI-powered financial assistant.">
-    <meta property="og:title" content="Tradeski — Real-Time Fintech Dashboard">
-    <meta property="og:description" content="Live stock prices, technical indicators, macro ribbon, portfolio tracker, and an AI financial assistant — all in one dashboard.">
+    <meta name="description" content="Tradeski is a real-time market intelligence platform with live prices, technical indicators, macro data, correlation analysis, portfolio risk metrics, multi-stock comparison charts, and Ski — an AI-powered financial assistant.">
+    <meta property="og:title" content="Tradeski — Real-Time Market Intelligence Platform">
+    <meta property="og:description" content="Live equity prices, quantitative indicators, FRED macro ribbon, correlation heatmap, portfolio risk analytics (Sharpe, beta, volatility), multi-stock comparison, and an AI financial assistant — all in one dashboard.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tradeski.dev">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +34,7 @@
         </div>
 
         <div class="header-right">
+            <button class="screener-btn" id="open-heatmap-btn" title="Correlation Heatmap">⊞ HEATMAP</button>
             <button class="screener-btn" id="open-screener-btn" title="Stock Screener">⊞ SCREENER</button>
         </div>
     </header>
@@ -87,6 +88,20 @@
                 <div id="portfolio-list" class="portfolio-list">
                     <div class="feed-empty">No holdings — add one below</div>
                 </div>
+                <div id="pf-risk" class="pf-risk" style="display:none">
+                    <span class="pf-risk-item" title="Sharpe Ratio — risk-adjusted return (higher is better)">
+                        <span class="pf-risk-label">SHARPE</span>
+                        <span class="pf-risk-val" id="pf-sharpe">—</span>
+                    </span>
+                    <span class="pf-risk-item" title="Portfolio Beta vs S&P 500 (1.0 = market)">
+                        <span class="pf-risk-label">BETA</span>
+                        <span class="pf-risk-val" id="pf-beta">—</span>
+                    </span>
+                    <span class="pf-risk-item" title="Annualized Volatility %">
+                        <span class="pf-risk-label">VOL</span>
+                        <span class="pf-risk-val" id="pf-vol">—</span>
+                    </span>
+                </div>
                 <div class="panel-footer">
                     <div class="portfolio-form">
                         <div class="portfolio-form-row">
@@ -118,6 +133,14 @@
                     <div class="chart-type-group" id="chart-type-group">
                         <button class="tf-btn active" data-type="line">LINE</button>
                         <button class="tf-btn" data-type="candle">CANDLE</button>
+                        <button class="tf-btn" id="compare-btn">COMPARE</button>
+                    </div>
+
+                    <div class="compare-controls" id="compare-controls" style="display:none">
+                        <input type="text" id="compare-input" class="symbol-input compare-input"
+                               placeholder="Add symbol…" maxlength="10" autocomplete="off" spellcheck="false" />
+                        <button id="compare-add-btn" class="symbol-go-btn">+</button>
+                        <div id="compare-chips" class="compare-chips"></div>
                     </div>
 
                     <div class="timeframe-group" id="timeframe-group">
@@ -223,6 +246,25 @@
                     <input type="number" id="alert-threshold" class="form-input" placeholder="e.g. 200.00" step="0.01" min="0">
                 </div>
                 <button class="btn-primary full-width" id="submit-alert-btn">CREATE ALERT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HEATMAP MODAL ===== -->
+    <div class="modal-overlay" id="heatmap-modal" style="display:none">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <span class="panel-title">CORRELATION HEATMAP</span>
+                <span class="badge">90D RETURNS</span>
+                <button class="btn-icon" id="close-heatmap-btn">✕</button>
+            </div>
+            <div class="modal-body heatmap-body">
+                <div id="heatmap-chart" class="heatmap-chart">
+                    <div class="chart-loading" id="heatmap-loading">
+                        <div class="loading-spinner"></div>
+                        <span>Computing correlations…</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

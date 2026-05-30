@@ -954,8 +954,11 @@ function renderPortfolio(data) {
 
     if (holdings.length === 0) {
         list.innerHTML = '<div class="feed-empty">No holdings — add one below</div>';
+        document.getElementById("pf-risk").style.display = "none";
         return;
     }
+
+    loadPortfolioRisk();
 
     list.innerHTML = "";
     for (const h of holdings) {
@@ -1480,3 +1483,259 @@ function resetScreenerFilters() {
     document.getElementById("sector-filter").value = "";
     applyScreenerFilters();
 }
+
+// ============================================================
+// CORRELATION HEATMAP
+// ============================================================
+
+function initHeatmap() {
+    document.getElementById("open-heatmap-btn").addEventListener("click", openHeatmap);
+    document.getElementById("close-heatmap-btn").addEventListener("click", closeHeatmap);
+    document.getElementById("heatmap-modal").addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) closeHeatmap();
+    });
+}
+
+function openHeatmap() {
+    document.getElementById("heatmap-modal").style.display = "flex";
+    loadHeatmap();
+}
+
+function closeHeatmap() {
+    document.getElementById("heatmap-modal").style.display = "none";
+}
+
+async function loadHeatmap() {
+    const container = document.getElementById("heatmap-chart");
+    const loading   = document.getElementById("heatmap-loading");
+    if (loading) loading.style.display = "flex";
+
+    try {
+        const res  = await fetch(`${CFG.API}/correlation`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        if (loading) loading.style.display = "none";
+
+        const syms   = data.symbols;
+        const matrix = data.matrix;
+
+        // Reverse row order so diagonal reads top-left → bottom-right
+        const zReversed = [...matrix].reverse();
+        const yLabels   = [...syms].reverse();
+
+        const customColorscale = [
+            [0.0,  "#DC2626"],
+            [0.25, "#F87171"],
+            [0.5,  "#1E293B"],
+            [0.75, "#60A5FA"],
+            [1.0,  "#16A34A"],
+        ];
+
+        const trace = {
+            type: "heatmap",
+            z: zReversed,
+            x: syms,
+            y: yLabels,
+            colorscale: customColorscale,
+            zmin: -1, zmax: 1,
+            text: zReversed.map(row => row.map(v => v.toFixed(2))),
+            texttemplate: "%{text}",
+            textfont: { size: 11, color: "#F8FAFC", family: "JetBrains Mono" },
+            hovertemplate: "<b>%{x} / %{y}</b><br>Correlation: %{z:.3f}<extra></extra>",
+            showscale: true,
+            colorbar: {
+                thickness: 14,
+                len: 0.9,
+                tickfont: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+                tickvals: [-1, -0.5, 0, 0.5, 1],
+            },
+        };
+
+        const layout = {
+            paper_bgcolor: "#0F172A",
+            plot_bgcolor:  "#0F172A",
+            margin: { l: 70, r: 20, t: 20, b: 70 },
+            xaxis: {
+                tickfont: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+                showgrid: false, zeroline: false,
+            },
+            yaxis: {
+                tickfont: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+                showgrid: false, zeroline: false,
+            },
+        };
+
+        Plotly.newPlot(container, [trace], layout, { responsive: true, displayModeBar: false });
+    } catch (err) {
+        if (loading) loading.style.display = "none";
+        container.innerHTML = `<div class="feed-empty">Heatmap unavailable: ${err.message}</div>`;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => { initHeatmap(); });
+
+// ============================================================
+// PORTFOLIO RISK METRICS
+// ============================================================
+
+async function loadPortfolioRisk() {
+    const row     = document.getElementById("pf-risk");
+    const sharpeEl = document.getElementById("pf-sharpe");
+    const betaEl   = document.getElementById("pf-beta");
+    const volEl    = document.getElementById("pf-vol");
+    if (!row) return;
+
+    try {
+        const res  = await fetch(`${CFG.API}/portfolio/risk`);
+        if (!res.ok) { row.style.display = "none"; return; }
+        const data = await res.json();
+        if (data.error) { row.style.display = "none"; return; }
+
+        sharpeEl.textContent = data.sharpe != null ? data.sharpe.toFixed(2) : "—";
+        betaEl.textContent   = data.beta   != null ? data.beta.toFixed(2)   : "—";
+        volEl.textContent    = data.volatility != null ? `${data.volatility}%` : "—";
+
+        sharpeEl.className = "pf-risk-val" + (data.sharpe >= 1 ? " up" : data.sharpe < 0 ? " down" : "");
+        betaEl.className   = "pf-risk-val";
+        volEl.className    = "pf-risk-val";
+
+        row.style.display = "flex";
+    } catch {
+        row.style.display = "none";
+    }
+}
+
+// ============================================================
+// COMPARE CHART
+// ============================================================
+
+const compareState = {
+    active:  false,
+    symbols: [],
+};
+
+const COMPARE_COLORS = ["#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4"];
+
+function initCompareMode() {
+    document.getElementById("compare-btn").addEventListener("click", toggleCompareMode);
+    document.getElementById("compare-add-btn").addEventListener("click", addCompareSymbol);
+    document.getElementById("compare-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") addCompareSymbol();
+    });
+}
+
+function toggleCompareMode() {
+    compareState.active = !compareState.active;
+    const btn       = document.getElementById("compare-btn");
+    const controls  = document.getElementById("compare-controls");
+    const typeGroup = document.getElementById("chart-type-group");
+    const tfGroup   = document.getElementById("timeframe-group");
+
+    if (compareState.active) {
+        btn.classList.add("active");
+        controls.style.display = "flex";
+        typeGroup.style.display = "none";
+        tfGroup.style.display   = "none";
+        if (compareState.symbols.length === 0) renderCompareChart();
+    } else {
+        btn.classList.remove("active");
+        controls.style.display  = "none";
+        typeGroup.style.display = "";
+        tfGroup.style.display   = "";
+        compareState.symbols    = [];
+        renderCompareChips();
+        loadDashboard(state.symbol);
+    }
+}
+
+function addCompareSymbol() {
+    const input = document.getElementById("compare-input");
+    const sym   = input.value.trim().toUpperCase();
+    input.value = "";
+    if (!sym || compareState.symbols.includes(sym) || sym === state.symbol) return;
+    if (compareState.symbols.length >= 5) return;
+    compareState.symbols.push(sym);
+    renderCompareChips();
+    renderCompareChart();
+}
+
+function removeCompareSymbol(sym) {
+    compareState.symbols = compareState.symbols.filter(s => s !== sym);
+    renderCompareChips();
+    renderCompareChart();
+}
+
+function renderCompareChips() {
+    const container = document.getElementById("compare-chips");
+    container.innerHTML = compareState.symbols.map((sym, i) => `
+        <span class="compare-chip" style="border-color:${COMPARE_COLORS[i]}; color:${COMPARE_COLORS[i]}">
+            ${sym}
+            <button class="compare-chip-remove" onclick="removeCompareSymbol('${sym}')">✕</button>
+        </span>
+    `).join("");
+}
+
+async function renderCompareChart() {
+    const allSyms = [state.symbol, ...compareState.symbols];
+    showChartLoading(true);
+
+    const fetched = await Promise.all(allSyms.map(async (sym) => {
+        try {
+            const res = await fetch(`${CFG.API}/price_history?symbol=${sym}&tf=1M`);
+            if (!res.ok) return null;
+            const d   = await res.json();
+            return { sym, timestamps: d.timestamps, close: d.close };
+        } catch { return null; }
+    }));
+
+    showChartLoading(false);
+    const valid = fetched.filter(Boolean);
+    if (!valid.length) return;
+
+    // Align to shortest series
+    const minLen = Math.min(...valid.map(d => d.close.length));
+
+    const traces = valid.map((d, i) => {
+        const closes   = d.close.slice(-minLen);
+        const base     = closes[0] || 1;
+        const normed   = closes.map(v => parseFloat(((v / base - 1) * 100).toFixed(2)));
+        const color    = i === 0 ? "#3B82F6" : COMPARE_COLORS[i - 1];
+        return {
+            type: "scatter", mode: "lines",
+            x: d.timestamps.slice(-minLen),
+            y: normed,
+            name: d.sym,
+            line: { color, width: 2 },
+            hovertemplate: `<b>%{y:+.2f}%</b><extra>${d.sym}</extra>`,
+        };
+    });
+
+    const layout = {
+        paper_bgcolor: "#0F172A",
+        plot_bgcolor:  "#0F172A",
+        margin: { l: 50, r: 10, t: 10, b: 40 },
+        xaxis: {
+            type: "date",
+            color: "#475569", gridcolor: "#1E293B",
+            tickfont: { color: "#64748B", size: 9, family: "JetBrains Mono" },
+        },
+        yaxis: {
+            ticksuffix: "%",
+            color: "#475569", gridcolor: "#1E293B",
+            zeroline: true, zerolinecolor: "#334155",
+            tickfont: { color: "#64748B", size: 9, family: "JetBrains Mono" },
+        },
+        legend: {
+            font: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+            bgcolor: "rgba(0,0,0,0)",
+            orientation: "h", y: -0.12,
+        },
+        hovermode: "x unified",
+    };
+
+    Plotly.newPlot("price-chart", traces, layout, { responsive: true, displayModeBar: false });
+}
+
+document.addEventListener("DOMContentLoaded", () => { initCompareMode(); });

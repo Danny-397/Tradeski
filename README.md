@@ -29,7 +29,7 @@ Tradeski is a full-stack, production-deployed financial analytics platform that 
 
 ## Overview
 
-Tradeski integrates five distinct data pipelines — live equity prices, Federal Reserve macroeconomic data, financial news with sentiment scoring, a fundamental stock screener, and an AI assistant grounded in real-time context — into a single coherent interface.
+Tradeski integrates five distinct data pipelines — live equity prices, Federal Reserve macroeconomic data, financial news with sentiment scoring, a fundamental stock screener, and an AI assistant grounded in real-time context — into a single coherent interface, with quantitative portfolio analytics and a correlation heatmap layered on top.
 
 Every quantitative indicator is implemented from first principles without TA-Lib or pandas. The AI assistant (Ski) is grounded in live market data rather than relying on static training knowledge. The backend runs as a persistent WebSocket server on Render; the frontend is a static site deployed on Vercel.
 
@@ -50,6 +50,7 @@ Every quantitative indicator is implemented from first principles without TA-Lib
 - Multi-subplot Plotly layout: main price panel + optional RSI subpanel + optional MACD subpanel
 - Toggleable overlays: Bollinger Bands, SMA 20/50, EMA 20
 - Isolated hover tooltips per trace — hovering EMA shows only EMA value
+- **Compare mode:** overlay up to 5 symbols on a single normalized chart (all rebased to 0%) for direct relative-performance comparison
 
 ### Macroeconomic Ribbon (FRED API)
 A live ribbon beneath the header displays seven Federal Reserve economic indicators, refreshed hourly from the St. Louis Fed's FRED API:
@@ -77,11 +78,18 @@ RSI (14) with gauge bar, MACD with signal line, Bollinger Bands, Z-Score (20), S
 - Each article shows a sentiment chip (BULLISH / BEARISH / NEUTRAL) with numeric score
 - Aggregate sentiment badge summarizes the overall tone for the viewed symbol
 
-### Portfolio Tracker
+### Portfolio Tracker & Risk Analytics
 - Add holdings by symbol, share count, and optional average cost basis
 - Real-time P&L: unrealized gain/loss (% and $) per position and portfolio total
 - Persistent storage in SQLite via UPSERT — re-adding a symbol updates the existing position
 - Portfolio holdings injected into Ski's context for personalized analysis
+- **Risk metrics panel:** Sharpe ratio (4.5% risk-free rate), portfolio beta vs. S&P 500, and annualized volatility — computed from 1-year daily returns weighted by current market value
+
+### Correlation Heatmap
+- Opens as a full-screen modal via the **HEATMAP** button in the header
+- Fetches 90 days of daily returns for all 11 tracked symbols and computes a full pairwise correlation matrix using `numpy.corrcoef`
+- Plotly heatmap with a diverging red→green colorscale: green = strong positive correlation, red = negative; correlation coefficients printed on every cell
+- Cached server-side for 1 hour to avoid redundant computation
 
 ### Alert Engine
 - Rule-based alerts: price above/below threshold, RSI overbought (>70) / oversold (<30), volume spike, volatility spike
@@ -337,6 +345,23 @@ List all holdings enriched with live prices and P&L, add/update a position, or r
 
 `POST` body: `{ "symbol": "AAPL", "shares": 10, "avg_cost": 175.00 }` — UPSERT on symbol.
 
+### `GET /portfolio/risk`
+Sharpe ratio, beta vs. S&P 500, and annualized volatility for the current portfolio. Fetches 1-year daily returns per holding and SPY, weights by current market value.
+
+```json
+{ "sharpe": 1.24, "beta": 0.91, "volatility": 18.4 }
+```
+
+### `GET /correlation`
+Pairwise 90-day return correlation matrix for all tracked symbols (cached 1 hour).
+
+```json
+{
+  "symbols": ["AAPL", "MSFT", "NVDA", "..."],
+  "matrix": [[1.0, 0.874, 0.761, "..."], ["..."]]
+}
+```
+
 ### `GET /screener`
 Fundamental data for the full 28-stock universe (parallel fetch, cached 10 min per symbol).
 
@@ -477,13 +502,14 @@ The goal was to build a platform that integrates all of those data sources into 
 
 The decision to implement RSI, MACD, and Bollinger Bands without a library was intentional and instructive. Writing Wilder's smoothing from scratch requires understanding why it differs from a simple moving average and what that difference means for the signal. Writing the VADER financial lexicon augmentation requires reading enough financial headlines to know that "beats" and "surges" are systematically under-scored by a general-purpose sentiment model. These are not problems that get solved by importing a package.
 
-Tradeski covers five distinct engineering disciplines in one codebase:
+Tradeski covers six distinct engineering disciplines in one codebase:
 
 - **Data engineering** — real-time polling, SQLite schema design, TTL caching, 30-day retention pruning
 - **Backend architecture** — REST API design, WebSocket streaming, background scheduling, parallel HTTP fetching
-- **Quantitative analysis** — implementing and testing ten financial algorithms from mathematical first principles
+- **Quantitative analysis** — implementing ten financial indicators from first principles; Sharpe ratio, beta, and volatility computed from raw daily return vectors
+- **Statistical computing** — pairwise correlation matrix over 90-day return series using `numpy.corrcoef`; portfolio variance weighted by live market value
 - **AI integration** — context injection, grounding an LLM in live external data sources
-- **Frontend engineering** — real-time state management, multi-library charting, terminal-grade UI design
+- **Frontend engineering** — real-time state management, multi-library charting, normalized multi-stock overlays, terminal-grade UI design
 
 ---
 

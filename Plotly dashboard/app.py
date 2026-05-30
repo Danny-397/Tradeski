@@ -12,6 +12,8 @@ import datetime
 from typing import List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import numpy as np
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -38,11 +40,14 @@ from tracker.analyzer import (
 
 app = Flask(__name__)
 
-CORS(app, origins="*")
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "*")
+_allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()] if _raw_origins != "*" else "*"
+
+CORS(app, origins=_allowed_origins)
 
 socketio = SocketIO(
     app,
-    cors_allowed_origins="*",
+    cors_allowed_origins=_allowed_origins,
     async_mode="gevent",
 )
 
@@ -58,6 +63,9 @@ _FRED_TTL     = 3600   # refresh FRED data at most once per hour
 _CHART_TTL    = 300    # price history / stats cache: 5 minutes
 _NEWS_TTL     = 1800   # news + sentiment cache: 30 minutes
 _SCREENER_TTL = 600    # screener fundamentals cache: 10 minutes
+_CORR_TTL     = 3600  # correlation matrix cache: 1 hour
+
+_CORR_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
 
 _SCREENER_UNIVERSE = [
     # Mega-cap tech
@@ -557,6 +565,92 @@ def screener() -> tuple:
                 stocks.append(row)
     stocks.sort(key=lambda r: r["symbol"])
     return jsonify({"stocks": stocks, "universe_size": len(_SCREENER_UNIVERSE)})
+
+
+# ─────────────────────────────────────────────────────────────
+# Correlation Heatmap
+# ─────────────────────────────────────────────────────────────
+
+@app.route("/correlation")
+def correlation_endpoint() -> tuple:
+    """Return 90-day return correlation matrix for tracked symbols."""
+    cached = _cache.get("correlation")
+    if cached:
+        return jsonify(cached)
+
+    closes: dict = {}
+    for sym in _CORR_SYMS:
+        bars = get_ohlc_history(sym, "3mo", "1d")
+        if bars and len(bars) > 15:
+            closes[sym] = [b["close"] for b in bars]
+
+    if len(closes) < 2:
+        return jsonify({"error": "Insufficient data"}), 503
+
+    min_len = min(len(v) for v in closes.values())
+    syms = list(closes.keys())
+
+    returns_matrix = []
+    for sym in syms:
+        prices = np.array(closes[sym][-min_len:], dtype=float)
+        returns_matrix.append(np.diff(prices) / prices[:-1])
+
+    corr = np.corrcoef(returns_matrix)
+    result = {
+        "symbols": syms,
+        "matrix": [[round(float(corr[i][j]), 3) for j in range(len(syms))] for i in range(len(syms))],
+    }
+    _cache.set("correlation", result, ttl=_CORR_TTL)
+    return jsonify(result)
+
+
+# ─────────────────────────────────────────────────────────────
+# Portfolio Risk Metrics
+# ─────────────────────────────────────────────────────────────
+
+@app.route("/portfolio/risk")
+def portfolio_risk_endpoint() -> tuple:
+    """Return Sharpe ratio, beta vs SPY, and annualized volatility for the portfolio."""
+    holdings = [_enrich_holding(h) for h in database.get_portfolio()]
+    valued = [h for h in holdings if h.get("market_value") and h["market_value"] > 0]
+
+    if not valued:
+        return jsonify({"error": "No valued holdings"}), 404
+
+    total_value = sum(h["market_value"] for h in valued)
+    fetch_syms = list({h["symbol"] for h in valued}) + ["SPY"]
+
+    price_data: dict = {}
+    for sym in fetch_syms:
+        bars = get_ohlc_history(sym, "1y", "1d")
+        if bars and len(bars) > 20:
+            prices = np.array([b["close"] for b in bars], dtype=float)
+            price_data[sym] = np.diff(prices) / prices[:-1]
+
+    if "SPY" not in price_data:
+        return jsonify({"error": "Insufficient data"}), 503
+
+    min_len = min(len(v) for v in price_data.values())
+    aligned = {k: v[-min_len:] for k, v in price_data.items()}
+
+    port_returns = np.zeros(min_len)
+    for h in valued:
+        sym = h["symbol"]
+        if sym in aligned:
+            port_returns += (h["market_value"] / total_value) * aligned[sym]
+
+    spy_returns = aligned["SPY"]
+    std = float(np.std(port_returns))
+    if std == 0:
+        return jsonify({"error": "Insufficient variance"}), 503
+
+    RISK_FREE_DAILY = 0.045 / 252
+    ann_vol  = round(std * float(np.sqrt(252)) * 100, 1)
+    sharpe   = round(float((np.mean(port_returns) - RISK_FREE_DAILY) / std * np.sqrt(252)), 2)
+    spy_var  = float(np.var(spy_returns))
+    beta     = round(float(np.cov(port_returns, spy_returns)[0][1] / spy_var), 2) if spy_var > 0 else 1.0
+
+    return jsonify({"sharpe": sharpe, "beta": beta, "volatility": ann_vol})
 
 
 _SKI_SYSTEM_PROMPT = """You are Ski, a financial Q&A assistant built into the Tradeski real-time market analytics platform. \
