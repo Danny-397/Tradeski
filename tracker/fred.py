@@ -17,19 +17,28 @@ _SERIES: dict[str, tuple[str, str, str]] = {
     "BAMLH0A0HYM2": ("HY Spread",   "%",   "High Yield OAS Credit Spread"),
 }
 
+# Series that need a FRED units transform before returning values.
+# "pc1" = percent change from a year ago (YoY %).
+_SERIES_UNITS: dict[str, str] = {
+    "CPIAUCSL": "pc1",
+}
+
 
 def _fetch_observations(series_id: str, api_key: str, limit: int = 2) -> list:
     """Fetch the most recent N valid observations for a FRED series."""
     try:
+        params: dict = {
+            "series_id": series_id,
+            "api_key": api_key,
+            "file_type": "json",
+            "sort_order": "desc",
+            "limit": limit,
+        }
+        if series_id in _SERIES_UNITS:
+            params["units"] = _SERIES_UNITS[series_id]
         resp = requests.get(
             f"{FRED_BASE}/series/observations",
-            params={
-                "series_id": series_id,
-                "api_key": api_key,
-                "file_type": "json",
-                "sort_order": "desc",
-                "limit": limit,
-            },
+            params=params,
             timeout=10,
         )
         resp.raise_for_status()
