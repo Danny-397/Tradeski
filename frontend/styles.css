@@ -341,7 +341,7 @@ body::before {
 
 /* ===== MACRO RIBBON ===== */
 .macro-ribbon {
-    height: 38px;
+    height: 44px;
     flex-shrink: 0;
     background: rgba(0, 0, 0, 0.5);
     border-bottom: 1px solid var(--border);
@@ -664,15 +664,37 @@ body::before {
 }
 
 .chart-toolbar {
-    height: var(--toolbar-h);
     flex-shrink: 0;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 14px;
+    display: flex;
+    flex-direction: column;
     border-bottom: 1px solid var(--border);
     background: var(--bg-secondary);
-    gap: 12px;
 }
-.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 10px; }
+
+.toolbar-row-main {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    height: var(--toolbar-h);
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.toolbar-row-overlays {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    height: 26px;
+    gap: 8px;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--border);
+    flex-shrink: 0;
+}
+
 .toolbar-label {
     font-family: var(--mono);
     font-size: 9px;

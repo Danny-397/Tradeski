@@ -1209,7 +1209,6 @@ async function loadMacroRibbon() {
             item.innerHTML = `
                 <span class="macro-label">${meta.short}</span>
                 <span class="macro-value ${cls}">${val}${arrow}</span>
-                <span class="macro-date">${info.date || ""}</span>
             `;
             inner.appendChild(item);
         }

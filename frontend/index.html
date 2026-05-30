@@ -122,7 +122,8 @@
         <main class="chart-area">
 
             <div class="chart-toolbar">
-                <div class="toolbar-left">
+                <!-- Row 1: symbol / chart type / timeframes -->
+                <div class="toolbar-row-main">
                     <div class="symbol-search-wrap">
                         <input id="symbol-input" type="text" class="symbol-input"
                                placeholder="Ticker… e.g. SOFI" autocomplete="off"
@@ -154,7 +155,8 @@
                     </div>
                 </div>
 
-                <div class="toolbar-right">
+                <!-- Row 2: overlay toggles -->
+                <div class="toolbar-row-overlays">
                     <span class="toolbar-label">OVERLAYS</span>
                     <div class="indicator-toggles">
                         <button class="ind-btn active" data-ind="bb" title="Bollinger Bands">BB</button>
@@ -162,6 +164,7 @@
                         <button class="ind-btn active" data-ind="ema" title="Exponential Moving Average">EMA</button>
                         <button class="ind-btn active" data-ind="vol" title="Volume">VOL</button>
                     </div>
+                    <div class="toolbar-divider"></div>
                     <div class="indicator-toggles">
                         <button class="ind-btn" data-panel="rsi">+ RSI</button>
                         <button class="ind-btn" data-panel="macd">+ MACD</button>
