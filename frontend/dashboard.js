@@ -1620,6 +1620,7 @@ const COMPARE_COLORS = ["#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#EC4899", "
 
 function initCompareMode() {
     document.getElementById("compare-btn").addEventListener("click", toggleCompareMode);
+    document.getElementById("compare-exit-btn").addEventListener("click", toggleCompareMode);
     document.getElementById("compare-add-btn").addEventListener("click", addCompareSymbol);
     document.getElementById("compare-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") addCompareSymbol();

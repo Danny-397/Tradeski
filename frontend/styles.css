@@ -1824,6 +1824,15 @@ body::before {
     width: 90px;
     flex-shrink: 0;
 }
+.compare-exit-btn {
+    color: var(--text-muted);
+    border-color: var(--border);
+    flex-shrink: 0;
+}
+.compare-exit-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
 .compare-chips {
     display: flex;
     gap: 5px;
