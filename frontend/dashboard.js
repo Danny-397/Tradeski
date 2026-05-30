@@ -19,8 +19,8 @@ const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOO
 
 let state = {
     symbol:     "AAPL",
-    timeframe:  "1M",
-    chartType:  "line",
+    timeframe:  "1D",
+    chartType:  "candle",
     showRsi:    false,
     showMacd:   false,
     indicators: { bb: true, sma: true, ema: true, vol: true },
@@ -844,9 +844,14 @@ function initAlertModal() {
 }
 
 async function submitAlert() {
-    const symbol    = document.getElementById("alert-symbol").value;
+    const symbol    = document.getElementById("alert-symbol").value.trim().toUpperCase();
     const alertType = document.getElementById("alert-type").value;
     const threshold = parseFloat(document.getElementById("alert-threshold").value) || null;
+
+    if (!symbol) {
+        document.getElementById("alert-symbol").focus();
+        return;
+    }
 
     try {
         await fetch(`${CFG.API}/alerts`, {
@@ -855,6 +860,7 @@ async function submitAlert() {
             body: JSON.stringify({ symbol, alert_type: alertType, threshold }),
         });
         document.getElementById("alert-modal").style.display = "none";
+        document.getElementById("alert-symbol").value = "";
         document.getElementById("alert-threshold").value = "";
         await loadAlerts();
         pushFeed(`Alert created: ${symbol} ${fmtAlertType(alertType)}`, "buy");
