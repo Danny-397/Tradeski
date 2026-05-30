@@ -1383,6 +1383,7 @@ body::before {
     right: 20px;
     width: 380px;
     height: 520px;
+    max-height: calc(100vh - var(--status-h) - 90px);
     background: #09090D;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
