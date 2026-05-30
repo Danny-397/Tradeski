@@ -399,7 +399,7 @@ function renderChart(d) {
             font: { size: 10, family: "JetBrains Mono, monospace", color: "#6B7280" },
             bgcolor: "transparent",
         },
-        margin: { t: 8, l: 10, r: 65, b: 8 },
+        margin: { t: 8, l: 10, r: 65, b: 32 },
         xaxis:  { ...ax, ...spike, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
         yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
         dragmode: "pan",

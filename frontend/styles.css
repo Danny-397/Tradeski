@@ -47,11 +47,11 @@
     --glow-lg:         0 0 36px rgba(59, 130, 246, 0.18);
 
     /* Layout */
-    --header-h:        54px;
-    --ticker-h:        34px;
-    --status-h:        26px;
-    --sidebar-w:       228px;
-    --toolbar-h:       42px;
+    --header-h:        48px;
+    --ticker-h:        28px;
+    --status-h:        22px;
+    --sidebar-w:       222px;
+    --toolbar-h:       38px;
 
     /* Sharp edges */
     --radius:          2px;
@@ -341,7 +341,7 @@ body::before {
 
 /* ===== MACRO RIBBON ===== */
 .macro-ribbon {
-    height: 46px;
+    height: 38px;
     flex-shrink: 0;
     background: rgba(0, 0, 0, 0.5);
     border-bottom: 1px solid var(--border);
