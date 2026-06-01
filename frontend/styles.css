@@ -1923,43 +1923,16 @@ body::before {
 }
 .hamburger-btn:hover { border-color: var(--amber); color: var(--amber); }
 
-/* ── Mobile Drawer ───────────────────────────────────────── */
+/* ── Mobile Backdrop ─────────────────────────────────────── */
 .mobile-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 700;
+    background: rgba(0,0,0,0.65);
+    z-index: 640;
     animation: fade-in 0.18s ease;
 }
-.mobile-drawer {
-    position: absolute;
-    right: 0; top: 0; bottom: 0;
-    width: min(320px, 88vw);
-    background: var(--bg-secondary);
-    border-left: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: slide-from-right 0.22s var(--ease);
-}
-@keyframes slide-from-right {
-    from { transform: translateX(100%); }
-    to   { transform: translateX(0); }
-}
-.mobile-drawer-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(0,0,0,0.3);
-    flex-shrink: 0;
-}
-.mobile-drawer-body {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px;
-}
+
+/* ── Mobile Drawer Close Button (hidden on desktop) ──────── */
+.mobile-drawer-close { display: none; }
 
 /* ── Skeleton Loading ────────────────────────────────────── */
 @keyframes shimmer {
@@ -1978,8 +1951,43 @@ body::before {
 @media (max-width: 768px) {
     .hamburger-btn { display: flex; }
 
-    /* hide sidebars on mobile — accessible via drawer */
-    .sidebar-left, .sidebar-right { display: none; }
+    /* left sidebar: fixed slide-in drawer on mobile */
+    .sidebar-left {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: min(300px, 85vw);
+        z-index: 650;
+        transform: translateX(-105%);
+        transition: transform 0.25s var(--ease);
+        border-right: 1px solid var(--border);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.55);
+        overflow-y: auto;
+    }
+    .sidebar-left.mobile-open {
+        transform: translateX(0);
+    }
+
+    /* close button inside the sidebar drawer */
+    .mobile-drawer-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        align-self: flex-end;
+        width: 28px; height: 28px;
+        flex-shrink: 0;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        font-size: 12px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        margin-bottom: 4px;
+        transition: border-color var(--t), color var(--t);
+    }
+    .mobile-drawer-close:hover { border-color: var(--red); color: var(--red); }
+
+    /* right sidebar always hidden on mobile */
+    .sidebar-right { display: none; }
 
     /* api health text label hidden on mobile */
     .api-health-label { display: none; }

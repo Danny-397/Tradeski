@@ -45,16 +45,8 @@
         </div>
     </header>
 
-    <!-- MOBILE SIDEBAR OVERLAY -->
-    <div class="mobile-overlay" id="mobile-overlay" style="display:none">
-        <div class="mobile-drawer" id="mobile-drawer">
-            <div class="mobile-drawer-header">
-                <span class="panel-title">MENU</span>
-                <button class="btn-icon" id="mobile-close-btn">✕</button>
-            </div>
-            <div class="mobile-drawer-body" id="mobile-drawer-body"></div>
-        </div>
-    </div>
+    <!-- MOBILE BACKDROP (dims chart when sidebar is open) -->
+    <div class="mobile-overlay" id="mobile-overlay" style="display:none"></div>
 
     <!-- ===== TICKER TAPE ===== -->
     <div class="ticker-wrap">
@@ -82,6 +74,7 @@
 
         <!-- LEFT SIDEBAR -->
         <aside class="sidebar-left">
+            <button class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">✕</button>
 
             <div class="panel">
                 <div class="panel-header">

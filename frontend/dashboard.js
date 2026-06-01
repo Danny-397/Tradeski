@@ -1801,38 +1801,33 @@ async function checkApiHealth() {
 // ============================================================
 
 function initMobileDrawer() {
-    const btn     = document.getElementById("hamburger-btn");
-    const overlay = document.getElementById("mobile-overlay");
-    const closeBtn = document.getElementById("mobile-close-btn");
+    const btn      = document.getElementById("hamburger-btn");
+    const overlay  = document.getElementById("mobile-overlay");
+    const closeBtn = document.getElementById("mobile-drawer-close");
 
     if (!btn || !overlay) return;
 
     btn.addEventListener("click", openMobileDrawer);
-    closeBtn.addEventListener("click", closeMobileDrawer);
-    overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) closeMobileDrawer();
-    });
+    if (closeBtn) closeBtn.addEventListener("click", closeMobileDrawer);
+    overlay.addEventListener("click", closeMobileDrawer);
 }
 
 function openMobileDrawer() {
     const overlay = document.getElementById("mobile-overlay");
-    const body    = document.getElementById("mobile-drawer-body");
-    if (!overlay || !body) return;
+    const sidebar = document.querySelector(".sidebar-left");
+    if (!overlay || !sidebar) return;
 
-    // Clone sidebar contents into drawer
-    const leftClone  = document.querySelector(".sidebar-left")?.cloneNode(true);
-    const rightClone = document.querySelector(".sidebar-right")?.cloneNode(true);
-    body.innerHTML = "";
-    if (leftClone)  { leftClone.style.display  = "flex"; leftClone.style.width  = "100%"; body.appendChild(leftClone); }
-    if (rightClone) { rightClone.style.display = "flex"; rightClone.style.width = "100%"; body.appendChild(rightClone); }
-
+    sidebar.classList.add("mobile-open");
     overlay.style.display = "block";
     document.body.style.overflow = "hidden";
 }
 
 function closeMobileDrawer() {
     const overlay = document.getElementById("mobile-overlay");
-    if (!overlay) return;
+    const sidebar = document.querySelector(".sidebar-left");
+    if (!overlay || !sidebar) return;
+
+    sidebar.classList.remove("mobile-open");
     overlay.style.display = "none";
     document.body.style.overflow = "";
 }
