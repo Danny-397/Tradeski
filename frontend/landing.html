@@ -6,7 +6,7 @@
     <title>Tradeski — Real-Time Market Intelligence</title>
     <meta name="description" content="Tradeski is a real-time financial analytics platform with live prices, technical indicators, macro data, correlation analysis, portfolio risk metrics, and Ski — an AI financial assistant.">
     <meta property="og:title" content="Tradeski — Real-Time Market Intelligence">
-    <meta property="og:description" content="Live equity prices, quant indicators, FRED macro ribbon, portfolio risk analytics (Sharpe, beta, vol), multi-stock comparison, and AI financial assistant — all in one terminal.">
+    <meta property="og:description" content="Live equity prices, quant indicators, FRED macro ribbon, portfolio risk analytics, multi-stock comparison, and AI financial assistant — all in one terminal.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tradeski.dev">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -16,21 +16,25 @@
     <script defer src="/_vercel/insights/script.js"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         :root {
-            --bg:      #07090D;
-            --bg2:     #0C0F16;
-            --blue:    #3B82F6;
-            --blue-d:  rgba(59,130,246,0.16);
-            --blue-f:  rgba(59,130,246,0.06);
-            --green:   #16A34A;
-            --red:     #DC2626;
-            --text:    #D1D5DB;
-            --muted:   #6B7280;
-            --border:  rgba(255,255,255,0.07);
-            --mono:    'JetBrains Mono', monospace;
-            --sans:    'Space Grotesk', sans-serif;
+            --bg:     #07090D;
+            --bg2:    #0C0F16;
+            --blue:   #3B82F6;
+            --blue-d: rgba(59,130,246,0.14);
+            --blue-f: rgba(59,130,246,0.06);
+            --green:  #16A34A;
+            --red:    #DC2626;
+            --text:   #D1D5DB;
+            --muted:  #6B7280;
+            --faint:  #374151;
+            --border: rgba(255,255,255,0.07);
+            --mono:   'JetBrains Mono', monospace;
+            --sans:   'Space Grotesk', sans-serif;
         }
+
         html, body { height: 100%; }
+
         body {
             font-family: var(--sans);
             background: var(--bg);
@@ -38,37 +42,33 @@
             min-height: 100vh;
             overflow-x: hidden;
         }
-        body::before {
-            content: '';
-            position: fixed; inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-            opacity: 0.028;
-            pointer-events: none;
-            z-index: 0;
-        }
 
-        /* NAV */
+        /* ── NAV ────────────────────────────────────────── */
         nav {
             position: fixed; top: 0; left: 0; right: 0;
-            height: 56px;
+            height: 52px;
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 32px;
-            background: rgba(7,9,13,0.92);
+            background: var(--bg);
             border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(12px);
             z-index: 100;
         }
+
         .nav-logo {
-            display: flex; align-items: center; gap: 10px;
-            font-family: var(--sans); font-size: 18px; font-weight: 700;
-            letter-spacing: 4px; color: var(--text);
+            display: flex; align-items: center; gap: 9px;
+            font-family: var(--sans);
+            font-size: 15px; font-weight: 700;
+            letter-spacing: 4px;
+            color: var(--text);
+            text-decoration: none;
         }
-        .nav-logo-icon { font-size: 18px; color: var(--blue); }
+        .nav-logo-icon { color: var(--blue); font-size: 15px; }
+
         .nav-launch {
             background: var(--blue);
             color: #fff;
             border: none;
-            padding: 8px 22px;
+            padding: 7px 20px;
             font-family: var(--mono);
             font-size: 11px;
             font-weight: 600;
@@ -76,350 +76,356 @@
             text-transform: uppercase;
             border-radius: 2px;
             cursor: pointer;
-            transition: opacity 0.15s;
             text-decoration: none;
+            transition: opacity 0.12s;
         }
-        .nav-launch:hover { opacity: 0.85; }
+        .nav-launch:hover { opacity: 0.82; }
 
-        /* HERO */
+        /* ── HERO ───────────────────────────────────────── */
         .hero {
-            position: relative;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 100px 24px 60px;
-            z-index: 1;
+            padding: 100px 24px 64px;
         }
-        .hero-grid {
-            position: absolute; inset: 0; overflow: hidden; pointer-events: none;
-            background-image:
-                linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
-            background-size: 44px 44px;
-            mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black, transparent);
-        }
-        .hero-glow {
-            position: absolute;
-            width: 600px; height: 600px;
-            background: radial-gradient(ellipse, rgba(59,130,246,0.09) 0%, transparent 70%);
-            top: 50%; left: 50%;
-            transform: translate(-50%, -60%);
-            pointer-events: none;
-        }
-        .hero-tag {
+
+        .hero-eyebrow {
             font-family: var(--mono);
             font-size: 10px;
             letter-spacing: 3px;
             color: var(--blue);
             text-transform: uppercase;
-            border: 1px solid rgba(59,130,246,0.3);
-            padding: 4px 14px;
-            border-radius: 99px;
-            margin-bottom: 28px;
-            background: var(--blue-f);
+            margin-bottom: 24px;
         }
+
         h1 {
-            font-size: clamp(32px, 6vw, 64px);
+            font-size: clamp(28px, 5vw, 56px);
             font-weight: 700;
-            letter-spacing: -1px;
-            line-height: 1.1;
+            letter-spacing: -0.5px;
+            line-height: 1.12;
             color: #F1F5F9;
-            max-width: 800px;
+            max-width: 720px;
             margin-bottom: 20px;
         }
-        h1 span { color: var(--blue); }
+
         .hero-sub {
-            font-size: 18px;
+            font-size: 16px;
             color: var(--muted);
-            max-width: 560px;
-            line-height: 1.6;
-            margin-bottom: 40px;
+            max-width: 520px;
+            line-height: 1.65;
+            margin-bottom: 36px;
         }
+
         .hero-cta {
-            display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: center;
+            display: flex; gap: 12px;
+            align-items: center; flex-wrap: wrap; justify-content: center;
         }
+
         .cta-primary {
             background: var(--blue);
             color: #fff;
             border: none;
-            padding: 14px 36px;
+            padding: 12px 32px;
             font-family: var(--mono);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             letter-spacing: 2px;
             text-transform: uppercase;
             border-radius: 2px;
             cursor: pointer;
-            transition: opacity 0.15s, transform 0.15s;
             text-decoration: none;
             display: inline-block;
+            transition: opacity 0.12s;
         }
-        .cta-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-        .cta-secondary {
+        .cta-primary:hover { opacity: 0.82; }
+
+        .cta-ghost {
             color: var(--muted);
             font-family: var(--mono);
-            font-size: 12px;
+            font-size: 11px;
             letter-spacing: 1px;
             text-decoration: none;
-            border-bottom: 1px solid rgba(107,114,128,0.4);
-            transition: color 0.15s;
-        }
-        .cta-secondary:hover { color: var(--text); }
-
-        /* TICKER PREVIEW */
-        .ticker-preview {
-            display: flex; gap: 0;
             border: 1px solid var(--border);
+            padding: 12px 20px;
             border-radius: 2px;
-            overflow: hidden;
-            margin-top: 60px;
-            width: 100%;
-            max-width: 760px;
-            background: var(--bg2);
+            transition: border-color 0.12s, color 0.12s;
         }
-        .tp-item {
+        .cta-ghost:hover { border-color: rgba(255,255,255,0.18); color: var(--text); }
+
+        /* ── LIVE PRICE STRIP ───────────────────────────── */
+        .price-strip {
+            display: flex;
+            width: 100%;
+            max-width: 680px;
+            margin-top: 52px;
+            border: 1px solid var(--border);
+            background: var(--bg2);
+            overflow: hidden;
+        }
+        .ps-item {
             flex: 1;
             display: flex; flex-direction: column; align-items: center;
-            padding: 12px 8px;
+            padding: 11px 6px;
             border-right: 1px solid var(--border);
             font-family: var(--mono);
         }
-        .tp-item:last-child { border-right: none; }
-        .tp-sym { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-bottom: 2px; }
-        .tp-price { font-size: 14px; font-weight: 600; color: var(--text); }
-        .tp-chg { font-size: 10px; }
-        .up { color: var(--green); }
+        .ps-item:last-child { border-right: none; }
+        .ps-sym   { font-size: 9px;  color: var(--muted); letter-spacing: 1px; margin-bottom: 3px; }
+        .ps-price { font-size: 13px; font-weight: 600; color: var(--text); }
+        .ps-chg   { font-size: 10px; margin-top: 2px; }
+        .up   { color: var(--green); }
         .down { color: var(--red); }
 
-        /* FEATURES */
+        /* ── DIVIDER ────────────────────────────────────── */
+        .section-divider {
+            width: 100%;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ── FEATURES ───────────────────────────────────── */
         .features {
-            position: relative; z-index: 1;
-            max-width: 1080px; margin: 0 auto;
-            padding: 80px 24px 100px;
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 80px 24px 96px;
+        }
+
+        .section-header {
+            margin-bottom: 48px;
         }
         .section-label {
-            text-align: center;
             font-family: var(--mono);
             font-size: 10px;
             letter-spacing: 3px;
-            color: var(--blue);
+            color: var(--muted);
             text-transform: uppercase;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
         .section-title {
-            text-align: center;
-            font-size: clamp(24px, 4vw, 40px);
+            font-size: clamp(20px, 3vw, 32px);
             font-weight: 700;
-            margin-bottom: 56px;
             color: #F1F5F9;
+            letter-spacing: -0.3px;
         }
+
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 1px;
+            border: 1px solid var(--border);
+            background: var(--border);
         }
+
         .feature-card {
             background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: 4px;
             padding: 28px 24px;
-            transition: border-color 0.2s, transform 0.2s;
+            transition: background 0.15s;
         }
-        .feature-card:hover {
-            border-color: rgba(59,130,246,0.3);
-            transform: translateY(-2px);
+        .feature-card:hover { background: #0f1319; }
+
+        .feature-num {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--faint);
+            margin-bottom: 14px;
         }
-        .feature-icon {
-            font-size: 28px;
-            margin-bottom: 16px;
-            display: block;
-        }
+
         .feature-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #F1F5F9;
-            margin-bottom: 8px;
-            letter-spacing: 0.3px;
+            margin-bottom: 10px;
+            letter-spacing: 0.2px;
         }
+
         .feature-desc {
             font-size: 13px;
             color: var(--muted);
             line-height: 1.65;
+            margin-bottom: 18px;
         }
+
         .feature-tags {
-            display: flex; flex-wrap: wrap; gap: 6px;
-            margin-top: 16px;
+            display: flex; flex-wrap: wrap; gap: 5px;
         }
         .feature-tag {
             font-family: var(--mono);
             font-size: 9px;
             letter-spacing: 1px;
-            padding: 2px 8px;
-            border-radius: 2px;
-            background: var(--blue-f);
-            border: 1px solid rgba(59,130,246,0.2);
+            padding: 2px 7px;
+            border: 1px solid rgba(59,130,246,0.18);
             color: var(--blue);
+            background: var(--blue-f);
         }
 
-        /* TECH STACK */
-        .tech-section {
-            position: relative; z-index: 1;
+        /* ── STACK ──────────────────────────────────────── */
+        .stack-section {
             background: var(--bg2);
             border-top: 1px solid var(--border);
             border-bottom: 1px solid var(--border);
-            padding: 56px 24px;
-            text-align: center;
+            padding: 52px 24px;
         }
-        .tech-list {
-            display: flex; flex-wrap: wrap; gap: 12px;
-            justify-content: center;
-            max-width: 720px;
-            margin: 24px auto 0;
+        .stack-inner {
+            max-width: 900px;
+            margin: 0 auto;
         }
-        .tech-chip {
+        .stack-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            margin-top: 32px;
+        }
+        .stack-item {
+            background: var(--bg2);
+            padding: 14px 16px;
             font-family: var(--mono);
             font-size: 11px;
-            padding: 6px 14px;
-            border: 1px solid var(--border);
-            border-radius: 2px;
             color: var(--muted);
-            background: rgba(0,0,0,0.3);
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            transition: background 0.12s, color 0.12s;
         }
+        .stack-item:hover { background: #0f1319; color: var(--text); }
 
-        /* BOTTOM CTA */
+        /* ── BOTTOM CTA ─────────────────────────────────── */
         .bottom-cta {
-            position: relative; z-index: 1;
-            text-align: center;
             padding: 80px 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
         }
         .bottom-cta h2 {
-            font-size: clamp(24px, 4vw, 40px);
+            font-size: clamp(20px, 3vw, 32px);
             font-weight: 700;
-            margin-bottom: 16px;
             color: #F1F5F9;
+            margin-bottom: 12px;
         }
         .bottom-cta p {
+            font-size: 14px;
             color: var(--muted);
-            font-size: 15px;
-            margin-bottom: 36px;
+            margin-bottom: 28px;
         }
 
-        /* FOOTER */
+        /* ── FOOTER ─────────────────────────────────────── */
         footer {
-            position: relative; z-index: 1;
-            border-top: 1px solid var(--border);
-            padding: 20px 32px;
+            padding: 18px 32px;
             display: flex; align-items: center; justify-content: space-between;
             font-family: var(--mono);
             font-size: 10px;
-            color: var(--muted);
+            color: var(--faint);
+            letter-spacing: 0.5px;
         }
 
-        /* MOBILE */
-        @media (max-width: 640px) {
+        /* ── MOBILE ─────────────────────────────────────── */
+        @media (max-width: 600px) {
             nav { padding: 0 16px; }
-            .tp-item { padding: 10px 4px; }
-            .tp-price { font-size: 12px; }
-            .features { padding: 60px 16px 80px; }
+            .hero { padding: 90px 16px 52px; }
+            .features { padding: 60px 16px 72px; }
+            .stack-section { padding: 48px 16px; }
+            footer { flex-direction: column; gap: 6px; text-align: center; }
         }
     </style>
 </head>
 <body>
 
 <nav>
-    <div class="nav-logo">
+    <a href="/" class="nav-logo">
         <span class="nav-logo-icon">◈</span>
         TRADESKI
-    </div>
+    </a>
     <a href="/app" class="nav-launch">Launch App →</a>
 </nav>
 
+<!-- HERO -->
 <section class="hero">
-    <div class="hero-grid"></div>
-    <div class="hero-glow"></div>
+    <p class="hero-eyebrow">tradeski.dev</p>
 
-    <div class="hero-tag">Real-Time Market Intelligence</div>
-
-    <h1>The financial terminal<br>built for <span>modern traders</span></h1>
+    <h1>A financial terminal you can actually use.</h1>
 
     <p class="hero-sub">
-        Live equity prices, quant-grade indicators, FRED macro data,
-        portfolio risk analytics, and an AI financial assistant —
-        all in one clean, fast dashboard.
+        Live equity prices, ten technical indicators, Federal Reserve macro data,
+        portfolio analytics, and an AI assistant — in one dashboard.
+        No account. No subscription.
     </p>
 
     <div class="hero-cta">
-        <a href="/app" class="cta-primary">Launch Tradeski</a>
-        <a href="https://github.com/Danny-397/Tradeski" target="_blank" rel="noopener" class="cta-secondary">View on GitHub ↗</a>
+        <a href="/app" class="cta-primary">Open Dashboard</a>
+        <a href="https://github.com/Danny-397/Tradeski" target="_blank" rel="noopener" class="cta-ghost">GitHub ↗</a>
     </div>
 
-    <div class="ticker-preview" id="ticker-preview">
-        <div class="tp-item"><span class="tp-sym">AAPL</span><span class="tp-price">—</span><span class="tp-chg">—</span></div>
-        <div class="tp-item"><span class="tp-sym">MSFT</span><span class="tp-price">—</span><span class="tp-chg">—</span></div>
-        <div class="tp-item"><span class="tp-sym">NVDA</span><span class="tp-price">—</span><span class="tp-chg">—</span></div>
-        <div class="tp-item"><span class="tp-sym">TSLA</span><span class="tp-price">—</span><span class="tp-chg">—</span></div>
-        <div class="tp-item"><span class="tp-sym">SPY</span><span class="tp-price">—</span><span class="tp-chg">—</span></div>
+    <div class="price-strip" id="price-strip">
+        <div class="ps-item"><span class="ps-sym">AAPL</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+        <div class="ps-item"><span class="ps-sym">MSFT</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+        <div class="ps-item"><span class="ps-sym">NVDA</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+        <div class="ps-item"><span class="ps-sym">TSLA</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+        <div class="ps-item"><span class="ps-sym">SPY</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
     </div>
 </section>
 
+<div class="section-divider"></div>
+
+<!-- FEATURES -->
 <section class="features">
-    <p class="section-label">What Tradeski Does</p>
-    <h2 class="section-title">Everything you need, nothing you don't</h2>
+    <div class="section-header">
+        <p class="section-label">Features</p>
+        <h2 class="section-title">What Tradeski includes</h2>
+    </div>
 
     <div class="features-grid">
+
         <div class="feature-card">
-            <span class="feature-icon">📈</span>
+            <div class="feature-num">01 — CHARTS</div>
             <div class="feature-title">Real-Time Price Charts</div>
-            <p class="feature-desc">Candlestick and line charts with live price data across all timeframes — 1D through 1Y. Powered by yfinance with sub-minute refresh.</p>
+            <p class="feature-desc">Candlestick and line charts with live data across six timeframes — 1D through 1Y. Click any candle to inspect exact OHLC data in the strip below.</p>
             <div class="feature-tags">
                 <span class="feature-tag">CANDLESTICK</span>
-                <span class="feature-tag">1D–1Y</span>
-                <span class="feature-tag">LIVE</span>
+                <span class="feature-tag">LINE</span>
+                <span class="feature-tag">1D — 1Y</span>
             </div>
         </div>
 
         <div class="feature-card">
-            <span class="feature-icon">⚡</span>
+            <div class="feature-num">02 — INDICATORS</div>
             <div class="feature-title">Technical Indicators</div>
-            <p class="feature-desc">RSI, MACD, Bollinger Bands, SMA 20/50, EMA 20, Z-Score, ATR, and linear regression — all computed server-side and rendered on top of the chart.</p>
+            <p class="feature-desc">RSI, MACD, Bollinger Bands, SMA 20/50, EMA 20, Z-Score, ATR, and linear regression — computed server-side from first principles, overlaid on the chart.</p>
             <div class="feature-tags">
                 <span class="feature-tag">RSI</span>
                 <span class="feature-tag">MACD</span>
-                <span class="feature-tag">BOLLINGER</span>
-                <span class="feature-tag">SMA/EMA</span>
+                <span class="feature-tag">BB</span>
+                <span class="feature-tag">SMA / EMA</span>
             </div>
         </div>
 
         <div class="feature-card">
-            <span class="feature-icon">🏦</span>
+            <div class="feature-num">03 — MACRO</div>
             <div class="feature-title">FRED Macro Ribbon</div>
-            <p class="feature-desc">CPI YoY%, Fed Funds Rate, GDP, Unemployment, 10-Year Treasury, Yield Curve, and High Yield Credit Spread — refreshed hourly from the Federal Reserve.</p>
+            <p class="feature-desc">CPI YoY%, Fed Funds Rate, GDP, Unemployment, 10-Year Treasury, Yield Curve spread, and High Yield credit spreads — pulled hourly from the St. Louis Fed.</p>
             <div class="feature-tags">
                 <span class="feature-tag">CPI</span>
                 <span class="feature-tag">FED RATE</span>
                 <span class="feature-tag">10Y YIELD</span>
+                <span class="feature-tag">HY SPREAD</span>
             </div>
         </div>
 
         <div class="feature-card">
-            <span class="feature-icon">🔥</span>
+            <div class="feature-num">04 — CORRELATION</div>
             <div class="feature-title">Correlation Heatmap</div>
-            <p class="feature-desc">90-day return correlation matrix across 11 major equities and ETFs. Identify diversification gaps and sector clustering at a glance.</p>
+            <p class="feature-desc">90-day pairwise return correlation matrix across 11 symbols, rendered as a Plotly heatmap. Spot diversification gaps at a glance.</p>
             <div class="feature-tags">
-                <span class="feature-tag">90-DAY</span>
+                <span class="feature-tag">90-DAY RETURNS</span>
                 <span class="feature-tag">11 SYMBOLS</span>
-                <span class="feature-tag">RETURNS</span>
             </div>
         </div>
 
         <div class="feature-card">
-            <span class="feature-icon">📊</span>
-            <div class="feature-title">Portfolio Risk Metrics</div>
-            <p class="feature-desc">Add your holdings and instantly see Sharpe ratio, beta vs SPY, and annualized volatility — computed from 1-year daily returns.</p>
+            <div class="feature-num">05 — PORTFOLIO</div>
+            <div class="feature-title">Portfolio + Risk Metrics</div>
+            <p class="feature-desc">Track holdings with live P&L. Sharpe ratio, beta vs SPY, and annualized volatility computed from one year of daily returns, weighted by market value.</p>
             <div class="feature-tags">
                 <span class="feature-tag">SHARPE</span>
                 <span class="feature-tag">BETA</span>
@@ -428,64 +434,72 @@
         </div>
 
         <div class="feature-card">
-            <span class="feature-icon">◈</span>
+            <div class="feature-num">06 — SKI</div>
             <div class="feature-title">Ski — AI Financial Assistant</div>
-            <p class="feature-desc">Ask Ski anything about markets, macro trends, technical signals, or sector rotation. Powered by Claude with real-time portfolio and macro context injected automatically.</p>
+            <p class="feature-desc">Ask Ski about markets, indicators, or your portfolio. Powered by Anthropic Claude with your live macro snapshot, holdings, and recent news injected as context.</p>
             <div class="feature-tags">
-                <span class="feature-tag">CLAUDE AI</span>
+                <span class="feature-tag">CLAUDE</span>
                 <span class="feature-tag">MACRO CONTEXT</span>
                 <span class="feature-tag">PORTFOLIO AWARE</span>
             </div>
         </div>
+
     </div>
 </section>
 
-<section class="tech-section">
-    <p class="section-label">Built With</p>
-    <h2 class="section-title" style="font-size:24px; margin-bottom:0">Production-grade stack, deployed at scale</h2>
-    <div class="tech-list">
-        <span class="tech-chip">Python / Flask</span>
-        <span class="tech-chip">Flask-SocketIO</span>
-        <span class="tech-chip">Plotly.js</span>
-        <span class="tech-chip">yfinance</span>
-        <span class="tech-chip">FRED API</span>
-        <span class="tech-chip">NewsAPI</span>
-        <span class="tech-chip">VADER Sentiment</span>
-        <span class="tech-chip">Anthropic Claude</span>
-        <span class="tech-chip">Render (backend)</span>
-        <span class="tech-chip">Vercel (frontend)</span>
-        <span class="tech-chip">NumPy</span>
-        <span class="tech-chip">WebSockets</span>
+<div class="section-divider"></div>
+
+<!-- TECH STACK -->
+<section class="stack-section">
+    <div class="stack-inner">
+        <p class="section-label">Stack</p>
+        <h2 class="section-title" style="font-size:20px">How it's built</h2>
+        <div class="stack-grid">
+            <div class="stack-item">Python / Flask</div>
+            <div class="stack-item">Flask-SocketIO</div>
+            <div class="stack-item">Plotly.js</div>
+            <div class="stack-item">yfinance</div>
+            <div class="stack-item">FRED API</div>
+            <div class="stack-item">NewsAPI</div>
+            <div class="stack-item">VADER Sentiment</div>
+            <div class="stack-item">Anthropic Claude</div>
+            <div class="stack-item">NumPy</div>
+            <div class="stack-item">SQLite</div>
+            <div class="stack-item">Render</div>
+            <div class="stack-item">Vercel</div>
+        </div>
     </div>
 </section>
 
+<!-- BOTTOM CTA -->
 <section class="bottom-cta">
-    <h2>Ready to trade smarter?</h2>
-    <p>No account required. Open the dashboard and start exploring.</p>
-    <a href="/app" class="cta-primary">Launch Tradeski</a>
+    <h2>Open it now.</h2>
+    <p>No account. No setup. The dashboard loads in your browser.</p>
+    <a href="/app" class="cta-primary">Open Dashboard</a>
 </section>
 
 <footer>
     <span>◈ TRADESKI</span>
-    <span>tradeski.dev · Real-Time Market Intelligence</span>
+    <span>tradeski.dev</span>
 </footer>
 
 <script>
-    const API = "https://tradeski.onrender.com";
-    const SYMS = ["AAPL","MSFT","NVDA","TSLA","SPY"];
-    const items = document.querySelectorAll(".tp-item");
+    const API  = "https://tradeski.onrender.com";
+    const SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
+    const items = document.querySelectorAll(".ps-item");
+
     Promise.all(SYMS.map(s =>
         fetch(`${API}/stats?symbol=${s}`).then(r => r.json()).catch(() => null)
     )).then(results => {
         results.forEach((d, i) => {
             if (!d || d.error) return;
-            const pct = d.open > 0 ? ((d.close - d.open) / d.open * 100) : 0;
-            const dir = pct >= 0 ? "up" : "down";
-            const sign = pct >= 0 ? "+" : "";
-            const priceEl = items[i].querySelector(".tp-price");
-            const chgEl = items[i].querySelector(".tp-chg");
-            if (priceEl) priceEl.textContent = "$" + d.close.toFixed(2);
-            if (chgEl) { chgEl.textContent = `${sign}${pct.toFixed(2)}%`; chgEl.className = `tp-chg ${dir}`; }
+            const pct   = d.open > 0 ? ((d.close - d.open) / d.open * 100) : 0;
+            const dir   = pct >= 0 ? "up" : "down";
+            const sign  = pct >= 0 ? "+" : "";
+            const pEl   = items[i].querySelector(".ps-price");
+            const cEl   = items[i].querySelector(".ps-chg");
+            if (pEl) pEl.textContent = "$" + d.close.toFixed(2);
+            if (cEl) { cEl.textContent = `${sign}${pct.toFixed(2)}%`; cEl.className = `ps-chg ${dir}`; }
         });
     });
 </script>
