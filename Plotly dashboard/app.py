@@ -7,6 +7,7 @@ import os
 # Insert it so `tracker` can always be found regardless of working directory.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import re
 import time
 import datetime
 from typing import List, Tuple, Optional
@@ -40,7 +41,7 @@ from tracker.analyzer import (
 
 app = Flask(__name__)
 
-_raw_origins = os.environ.get("ALLOWED_ORIGINS", "*")
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "https://tradeski.dev,https://www.tradeski.dev")
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()] if _raw_origins != "*" else "*"
 
 CORS(app, origins=_allowed_origins)
@@ -54,7 +55,7 @@ socketio = SocketIO(
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
-    default_limits=[],
+    default_limits=["10 per minute"],
     storage_uri="memory://",
 )
 
@@ -117,7 +118,14 @@ def rows_to_dict(
 
 @app.route("/health")
 def health() -> tuple:
-    return jsonify({"status": "ok"})
+    return jsonify({
+        "status": "ok",
+        "services": {
+            "fred":      "configured" if os.environ.get("FRED_API_KEY")      else "missing",
+            "news":      "configured" if os.environ.get("NEWS_API_KEY")       else "missing",
+            "anthropic": "configured" if os.environ.get("ANTHROPIC_API_KEY")  else "missing",
+        },
+    })
 
 
 @app.route("/stats")
@@ -723,9 +731,10 @@ investment advice — always clarify you're providing educational information, n
 def chat() -> tuple:
     """Ski financial Q&A chatbot powered by Claude."""
     data = request.json or {}
-    message = (data.get("message") or "").strip()
+    raw_msg = (data.get("message") or "")
+    message = re.sub(r'<[^>]+>', '', raw_msg).strip()[:500]
     history = data.get("history") or []
-    symbol  = (data.get("symbol") or "").strip().upper()
+    symbol  = re.sub(r'[^A-Z0-9.]', '', (data.get("symbol") or "").upper())[:10]
 
     if not message:
         return jsonify({"error": "No message provided"}), 400
@@ -774,6 +783,12 @@ def chat() -> tuple:
         )
         reply = response.content[0].text
         return jsonify({"reply": reply})
+    except anthropic.RateLimitError:
+        return jsonify({"error": "Ski is at capacity — I've hit my hourly AI quota. Try again in a few minutes."}), 429
+    except anthropic.APIStatusError as exc:
+        if exc.status_code == 529:
+            return jsonify({"error": "Anthropic API is overloaded right now. Try again in 30 seconds."}), 503
+        return jsonify({"error": f"AI service error ({exc.status_code})"}), 502
     except Exception as exc:
         return jsonify({"error": f"AI service error: {exc}"}), 502
 

@@ -9,6 +9,7 @@
     <meta property="og:description" content="Live equity prices, quantitative indicators, FRED macro ribbon, correlation heatmap, portfolio risk analytics (Sharpe, beta, volatility), multi-stock comparison, and an AI financial assistant — all in one dashboard.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tradeski.dev">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -34,10 +35,26 @@
         </div>
 
         <div class="header-right">
+            <div class="api-health" id="api-health" title="API Services Status">
+                <span class="api-health-dot" id="api-health-dot"></span>
+                <span class="api-health-label" id="api-health-label">—</span>
+            </div>
             <button class="screener-btn" id="open-heatmap-btn" title="Correlation Heatmap">⊞ HEATMAP</button>
             <button class="screener-btn" id="open-screener-btn" title="Stock Screener">⊞ SCREENER</button>
+            <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
         </div>
     </header>
+
+    <!-- MOBILE SIDEBAR OVERLAY -->
+    <div class="mobile-overlay" id="mobile-overlay" style="display:none">
+        <div class="mobile-drawer" id="mobile-drawer">
+            <div class="mobile-drawer-header">
+                <span class="panel-title">MENU</span>
+                <button class="btn-icon" id="mobile-close-btn">✕</button>
+            </div>
+            <div class="mobile-drawer-body" id="mobile-drawer-body"></div>
+        </div>
+    </div>
 
     <!-- ===== TICKER TAPE ===== -->
     <div class="ticker-wrap">
@@ -372,5 +389,6 @@
     </div>
 
     <script src="dashboard.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

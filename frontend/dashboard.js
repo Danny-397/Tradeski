@@ -48,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
     buildTickerTape();
     setInterval(buildTickerTape, CFG.TICKER_REFRESH_MS);
     initPortfolio();
+    initApiHealth();
+    initMobileDrawer();
 });
 
 // ============================================================
@@ -1146,12 +1148,17 @@ async function skiSend() {
             skiState.history.pop();
             return;
         }
+        if (res.status === 503) {
+            loadingBubble.textContent = "Ski is temporarily offline — the AI service is overloaded. Try again in 30 seconds.";
+            loadingBubble.classList.remove("loading");
+            skiState.history.pop();
+            return;
+        }
         const data = await res.json();
         const reply = data.reply || data.error || "No response.";
         loadingBubble.textContent = reply;
         loadingBubble.classList.remove("loading");
         skiState.history.push({ role: "assistant", content: reply });
-        // Trim history to last 20 turns to avoid unbounded growth
         if (skiState.history.length > 20) skiState.history = skiState.history.slice(-20);
     } catch {
         loadingBubble.textContent = "Backend is starting up — Render free tier spins down after inactivity. Wait ~30 seconds and try again.";
@@ -1745,3 +1752,87 @@ async function renderCompareChart() {
 }
 
 document.addEventListener("DOMContentLoaded", () => { initCompareMode(); });
+
+// ============================================================
+// API HEALTH CHECK
+// ============================================================
+
+async function initApiHealth() {
+    await checkApiHealth();
+    setInterval(checkApiHealth, 5 * 60_000);
+}
+
+async function checkApiHealth() {
+    const dot   = document.getElementById("api-health-dot");
+    const label = document.getElementById("api-health-label");
+    if (!dot || !label) return;
+
+    try {
+        const res  = await fetch(`${CFG.API}/health`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const svcs = data.services || {};
+
+        const missing = Object.values(svcs).filter(v => v === "missing").length;
+        if (missing === 0) {
+            dot.className   = "api-health-dot green";
+            label.textContent = "LIVE";
+        } else if (missing <= 1) {
+            dot.className   = "api-health-dot yellow";
+            label.textContent = "PARTIAL";
+        } else {
+            dot.className   = "api-health-dot red";
+            label.textContent = "DEGRADED";
+        }
+
+        const tipLines = Object.entries(svcs).map(([k, v]) =>
+            `${k.toUpperCase()}: ${v === "configured" ? "✓" : "✗ missing key"}`
+        );
+        document.getElementById("api-health").title = tipLines.join("\n");
+    } catch {
+        dot.className   = "api-health-dot red";
+        label.textContent = "DOWN";
+        document.getElementById("api-health").title = "Backend unreachable";
+    }
+}
+
+// ============================================================
+// MOBILE DRAWER
+// ============================================================
+
+function initMobileDrawer() {
+    const btn     = document.getElementById("hamburger-btn");
+    const overlay = document.getElementById("mobile-overlay");
+    const closeBtn = document.getElementById("mobile-close-btn");
+
+    if (!btn || !overlay) return;
+
+    btn.addEventListener("click", openMobileDrawer);
+    closeBtn.addEventListener("click", closeMobileDrawer);
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeMobileDrawer();
+    });
+}
+
+function openMobileDrawer() {
+    const overlay = document.getElementById("mobile-overlay");
+    const body    = document.getElementById("mobile-drawer-body");
+    if (!overlay || !body) return;
+
+    // Clone sidebar contents into drawer
+    const leftClone  = document.querySelector(".sidebar-left")?.cloneNode(true);
+    const rightClone = document.querySelector(".sidebar-right")?.cloneNode(true);
+    body.innerHTML = "";
+    if (leftClone)  { leftClone.style.display  = "flex"; leftClone.style.width  = "100%"; body.appendChild(leftClone); }
+    if (rightClone) { rightClone.style.display = "flex"; rightClone.style.width = "100%"; body.appendChild(rightClone); }
+
+    overlay.style.display = "block";
+    document.body.style.overflow = "hidden";
+}
+
+function closeMobileDrawer() {
+    const overlay = document.getElementById("mobile-overlay");
+    if (!overlay) return;
+    overlay.style.display = "none";
+    document.body.style.overflow = "";
+}

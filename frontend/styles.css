@@ -1885,3 +1885,146 @@ body::before {
     opacity: 0.7;
 }
 .compare-chip-remove:hover { opacity: 1; }
+
+/* ── API Health Indicator ────────────────────────────────── */
+.api-health {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    cursor: default;
+}
+.api-health-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+}
+.api-health-dot.green  { background: var(--green);  box-shadow: 0 0 5px var(--green);  animation: blink 2.5s ease-in-out infinite; }
+.api-health-dot.yellow { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); animation: blink 2.5s ease-in-out infinite; }
+.api-health-dot.red    { background: var(--red);    box-shadow: 0 0 5px var(--red); }
+
+/* ── Hamburger (mobile only) ─────────────────────────────── */
+.hamburger-btn {
+    display: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 16px;
+    width: 34px; height: 34px;
+    border-radius: var(--radius-sm);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color var(--t), color var(--t);
+}
+.hamburger-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+/* ── Mobile Drawer ───────────────────────────────────────── */
+.mobile-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 700;
+    animation: fade-in 0.18s ease;
+}
+.mobile-drawer {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: min(320px, 88vw);
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slide-from-right 0.22s var(--ease);
+}
+@keyframes slide-from-right {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+}
+.mobile-drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+.mobile-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+/* ── Skeleton Loading ────────────────────────────────────── */
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+.skeleton-line {
+    height: 10px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 800px 10px;
+    animation: shimmer 1.5s infinite linear;
+}
+
+/* ── Mobile Responsive ───────────────────────────────────── */
+@media (max-width: 768px) {
+    .hamburger-btn { display: flex; }
+
+    /* hide sidebars on mobile — accessible via drawer */
+    .sidebar-left, .sidebar-right { display: none; }
+
+    /* api health text label hidden on mobile */
+    .api-health-label { display: none; }
+
+    /* header */
+    .app-header { padding: 0 12px; }
+    .logo-text  { letter-spacing: 2px; font-size: 14px; }
+    .market-status { display: none; }
+
+    /* macro ribbon — show only 3 items */
+    .macro-item:nth-child(n+4) { display: none; }
+
+    /* toolbar — two-row stays but make main row scrollable */
+    .toolbar-row-main {
+        overflow-x: auto;
+        scrollbar-width: none;
+        gap: 6px;
+        padding: 0 10px;
+    }
+    .toolbar-row-main::-webkit-scrollbar { display: none; }
+
+    .toolbar-row-overlays {
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 0 10px;
+    }
+    .toolbar-row-overlays::-webkit-scrollbar { display: none; }
+
+    /* screener modal full width on mobile */
+    .modal-wide {
+        width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    /* heatmap chart shorter on mobile */
+    .heatmap-chart { height: 320px; }
+
+    /* ski panel full width on mobile */
+    .ski-panel {
+        width: calc(100vw - 20px);
+        right: 10px;
+        left: 10px;
+    }
+
+    /* status bar — shorten brand text */
+    .status-brand { display: none; }
+}

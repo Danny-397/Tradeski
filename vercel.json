@@ -4,6 +4,11 @@
     { "src": "frontend/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/frontend/$1" }
+    { "src": "/app", "dest": "/frontend/index.html" },
+    { "src": "/", "dest": "/frontend/landing.html" },
+    { "src": "/404", "dest": "/frontend/404.html" },
+    { "src": "/(.*)", "dest": "/frontend/$1", "continue": true },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/frontend/404.html", "status": 404 }
   ]
 }

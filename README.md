@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-45%20passing-brightgreen.svg)](#running-tests)
 
-**Live demo:** [tradeski.vercel.app](https://tradeski.vercel.app)
+**Live demo:** [tradeski.dev](https://tradeski.dev)
 
 Tradeski is a full-stack, production-deployed financial analytics platform that streams live equity data, computes a complete suite of quantitative indicators, and delivers real-time market intelligence through a terminal-styled interactive dashboard. It combines a Python/Flask backend with a vanilla JavaScript frontend connected over WebSockets, and integrates AI-powered financial analysis through a built-in assistant named Ski.
 
@@ -19,6 +19,7 @@ Tradeski is a full-stack, production-deployed financial analytics platform that 
 - [Tech Stack](#tech-stack)
 - [Quantitative Indicators](#quantitative-indicators)
 - [Ski — AI Financial Assistant](#ski--ai-financial-assistant)
+- [Production Hardening](#production-hardening)
 - [API Reference](#api-reference)
 - [Getting Started](#getting-started)
 - [Running Tests](#running-tests)
@@ -131,9 +132,12 @@ Tradeski/
 │   └── cache.py               # TTL in-memory cache (SimpleCache)
 │
 ├── frontend/                  # Static UI — served via Vercel
-│   ├── index.html             # Full layout: header, ticker, macro ribbon, sidebars, modals
-│   ├── styles.css             # Terminal dark theme (~1,500 lines, CSS custom properties)
-│   └── dashboard.js           # Real-time logic: WebSocket, Plotly, Ski, screener
+│   ├── landing.html           # Marketing landing page at tradeski.dev/
+│   ├── index.html             # Dashboard at tradeski.dev/app — header, ticker, charts, modals
+│   ├── 404.html               # Custom 404 page
+│   ├── favicon.svg            # SVG favicon
+│   ├── styles.css             # Terminal dark theme (~2,000 lines, CSS custom properties + mobile)
+│   └── dashboard.js           # Real-time logic: WebSocket, Plotly, Ski, screener, health
 │
 ├── tests/                     # pytest suite (45 tests across 9 files)
 │   ├── test_analyzer.py       # Indicator correctness: shape, range, arithmetic
@@ -276,10 +280,54 @@ This means Ski can answer questions like "Is now a good time to add to my NVDA p
 
 ---
 
+## Production Hardening
+
+Tradeski is built to withstand real user traffic, not just a demo. The following security and reliability measures are in place:
+
+### Security
+| Measure | Implementation |
+|---|---|
+| Rate limiting | Flask-Limiter: **10 req/min** per IP on all endpoints; **20/hr + 50/day** on `/chat` |
+| Input sanitization | `/chat` strips HTML tags via regex and enforces a 500-character hard limit |
+| Symbol sanitization | Ticker input restricted to `[A-Z0-9.]` — no injection vectors |
+| CORS hardening | Restricted to `tradeski.dev` and `www.tradeski.dev` via `ALLOWED_ORIGINS` env var |
+| No hardcoded secrets | All API keys read exclusively from environment variables; never committed |
+
+### Reliability
+| Measure | Implementation |
+|---|---|
+| TTL caching | FRED 1hr · prices 5min · news 30min · screener 10min · correlation 1hr |
+| Health endpoint | `/health` returns live API service status (configured vs. missing) |
+| Render cold start | `healthCheckPath: /health` in `render.yaml` keeps the dyno warm |
+| Graceful AI errors | Anthropic `RateLimitError` → 429 "at capacity" message; `529 overloaded` → 503 with retry guidance |
+| Ski retry UX | Frontend shows specific messages for 429, 503, and network-level failures |
+
+### Frontend
+| Measure | Implementation |
+|---|---|
+| Landing page | `/` serves a dark marketing page; dashboard lives at `/app` |
+| Custom 404 | Terminal-style 404 page with path display and navigation links |
+| Mobile responsive | Sidebars collapse to a slide-in drawer; toolbar scrolls horizontally on small screens |
+| API health indicator | Green/yellow/red dot in the header reflects live `/health` status |
+| Vercel Analytics | Performance and visit tracking via `/_vercel/insights/script.js` |
+
+---
+
 ## API Reference
 
 ### `GET /health`
-Health check. Returns `{"status": "ok"}`.
+Health check. Returns service status for all three external APIs — used by the dashboard's live status indicator.
+
+```json
+{
+  "status": "ok",
+  "services": {
+    "fred":      "configured",
+    "news":      "configured",
+    "anthropic": "missing"
+  }
+}
+```
 
 ### `GET /stats?symbol=AAPL`
 OHLC snapshot + real 52-week range sourced from yfinance (cached 5 min).
