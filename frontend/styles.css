@@ -1947,8 +1947,8 @@ body::before {
     animation: shimmer 1.5s infinite linear;
 }
 
-/* ── Mobile Responsive ───────────────────────────────────── */
-@media (max-width: 768px) {
+/* ── Mobile Responsive (portrait only — landscape shows full desktop layout) ── */
+@media (max-width: 768px) and (orientation: portrait) {
     .hamburger-btn { display: flex; }
 
     /* left sidebar: fixed slide-in drawer on mobile */
