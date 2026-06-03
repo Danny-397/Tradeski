@@ -962,9 +962,11 @@ function renderPortfolio(data) {
     if (holdings.length === 0) {
         list.innerHTML = '<div class="feed-empty">No holdings — add one below</div>';
         document.getElementById("pf-risk").style.display = "none";
+        showSkiStarters(false);
         return;
     }
 
+    showSkiStarters(true);
     loadPortfolioRisk();
 
     list.innerHTML = "";
@@ -1091,6 +1093,20 @@ function initSki() {
     input.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); skiSend(); }
     });
+
+    document.querySelectorAll(".ski-starter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            input.value = btn.dataset.prompt;
+            input.focus();
+        });
+    });
+}
+
+function showSkiStarters(hasPortfolio) {
+    const starters = document.getElementById("ski-starters");
+    if (!starters) return;
+    if (hasPortfolio) starters.classList.add("visible");
+    else starters.classList.remove("visible");
 }
 
 function skiToggle(forceOpen) {

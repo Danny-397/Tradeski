@@ -1474,6 +1474,31 @@ body::before {
     font-style: italic;
 }
 
+.ski-starters {
+    display: none;
+    gap: 6px;
+    padding: 8px 12px 0;
+    flex-wrap: wrap;
+}
+.ski-starters.visible { display: flex; }
+.ski-starter-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.ski-starter-btn:hover {
+    border-color: var(--amber);
+    color: var(--text-secondary);
+}
+
 .ski-input-row {
     display: flex;
     align-items: center;
