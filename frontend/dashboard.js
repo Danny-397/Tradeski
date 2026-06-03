@@ -48,8 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
     buildTickerTape();
     setInterval(buildTickerTape, CFG.TICKER_REFRESH_MS);
     initPortfolio();
-    initApiHealth();
-    initMobileDrawer();
+initMobileDrawer();
 });
 
 // ============================================================
@@ -1757,44 +1756,6 @@ document.addEventListener("DOMContentLoaded", () => { initCompareMode(); });
 // API HEALTH CHECK
 // ============================================================
 
-async function initApiHealth() {
-    await checkApiHealth();
-    setInterval(checkApiHealth, 5 * 60_000);
-}
-
-async function checkApiHealth() {
-    const dot   = document.getElementById("api-health-dot");
-    const label = document.getElementById("api-health-label");
-    if (!dot || !label) return;
-
-    try {
-        const res  = await fetch(`${CFG.API}/health`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const svcs = data.services || {};
-
-        const missing = Object.values(svcs).filter(v => v === "missing").length;
-        if (missing === 0) {
-            dot.className   = "api-health-dot green";
-            label.textContent = "LIVE";
-        } else if (missing <= 1) {
-            dot.className   = "api-health-dot yellow";
-            label.textContent = "PARTIAL";
-        } else {
-            dot.className   = "api-health-dot red";
-            label.textContent = "DEGRADED";
-        }
-
-        const tipLines = Object.entries(svcs).map(([k, v]) =>
-            `${k.toUpperCase()}: ${v === "configured" ? "✓" : "✗ missing key"}`
-        );
-        document.getElementById("api-health").title = tipLines.join("\n");
-    } catch {
-        dot.className   = "api-health-dot red";
-        label.textContent = "DOWN";
-        document.getElementById("api-health").title = "Backend unreachable";
-    }
-}
 
 // ============================================================
 // MOBILE DRAWER

@@ -1886,26 +1886,6 @@ body::before {
 }
 .compare-chip-remove:hover { opacity: 1; }
 
-/* ── API Health Indicator ────────────────────────────────── */
-.api-health {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    cursor: default;
-}
-.api-health-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--text-muted);
-    flex-shrink: 0;
-}
-.api-health-dot.green  { background: var(--green);  box-shadow: 0 0 5px var(--green);  animation: blink 2.5s ease-in-out infinite; }
-.api-health-dot.yellow { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); animation: blink 2.5s ease-in-out infinite; }
-.api-health-dot.red    { background: var(--red);    box-shadow: 0 0 5px var(--red); }
 
 /* ── Hamburger (mobile only) ─────────────────────────────── */
 .hamburger-btn {
@@ -2010,8 +1990,6 @@ body::before {
     /* right sidebar always hidden on mobile */
     .sidebar-right { display: none; }
 
-    /* api health text label hidden on mobile */
-    .api-health-label { display: none; }
 
     /* header */
     .app-header { padding: 0 12px; }
