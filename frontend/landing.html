@@ -43,7 +43,7 @@
             overflow-x: hidden;
         }
 
-        /* ── NAV ────────────────────────────────────────── */
+        /* ── NAV ─────────────────────────────────────────────── */
         nav {
             position: fixed; top: 0; left: 0; right: 0;
             height: 52px;
@@ -53,7 +53,6 @@
             border-bottom: 1px solid var(--border);
             z-index: 100;
         }
-
         .nav-logo {
             display: flex; align-items: center; gap: 9px;
             font-family: var(--sans);
@@ -62,8 +61,7 @@
             color: var(--text);
             text-decoration: none;
         }
-        .nav-logo-icon { color: var(--blue); font-size: 15px; }
-
+        .nav-logo-icon { color: var(--blue); }
         .nav-launch {
             background: var(--blue);
             color: #fff;
@@ -81,7 +79,40 @@
         }
         .nav-launch:hover { opacity: 0.82; }
 
-        /* ── HERO ───────────────────────────────────────── */
+        /* ── SHARED ───────────────────────────────────────────── */
+        .section-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 88px 24px;
+            text-align: center;
+        }
+        .section-wrap.wide { max-width: 1040px; }
+        .section-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: var(--blue);
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            display: block;
+        }
+        .section-title {
+            font-size: clamp(22px, 3vw, 36px);
+            font-weight: 700;
+            color: #F1F5F9;
+            letter-spacing: -0.3px;
+            margin-bottom: 14px;
+        }
+        .section-sub {
+            font-size: 15px;
+            color: var(--muted);
+            line-height: 1.7;
+            max-width: 560px;
+            margin: 0 auto 52px;
+        }
+        .divider { width: 100%; height: 1px; background: var(--border); }
+
+        /* ── HERO ─────────────────────────────────────────────── */
         .hero {
             min-height: 100vh;
             display: flex;
@@ -91,7 +122,6 @@
             text-align: center;
             padding: 100px 24px 64px;
         }
-
         .hero-eyebrow {
             font-family: var(--mono);
             font-size: 10px;
@@ -100,7 +130,6 @@
             text-transform: uppercase;
             margin-bottom: 24px;
         }
-
         h1 {
             font-size: clamp(28px, 5vw, 56px);
             font-weight: 700;
@@ -108,27 +137,25 @@
             line-height: 1.12;
             color: #F1F5F9;
             max-width: 760px;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
-
         .hero-sub {
             font-size: 16px;
             color: var(--muted);
-            max-width: 540px;
-            line-height: 1.65;
+            max-width: 520px;
+            line-height: 1.7;
             margin-bottom: 36px;
         }
-
         .hero-cta {
             display: flex; gap: 12px;
             align-items: center; flex-wrap: wrap; justify-content: center;
+            margin-bottom: 52px;
         }
-
         .cta-primary {
             background: var(--blue);
             color: #fff;
             border: none;
-            padding: 12px 32px;
+            padding: 13px 36px;
             font-family: var(--mono);
             font-size: 12px;
             font-weight: 600;
@@ -141,7 +168,6 @@
             transition: opacity 0.12s;
         }
         .cta-primary:hover { opacity: 0.82; }
-
         .cta-ghost {
             color: var(--muted);
             font-family: var(--mono);
@@ -149,18 +175,17 @@
             letter-spacing: 1px;
             text-decoration: none;
             border: 1px solid var(--border);
-            padding: 12px 20px;
+            padding: 13px 22px;
             border-radius: 2px;
             transition: border-color 0.12s, color 0.12s;
         }
         .cta-ghost:hover { border-color: rgba(255,255,255,0.18); color: var(--text); }
 
-        /* ── LIVE PRICE STRIP ───────────────────────────── */
+        /* ── PRICE STRIP ──────────────────────────────────────── */
         .price-strip {
             display: flex;
             width: 100%;
-            max-width: 680px;
-            margin-top: 52px;
+            max-width: 660px;
             border: 1px solid var(--border);
             background: var(--bg2);
             overflow: hidden;
@@ -168,70 +193,27 @@
         .ps-item {
             flex: 1;
             display: flex; flex-direction: column; align-items: center;
-            padding: 11px 6px;
+            padding: 12px 6px;
             border-right: 1px solid var(--border);
             font-family: var(--mono);
         }
         .ps-item:last-child { border-right: none; }
-        .ps-sym   { font-size: 9px;  color: var(--muted); letter-spacing: 1px; margin-bottom: 3px; }
+        .ps-sym   { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 3px; }
         .ps-price { font-size: 13px; font-weight: 600; color: var(--text); }
         .ps-chg   { font-size: 10px; margin-top: 2px; }
         .up   { color: var(--green); }
         .down { color: var(--red); }
 
-        /* ── DIVIDER ────────────────────────────────────── */
-        .section-divider {
-            width: 100%;
-            height: 1px;
-            background: var(--border);
-        }
-
-        /* ── SECTION SHARED ─────────────────────────────── */
-        .section-label {
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 3px;
-            color: var(--muted);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        .section-title {
-            font-size: clamp(20px, 3vw, 32px);
-            font-weight: 700;
-            color: #F1F5F9;
-            letter-spacing: -0.3px;
-        }
-        .section-header {
-            text-align: center;
-        }
-
-        /* ── SKI DEMO ───────────────────────────────────── */
-        .ski-demo {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 80px 24px 96px;
-        }
-        .ski-demo .section-header {
-            margin-bottom: 48px;
-        }
-        .ski-demo-sub {
-            font-size: 14px;
-            color: var(--muted);
-            margin-top: 10px;
-            line-height: 1.6;
-            max-width: 520px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
+        /* ── SKI DEMO ─────────────────────────────────────────── */
         .chat-window {
             background: var(--bg2);
             border: 1px solid var(--border);
             overflow: hidden;
+            text-align: left;
         }
         .chat-window-header {
             display: flex; align-items: center; gap: 8px;
-            padding: 10px 16px;
+            padding: 11px 16px;
             border-bottom: 1px solid var(--border);
             font-family: var(--mono);
             font-size: 10px;
@@ -242,43 +224,41 @@
             width: 6px; height: 6px;
             border-radius: 50%;
             background: var(--blue);
+            flex-shrink: 0;
         }
         .chat-body {
             padding: 24px 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 0;
         }
         .chat-exchange {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            padding: 20px 0;
         }
         .chat-exchange + .chat-exchange {
-            padding-top: 20px;
             border-top: 1px solid var(--border);
         }
         .chat-user {
             align-self: flex-end;
             background: var(--blue-d);
-            border: 1px solid rgba(59,130,246,0.2);
+            border: 1px solid rgba(59,130,246,0.22);
             padding: 10px 14px;
             font-size: 13px;
             color: var(--text);
-            line-height: 1.5;
-            max-width: 85%;
+            line-height: 1.55;
+            max-width: 82%;
             border-radius: 2px;
         }
-        .chat-ski {
-            align-self: flex-start;
-            max-width: 90%;
-        }
+        .chat-ski { align-self: flex-start; max-width: 88%; }
         .chat-ski-label {
             font-family: var(--mono);
             font-size: 9px;
             letter-spacing: 2px;
             color: var(--blue);
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
         .chat-ski-bubble {
             background: rgba(255,255,255,0.03);
@@ -286,43 +266,35 @@
             padding: 12px 14px;
             font-size: 13px;
             color: var(--text);
-            line-height: 1.65;
+            line-height: 1.7;
             border-radius: 2px;
         }
-        .chat-ski-bubble strong {
-            color: #F1F5F9;
-            font-weight: 600;
-        }
+        .chat-ski-bubble strong { color: #F1F5F9; font-weight: 600; }
 
-        /* ── FEATURES ───────────────────────────────────── */
-        .features {
-            max-width: 1040px;
-            margin: 0 auto;
-            padding: 80px 24px 96px;
+        /* ── FEATURES ─────────────────────────────────────────── */
+        .bg-alt {
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
         }
-
-        .features .section-header {
-            margin-bottom: 48px;
-        }
-
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 1px;
-            border: 1px solid var(--border);
             background: var(--border);
+            border: 1px solid var(--border);
+            text-align: center;
         }
-
         .feature-card {
             background: var(--bg2);
-            padding: 28px 24px;
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             transition: background 0.15s;
         }
         .feature-card:hover { background: #0f1319; }
-        .feature-card.feature-highlight {
-            border-left: 2px solid var(--blue);
-        }
-
+        .feature-card.highlight { border-top: 2px solid var(--blue); }
         .feature-num {
             font-family: var(--mono);
             font-size: 9px;
@@ -331,24 +303,22 @@
             margin-bottom: 14px;
         }
         .feature-num.blue { color: var(--blue); }
-
         .feature-title {
             font-size: 14px;
             font-weight: 600;
             color: #F1F5F9;
             margin-bottom: 10px;
-            letter-spacing: 0.2px;
         }
-
         .feature-desc {
             font-size: 13px;
             color: var(--muted);
             line-height: 1.65;
             margin-bottom: 18px;
+            flex: 1;
         }
-
         .feature-tags {
             display: flex; flex-wrap: wrap; gap: 5px;
+            justify-content: center;
         }
         .feature-tag {
             font-family: var(--mono);
@@ -360,45 +330,24 @@
             background: var(--blue-f);
         }
 
-        /* ── COMPARISON ─────────────────────────────────── */
-        .comparison {
-            background: var(--bg2);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            padding: 80px 24px;
-        }
-        .comparison-inner {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .comparison-inner .section-header {
-            margin-bottom: 40px;
-        }
-        .comparison-sub {
-            font-size: 14px;
-            color: var(--muted);
-            margin-top: 10px;
-            line-height: 1.6;
-            text-align: center;
-        }
+        /* ── COMPARISON ───────────────────────────────────────── */
         .comparison-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1px;
             background: var(--border);
             border: 1px solid var(--border);
+            text-align: left;
         }
-        .comparison-col {
-            background: var(--bg2);
-            padding: 28px 24px;
-        }
+        .comparison-col { background: var(--bg2); padding: 28px 28px; }
         .comparison-col-header {
             font-family: var(--mono);
             font-size: 10px;
             letter-spacing: 2px;
+            padding-bottom: 14px;
             margin-bottom: 20px;
-            padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
+            text-align: center;
         }
         .comparison-col-header.muted { color: var(--muted); }
         .comparison-col-header.blue  { color: var(--blue); }
@@ -406,111 +355,86 @@
             display: flex; align-items: flex-start; gap: 10px;
             font-size: 13px;
             color: var(--muted);
-            line-height: 1.5;
-            margin-bottom: 14px;
+            line-height: 1.55;
+            margin-bottom: 13px;
         }
         .comparison-row:last-child { margin-bottom: 0; }
-        .comparison-row .mark {
-            font-family: var(--mono);
-            font-size: 11px;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-        .comparison-col.tradeski .comparison-row {
-            color: var(--text);
-        }
+        .comparison-col.tradeski .comparison-row { color: var(--text); }
+        .mark { font-family: var(--mono); font-size: 11px; flex-shrink: 0; margin-top: 1px; }
         .mark-no  { color: var(--faint); }
         .mark-yes { color: var(--blue); }
 
-        /* ── STACK ──────────────────────────────────────── */
-        .stack-section {
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            padding: 52px 24px;
-        }
-        .stack-inner {
-            max-width: 900px;
-            margin: 0 auto;
-            text-align: center;
-        }
-        .stack-grid {
-            text-align: left;
-        }
+        /* ── STACK ────────────────────────────────────────────── */
         .stack-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 1px;
             background: var(--border);
             border: 1px solid var(--border);
-            margin-top: 32px;
+            margin-top: 0;
         }
         .stack-item {
             background: var(--bg2);
-            padding: 14px 16px;
+            padding: 14px 10px;
             font-family: var(--mono);
             font-size: 11px;
             color: var(--muted);
             letter-spacing: 0.3px;
+            text-align: center;
             transition: background 0.12s, color 0.12s;
         }
         .stack-item:hover { background: #0f1319; color: var(--text); }
 
-        /* ── PRIVACY ────────────────────────────────────── */
-        .privacy {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 64px 24px;
-        }
-        .privacy .section-header { margin-bottom: 32px; }
-        .privacy-list {
-            display: flex;
-            flex-direction: column;
+        /* ── PRIVACY ──────────────────────────────────────────── */
+        .privacy-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 1px;
             background: var(--border);
             border: 1px solid var(--border);
+            text-align: center;
         }
         .privacy-item {
             background: var(--bg2);
-            padding: 18px 20px;
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
+            padding: 32px 24px;
         }
-        .privacy-mark {
+        .privacy-num {
             font-family: var(--mono);
             font-size: 10px;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             color: var(--blue);
-            flex-shrink: 0;
-            margin-top: 2px;
+            margin-bottom: 14px;
+        }
+        .privacy-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #F1F5F9;
+            margin-bottom: 10px;
         }
         .privacy-text {
             font-size: 13px;
             color: var(--muted);
-            line-height: 1.6;
+            line-height: 1.65;
         }
-        .privacy-text strong { color: var(--text); font-weight: 600; }
 
-        /* ── BOTTOM CTA ─────────────────────────────────── */
+        /* ── BOTTOM CTA ───────────────────────────────────────── */
         .bottom-cta {
-            padding: 80px 24px;
+            padding: 88px 24px;
             text-align: center;
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
         }
         .bottom-cta h2 {
-            font-size: clamp(20px, 3vw, 32px);
+            font-size: clamp(22px, 3vw, 36px);
             font-weight: 700;
             color: #F1F5F9;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
         .bottom-cta p {
-            font-size: 14px;
+            font-size: 15px;
             color: var(--muted);
-            margin-bottom: 28px;
+            margin-bottom: 32px;
         }
 
-        /* ── FOOTER ─────────────────────────────────────── */
+        /* ── FOOTER ───────────────────────────────────────────── */
         footer {
             padding: 18px 32px;
             display: flex; align-items: center; justify-content: space-between;
@@ -518,25 +442,18 @@
             font-size: 10px;
             color: var(--faint);
             letter-spacing: 0.5px;
+            border-top: 1px solid var(--border);
             flex-wrap: wrap;
             gap: 8px;
         }
-        .footer-trust {
-            font-size: 10px;
-            color: var(--faint);
-            letter-spacing: 0.3px;
-        }
 
-        /* ── MOBILE ─────────────────────────────────────── */
-        @media (max-width: 600px) {
+        /* ── MOBILE ───────────────────────────────────────────── */
+        @media (max-width: 700px) {
             nav { padding: 0 16px; }
-            .hero { padding: 90px 16px 52px; }
-            .ski-demo { padding: 60px 16px 72px; }
-            .features { padding: 60px 16px 72px; }
-            .comparison { padding: 60px 16px; }
-            .stack-section { padding: 48px 16px; }
-            .privacy { padding: 48px 16px; }
+            .section-wrap { padding: 64px 16px; }
+            .features-grid { grid-template-columns: 1fr; }
             .comparison-grid { grid-template-columns: 1fr; }
+            .privacy-grid { grid-template-columns: 1fr; }
             footer { flex-direction: column; gap: 6px; text-align: center; }
         }
     </style>
@@ -554,20 +471,16 @@
 <!-- HERO -->
 <section class="hero">
     <p class="hero-eyebrow">Meet Ski</p>
-
     <h1>Your portfolio. Today's macro conditions. Ski connects them instantly.</h1>
-
     <p class="hero-sub">
         Ski is an AI financial analyst that knows your actual holdings,
         the live Federal Reserve data, and recent news sentiment for every
         stock you own. Ask it how today's macro environment affects your specific positions.
     </p>
-
     <div class="hero-cta">
         <a href="/app" class="cta-primary">Ask Ski Now</a>
         <a href="https://github.com/Danny-397/Tradeski" target="_blank" rel="noopener" class="cta-ghost">GitHub ↗</a>
     </div>
-
     <div class="price-strip" id="price-strip">
         <div class="ps-item"><span class="ps-sym">AAPL</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
         <div class="ps-item"><span class="ps-sym">MSFT</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
@@ -577,18 +490,15 @@
     </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="divider"></div>
 
 <!-- SKI DEMO -->
-<section class="ski-demo">
-    <div class="section-header">
-        <p class="section-label">Ski in action</p>
-        <h2 class="section-title">Questions your charts can't answer</h2>
-        <p class="ski-demo-sub">
-            Ski sees your holdings, today's Federal Reserve data, and current news sentiment — all at once.
-        </p>
-    </div>
-
+<section class="section-wrap">
+    <span class="section-label">Ski in action</span>
+    <h2 class="section-title">Questions your charts can't answer</h2>
+    <p class="section-sub">
+        Ski sees your holdings, today's Federal Reserve data, and current news sentiment — all at once.
+    </p>
     <div class="chat-window">
         <div class="chat-window-header">
             <span class="ski-dot"></span>
@@ -597,37 +507,31 @@
         <div class="chat-body">
 
             <div class="chat-exchange">
-                <div class="chat-user">
-                    Given today's Fed rate decision, what in my holdings is most exposed?
-                </div>
+                <div class="chat-user">Given today's Fed rate decision, what in my holdings is most exposed?</div>
                 <div class="chat-ski">
                     <div class="chat-ski-label">SKI</div>
                     <div class="chat-ski-bubble">
-                        <strong>Your growth positions carry the most rate sensitivity.</strong> When the Fed holds rates elevated, the discount rate applied to future earnings rises — this compresses valuations on high-multiple names first. NVDA and similar tech holdings get repriced harder than defensive names. Your AAPL position is more insulated given its cash position and buyback program, though it's not immune. If the Fed signaled a hold today, watch the yield curve spread in the macro ribbon — if it's steepening, that's a signal the market expects growth to hold up; if it's inverting, rotation to defensives is the historical play.
+                        <strong>Your growth positions carry the most rate sensitivity.</strong> When the Fed holds rates elevated, the discount rate applied to future earnings rises — this compresses valuations on high-multiple names first. NVDA and similar tech holdings reprice harder than defensive names. AAPL is more insulated given its cash position and buyback program, though it's not immune. Watch the yield curve spread in your macro ribbon — steepening signals the market expects growth to hold; inversion historically triggers rotation to defensives.
                     </div>
                 </div>
             </div>
 
             <div class="chat-exchange">
-                <div class="chat-user">
-                    What changed for my positions since yesterday?
-                </div>
+                <div class="chat-user">What changed for my positions since yesterday?</div>
                 <div class="chat-ski">
                     <div class="chat-ski-label">SKI</div>
                     <div class="chat-ski-bubble">
-                        <strong>I can see your current holdings and live P&amp;L.</strong> For intraday changes, the 1D chart on any position shows you exactly where it opened versus where it trades now. Cross-reference that with the news sentiment panel — a shift from neutral to bearish sentiment often precedes price pressure by a few hours. If a position is down but sentiment is unchanged and macro data is stable, that's more likely noise than a signal worth acting on.
+                        <strong>I can see your current holdings and live P&amp;L.</strong> For intraday changes, the 1D chart on any position shows exactly where it opened versus where it trades now. Cross-reference that with the news sentiment panel — a shift from neutral to bearish sentiment often precedes price pressure. If a position is down but sentiment is unchanged and macro data is stable, that's more likely noise than a signal worth acting on.
                     </div>
                 </div>
             </div>
 
             <div class="chat-exchange">
-                <div class="chat-user">
-                    How does current inflation data affect my AAPL and NVDA positions?
-                </div>
+                <div class="chat-user">How does current inflation data affect my AAPL and NVDA positions?</div>
                 <div class="chat-ski">
                     <div class="chat-ski-label">SKI</div>
                     <div class="chat-ski-bubble">
-                        <strong>The current CPI reading is in your macro ribbon — use that as the baseline.</strong> If inflation is elevated, the Fed stays hawkish, which keeps discount rates high and compresses forward earnings multiples. NVDA gets hit harder here because its valuation is heavily weighted toward future AI capex earnings — a high discount rate makes those future earnings worth less today. AAPL is more defensive: its earnings are current, not future-weighted, and its massive cash position acts as a buffer. If CPI is cooling toward the 2% target, both names benefit — but NVDA benefits disproportionately as growth multiples expand.
+                        <strong>The CPI reading in your macro ribbon is the baseline.</strong> Elevated inflation keeps the Fed hawkish, which compresses forward earnings multiples. NVDA gets hit harder — its valuation is weighted toward future AI capex earnings, and a high discount rate makes those earnings worth less today. AAPL is more defensive: its earnings are current, not future-weighted. If CPI cools toward 2%, both names benefit — but NVDA benefits disproportionately as growth multiples expand.
                     </div>
                 </div>
             </div>
@@ -636,154 +540,122 @@
     </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="divider"></div>
 
 <!-- FEATURES -->
-<section class="features">
-    <div class="section-header">
-        <p class="section-label">Features</p>
+<section class="bg-alt">
+    <div class="section-wrap wide">
+        <span class="section-label">Features</span>
         <h2 class="section-title">Everything in one place</h2>
-    </div>
+        <p class="section-sub">From your portfolio to Federal Reserve data to live charts — all connected.</p>
+        <div class="features-grid">
 
-    <div class="features-grid">
-
-        <div class="feature-card feature-highlight">
-            <div class="feature-num blue">01 — SKI</div>
-            <div class="feature-title">Ski — AI Financial Analyst</div>
-            <p class="feature-desc">Ask questions about your specific portfolio. Ski receives your live holdings, P&L, Federal Reserve macro data, and news sentiment on every request — not generic market commentary.</p>
-            <div class="feature-tags">
-                <span class="feature-tag">PORTFOLIO AWARE</span>
-                <span class="feature-tag">MACRO CONTEXT</span>
-                <span class="feature-tag">NEWS SENTIMENT</span>
+            <div class="feature-card highlight">
+                <div class="feature-num blue">01 — SKI</div>
+                <div class="feature-title">Ski — AI Financial Analyst</div>
+                <p class="feature-desc">Ask questions about your specific portfolio. Ski receives your live holdings, P&L, Federal Reserve macro data, and news sentiment on every request.</p>
+                <div class="feature-tags">
+                    <span class="feature-tag">PORTFOLIO AWARE</span>
+                    <span class="feature-tag">MACRO CONTEXT</span>
+                    <span class="feature-tag">NEWS SENTIMENT</span>
+                </div>
             </div>
-        </div>
 
-        <div class="feature-card feature-highlight">
-            <div class="feature-num blue">02 — PORTFOLIO</div>
-            <div class="feature-title">Portfolio + Risk Analytics</div>
-            <p class="feature-desc">Track holdings with live P&L. Sharpe ratio, beta vs SPY, and annualized volatility computed from one year of daily returns weighted by market value. All injected into Ski automatically.</p>
-            <div class="feature-tags">
-                <span class="feature-tag">SHARPE</span>
-                <span class="feature-tag">BETA</span>
-                <span class="feature-tag">VOLATILITY</span>
+            <div class="feature-card highlight">
+                <div class="feature-num blue">02 — PORTFOLIO</div>
+                <div class="feature-title">Portfolio + Risk Analytics</div>
+                <p class="feature-desc">Track holdings with live P&L. Sharpe ratio, beta vs SPY, and annualized volatility from one year of daily returns — all injected into Ski automatically.</p>
+                <div class="feature-tags">
+                    <span class="feature-tag">SHARPE</span>
+                    <span class="feature-tag">BETA</span>
+                    <span class="feature-tag">VOLATILITY</span>
+                </div>
             </div>
-        </div>
 
-        <div class="feature-card feature-highlight">
-            <div class="feature-num blue">03 — MACRO</div>
-            <div class="feature-title">Federal Reserve Macro Ribbon</div>
-            <p class="feature-desc">CPI YoY%, Fed Funds Rate, GDP, Unemployment, 10-Year Treasury, Yield Curve spread, and High Yield credit spreads — pulled hourly from the St. Louis Fed and fed directly into Ski's context.</p>
-            <div class="feature-tags">
-                <span class="feature-tag">CPI</span>
-                <span class="feature-tag">FED RATE</span>
-                <span class="feature-tag">10Y YIELD</span>
-                <span class="feature-tag">HY SPREAD</span>
+            <div class="feature-card highlight">
+                <div class="feature-num blue">03 — MACRO</div>
+                <div class="feature-title">Federal Reserve Macro Ribbon</div>
+                <p class="feature-desc">CPI, Fed Funds Rate, GDP, Unemployment, 10-Year Treasury, Yield Curve, and Credit Spreads — pulled hourly from the St. Louis Fed and fed into Ski's context.</p>
+                <div class="feature-tags">
+                    <span class="feature-tag">CPI</span>
+                    <span class="feature-tag">FED RATE</span>
+                    <span class="feature-tag">10Y YIELD</span>
+                    <span class="feature-tag">HY SPREAD</span>
+                </div>
             </div>
-        </div>
 
-        <div class="feature-card">
-            <div class="feature-num">04 — CHARTS</div>
-            <div class="feature-title">Real-Time Price Charts</div>
-            <p class="feature-desc">Candlestick and line charts with live data across six timeframes — 1D through 1Y. Click any candle to inspect exact OHLC data. Compare up to five symbols on a normalized baseline.</p>
-            <div class="feature-tags">
-                <span class="feature-tag">CANDLESTICK</span>
-                <span class="feature-tag">LINE</span>
-                <span class="feature-tag">COMPARE MODE</span>
+            <div class="feature-card">
+                <div class="feature-num">04 — CHARTS</div>
+                <div class="feature-title">Real-Time Price Charts</div>
+                <p class="feature-desc">Candlestick and line charts across six timeframes — 1D through 1Y. Click any candle for exact OHLC data. Compare up to five symbols on a normalized baseline.</p>
+                <div class="feature-tags">
+                    <span class="feature-tag">CANDLESTICK</span>
+                    <span class="feature-tag">LINE</span>
+                    <span class="feature-tag">COMPARE MODE</span>
+                </div>
             </div>
-        </div>
 
-        <div class="feature-card">
-            <div class="feature-num">05 — INDICATORS</div>
-            <div class="feature-title">Technical Indicators</div>
-            <p class="feature-desc">RSI, MACD, Bollinger Bands, SMA 20/50, EMA 20, Z-Score, ATR, and linear regression — computed server-side from first principles, overlaid directly on the chart.</p>
-            <div class="feature-tags">
-                <span class="feature-tag">RSI</span>
-                <span class="feature-tag">MACD</span>
-                <span class="feature-tag">BOLLINGER</span>
-                <span class="feature-tag">SMA / EMA</span>
+            <div class="feature-card">
+                <div class="feature-num">05 — INDICATORS</div>
+                <div class="feature-title">Technical Indicators</div>
+                <p class="feature-desc">RSI, MACD, Bollinger Bands, SMA 20/50, EMA 20, Z-Score, ATR, and linear regression — implemented from first principles, overlaid on the chart.</p>
+                <div class="feature-tags">
+                    <span class="feature-tag">RSI</span>
+                    <span class="feature-tag">MACD</span>
+                    <span class="feature-tag">BOLLINGER</span>
+                    <span class="feature-tag">SMA / EMA</span>
+                </div>
             </div>
-        </div>
 
-        <div class="feature-card">
-            <div class="feature-num">06 — CORRELATION</div>
-            <div class="feature-title">Correlation Heatmap</div>
-            <p class="feature-desc">90-day pairwise return correlation matrix across 11 symbols. Spot diversification gaps and sector clustering at a glance.</p>
-            <div class="feature-tags">
-                <span class="feature-tag">90-DAY RETURNS</span>
-                <span class="feature-tag">11 SYMBOLS</span>
+            <div class="feature-card">
+                <div class="feature-num">06 — CORRELATION</div>
+                <div class="feature-title">Correlation Heatmap</div>
+                <p class="feature-desc">90-day pairwise return correlation matrix across 11 symbols. Spot diversification gaps and sector clustering at a glance.</p>
+                <div class="feature-tags">
+                    <span class="feature-tag">90-DAY RETURNS</span>
+                    <span class="feature-tag">11 SYMBOLS</span>
+                </div>
             </div>
-        </div>
 
+        </div>
     </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="divider"></div>
 
 <!-- COMPARISON -->
-<section class="comparison">
-    <div class="comparison-inner">
-        <div class="section-header">
-            <p class="section-label">Built different</p>
-            <h2 class="section-title">Why not just use TradingView?</h2>
-            <p class="comparison-sub">TradingView shows you great charts. It has no idea who you are.</p>
+<section class="section-wrap">
+    <span class="section-label">Built different</span>
+    <h2 class="section-title">Why not just use TradingView?</h2>
+    <p class="section-sub">TradingView shows you great charts. It has no idea who you are.</p>
+    <div class="comparison-grid">
+        <div class="comparison-col">
+            <div class="comparison-col-header muted">TRADINGVIEW / FINVIZ</div>
+            <div class="comparison-row"><span class="mark mark-no">—</span><span>Generic charts built for any user</span></div>
+            <div class="comparison-row"><span class="mark mark-no">—</span><span>No awareness of your holdings or cost basis</span></div>
+            <div class="comparison-row"><span class="mark mark-no">—</span><span>No live Federal Reserve macro integration</span></div>
+            <div class="comparison-row"><span class="mark mark-no">—</span><span>Charts can't connect macro conditions to your positions</span></div>
+            <div class="comparison-row"><span class="mark mark-no">—</span><span>No AI analyst — you interpret everything yourself</span></div>
         </div>
-
-        <div class="comparison-grid">
-            <div class="comparison-col">
-                <div class="comparison-col-header muted">TRADINGVIEW / FINVIZ</div>
-                <div class="comparison-row">
-                    <span class="mark mark-no">—</span>
-                    <span>Generic charts built for any user</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-no">—</span>
-                    <span>No awareness of your holdings or cost basis</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-no">—</span>
-                    <span>No live Federal Reserve macro integration</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-no">—</span>
-                    <span>Charts can't connect macro conditions to your positions</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-no">—</span>
-                    <span>No AI analyst — you interpret everything yourself</span>
-                </div>
-            </div>
-            <div class="comparison-col tradeski">
-                <div class="comparison-col-header blue">TRADESKI + SKI</div>
-                <div class="comparison-row">
-                    <span class="mark mark-yes">→</span>
-                    <span>Personalized to your specific portfolio</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-yes">→</span>
-                    <span>Ski knows your holdings, shares, and P&L in real time</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-yes">→</span>
-                    <span>Live FRED data — CPI, Fed Funds Rate, yield curve — updated hourly</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-yes">→</span>
-                    <span>Ski explains how today's macro data affects your positions specifically</span>
-                </div>
-                <div class="comparison-row">
-                    <span class="mark mark-yes">→</span>
-                    <span>Ask it anything — it answers with your context, not generic advice</span>
-                </div>
-            </div>
+        <div class="comparison-col tradeski">
+            <div class="comparison-col-header blue">TRADESKI + SKI</div>
+            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Personalized to your specific portfolio</span></div>
+            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Ski knows your holdings, shares, and P&L in real time</span></div>
+            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Live FRED data — CPI, Fed Funds Rate, yield curve — updated hourly</span></div>
+            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Ski explains how today's macro data affects your positions specifically</span></div>
+            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Ask it anything — it answers with your context, not generic advice</span></div>
         </div>
     </div>
 </section>
 
-<!-- TECH STACK -->
-<section class="stack-section">
-    <div class="stack-inner">
-        <p class="section-label">Stack</p>
-        <h2 class="section-title" style="font-size:20px">How it's built</h2>
+<div class="divider"></div>
+
+<!-- STACK -->
+<section class="bg-alt">
+    <div class="section-wrap">
+        <span class="section-label">Stack</span>
+        <h2 class="section-title">How it's built</h2>
+        <p class="section-sub">Production-deployed on Render and Vercel. 45 passing tests. CI on every push.</p>
         <div class="stack-grid">
             <div class="stack-item">Python / Flask</div>
             <div class="stack-item">Flask-SocketIO</div>
@@ -801,29 +673,33 @@
     </div>
 </section>
 
+<div class="divider"></div>
+
 <!-- PRIVACY -->
-<section class="privacy">
-    <div class="section-header">
-        <p class="section-label">Privacy</p>
-        <h2 class="section-title" style="font-size:20px">Your data</h2>
-    </div>
-    <div class="privacy-list">
+<section class="section-wrap">
+    <span class="section-label">Privacy</span>
+    <h2 class="section-title">Your data</h2>
+    <p class="section-sub">No account. No email. No tracking beyond what powers the platform itself.</p>
+    <div class="privacy-grid">
         <div class="privacy-item">
-            <span class="privacy-mark">01</span>
-            <p class="privacy-text"><strong>What Tradeski collects:</strong> Portfolio holdings you enter (ticker, shares, cost basis) and chat messages sent to Ski. No account, no email, no personal information.</p>
+            <div class="privacy-num">WHAT WE COLLECT</div>
+            <div class="privacy-title">Portfolio holdings only</div>
+            <p class="privacy-text">The ticker, share count, and cost basis you enter. No account, no email, no personal information required.</p>
         </div>
         <div class="privacy-item">
-            <span class="privacy-mark">02</span>
-            <p class="privacy-text"><strong>What it's used for:</strong> Your portfolio data is used exclusively to power Ski's analysis — so it can answer questions about your specific positions rather than generic ones.</p>
+            <div class="privacy-num">WHAT IT'S USED FOR</div>
+            <div class="privacy-title">Powering Ski's analysis</div>
+            <p class="privacy-text">Your holdings are used exclusively so Ski can answer questions about your specific positions rather than generic ones.</p>
         </div>
         <div class="privacy-item">
-            <span class="privacy-mark">03</span>
-            <p class="privacy-text"><strong>What we never do:</strong> Tradeski does not sell your data, share it with third parties, or use it for advertising. Your holdings are never transmitted outside of powering Ski's responses.</p>
+            <div class="privacy-num">WHAT WE NEVER DO</div>
+            <div class="privacy-title">Sell or share your data</div>
+            <p class="privacy-text">Tradeski does not sell your data, share it with third parties, or use it for advertising. Ever.</p>
         </div>
     </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="divider"></div>
 
 <!-- BOTTOM CTA -->
 <section class="bottom-cta">
@@ -834,7 +710,7 @@
 
 <footer>
     <span>◈ TRADESKI</span>
-    <span class="footer-trust">Tradeski does not sell your data. Portfolio data powers Ski's analysis only.</span>
+    <span>Tradeski does not sell your data. Portfolio data powers Ski's analysis only.</span>
     <span>tradeski.dev</span>
 </footer>
 
@@ -848,11 +724,11 @@
     )).then(results => {
         results.forEach((d, i) => {
             if (!d || d.error) return;
-            const pct   = d.open > 0 ? ((d.close - d.open) / d.open * 100) : 0;
-            const dir   = pct >= 0 ? "up" : "down";
-            const sign  = pct >= 0 ? "+" : "";
-            const pEl   = items[i].querySelector(".ps-price");
-            const cEl   = items[i].querySelector(".ps-chg");
+            const pct  = d.open > 0 ? ((d.close - d.open) / d.open * 100) : 0;
+            const dir  = pct >= 0 ? "up" : "down";
+            const sign = pct >= 0 ? "+" : "";
+            const pEl  = items[i].querySelector(".ps-price");
+            const cEl  = items[i].querySelector(".ps-chg");
             if (pEl) pEl.textContent = "$" + d.close.toFixed(2);
             if (cEl) { cEl.textContent = `${sign}${pct.toFixed(2)}%`; cEl.className = `ps-chg ${dir}`; }
         });
