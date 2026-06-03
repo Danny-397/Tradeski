@@ -1135,6 +1135,28 @@ function skiAppendMessage(role, content, isLoading = false) {
     return bubble;
 }
 
+function buildChartContext() {
+    const d = state.chartData;
+    if (!d) return null;
+    const last = arr => Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null;
+    return {
+        symbol:          state.symbol,
+        timeframe:       state.timeframe,
+        close:           last(d.close),
+        rsi:             last(d.rsi),
+        macd:            last(d.macd),
+        macd_signal:     last(d.signal),
+        macd_histogram:  last(d.histogram),
+        sma20:           last(d.sma20),
+        sma50:           last(d.sma50),
+        ema20:           last(d.ema20),
+        upper_band:      last(d.upper_band),
+        lower_band:      last(d.lower_band),
+        zscore:          last(d.zscore),
+        volatility:      last(d.volatility),
+    };
+}
+
 async function skiSend() {
     if (skiState.busy) return;
     const input = document.getElementById("ski-input");
@@ -1155,7 +1177,12 @@ async function skiSend() {
         const res = await fetch(`${CFG.API}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message, history: skiState.history.slice(0, -1), symbol: state.symbol }),
+            body: JSON.stringify({
+                message,
+                history: skiState.history.slice(0, -1),
+                symbol: state.symbol,
+                chart_context: buildChartContext(),
+            }),
         });
         if (res.status === 429) {
             loadingBubble.textContent = "Rate limit reached — you can send up to 20 messages per hour. Try again later.";

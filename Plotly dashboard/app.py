@@ -545,6 +545,50 @@ def _get_news_context(symbol: str) -> str:
     return format_news_context(symbol, articles, aggregate_sentiment(articles))
 
 
+def _format_chart_context(ctx: dict) -> str:
+    """Format the user's current chart indicator snapshot for Ski."""
+    symbol = ctx.get("symbol", "")
+    tf = ctx.get("timeframe", "")
+    lines = [f"CURRENT CHART — {symbol} ({tf} timeframe):"]
+
+    close = ctx.get("close")
+    if close is not None:
+        lines.append(f"  Latest close: ${close:.2f}")
+
+    rsi = ctx.get("rsi")
+    if rsi is not None:
+        sig = "overbought" if rsi > 70 else "oversold" if rsi < 30 else "neutral"
+        lines.append(f"  RSI (14): {rsi:.1f} — {sig}")
+
+    macd = ctx.get("macd")
+    signal = ctx.get("macd_signal")
+    hist = ctx.get("macd_histogram")
+    if macd is not None and signal is not None:
+        direction = "bullish crossover" if hist and hist > 0 else "bearish crossover"
+        lines.append(f"  MACD: {macd:.3f}, Signal: {signal:.3f}, Histogram: {hist:+.3f} ({direction})")
+
+    sma20 = ctx.get("sma20")
+    sma50 = ctx.get("sma50")
+    ema20 = ctx.get("ema20")
+    if sma20 is not None:
+        lines.append(f"  SMA 20: ${sma20:.2f}")
+    if sma50 is not None:
+        lines.append(f"  SMA 50: ${sma50:.2f}")
+    if ema20 is not None:
+        lines.append(f"  EMA 20: ${ema20:.2f}")
+
+    upper = ctx.get("upper_band")
+    lower = ctx.get("lower_band")
+    if upper is not None and lower is not None and sma20 is not None:
+        lines.append(f"  Bollinger Bands: Upper ${upper:.2f} / Mid ${sma20:.2f} / Lower ${lower:.2f}")
+
+    zscore = ctx.get("zscore")
+    if zscore is not None:
+        lines.append(f"  Z-Score: {zscore:.2f}")
+
+    return "\n".join(lines)
+
+
 # ─────────────────────────────────────────────────────────────
 # Screener Endpoint
 # ─────────────────────────────────────────────────────────────
@@ -741,6 +785,7 @@ def chat() -> tuple:
     message = re.sub(r'<[^>]+>', '', raw_msg).strip()[:500]
     history = data.get("history") or []
     symbol  = re.sub(r'[^A-Z0-9.]', '', (data.get("symbol") or "").upper())[:10]
+    chart_context = data.get("chart_context") or {}
 
     if not message:
         return jsonify({"error": "No message provided"}), 400
@@ -760,6 +805,8 @@ def chat() -> tuple:
     news_ctx = _get_news_context(symbol)
     if news_ctx:
         system_parts.append(news_ctx)
+    if chart_context:
+        system_parts.append(_format_chart_context(chart_context))
 
     # Build messages list — Anthropic requires strict user/assistant alternation
     messages = []
