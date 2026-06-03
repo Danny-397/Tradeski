@@ -142,9 +142,43 @@
         .hero-sub {
             font-size: 16px;
             color: var(--muted);
-            max-width: 520px;
+            max-width: 560px;
             line-height: 1.7;
+            margin-bottom: 28px;
+        }
+        .hero-pillars {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px 4px;
             margin-bottom: 36px;
+        }
+        .hero-pill {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: #F1F5F9;
+            background: var(--blue-d);
+            border: 1px solid rgba(59,130,246,0.25);
+            padding: 5px 12px;
+            border-radius: 2px;
+        }
+        .hero-pill-sep {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--muted);
+            padding: 0 2px;
+        }
+        .hero-pill-eq {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: var(--blue);
+            font-weight: 600;
+            padding: 5px 14px;
+            border: 1px solid var(--blue);
+            border-radius: 2px;
         }
         .hero-cta {
             display: flex; gap: 12px;
@@ -470,13 +504,23 @@
 
 <!-- HERO -->
 <section class="hero">
-    <p class="hero-eyebrow">Meet Ski</p>
-    <h1>Your portfolio. Today's macro conditions. Ski connects them instantly.</h1>
+    <p class="hero-eyebrow">Meet Ski — Your AI Financial Analyst</p>
+    <h1>One analyst. Your portfolio, live market data, Fed macro, and news — answered together.</h1>
     <p class="hero-sub">
-        Ski is an AI financial analyst that knows your actual holdings,
-        the live Federal Reserve data, and recent news sentiment for every
-        stock you own. Ask it how today's macro environment affects your specific positions.
+        Ski combines your actual holdings, real-time market prices, Federal Reserve macroeconomic data,
+        and live news sentiment into a single AI analyst. Ask how today's conditions affect
+        <em>your specific positions</em> — not the market in general.
     </p>
+    <div class="hero-pillars">
+        <span class="hero-pill">◈ Your Portfolio</span>
+        <span class="hero-pill-sep">+</span>
+        <span class="hero-pill">◈ Live Market Data</span>
+        <span class="hero-pill-sep">+</span>
+        <span class="hero-pill">◈ Fed Macro Data</span>
+        <span class="hero-pill-sep">+</span>
+        <span class="hero-pill">◈ News Sentiment</span>
+        <span class="hero-pill-eq">= Ski</span>
+    </div>
     <div class="hero-cta">
         <a href="/app" class="cta-primary">Ask Ski Now</a>
         <a href="https://github.com/Danny-397/Tradeski" target="_blank" rel="noopener" class="cta-ghost">GitHub ↗</a>
