@@ -1966,175 +1966,125 @@ body::before {
     }
 }
 
-/* ── Mobile Responsive (portrait only — landscape shows full desktop layout) ── */
+/* ── Mobile Responsive (portrait) — single-column app layout ──────────
+   A phone can't show the 3-pane desktop terminal, so in portrait we
+   reflow everything into ONE natural vertical scroll:
+       search + chart  →  indicators / news  →  portfolio / alerts
+   Every feature stays reachable by scrolling; nothing is buried in a
+   drawer, and form fields live in normal flow so the iOS keyboard
+   scrolls them into view by itself.                                    */
 @media (max-width: 768px) and (orientation: portrait) {
-    .hamburger-btn { display: flex; }
 
-    /* left sidebar: fixed slide-in drawer on mobile */
-    .sidebar-left {
-        position: fixed;
-        top: 0; left: 0; bottom: 0;
-        width: min(300px, 85vw);
-        z-index: 650;
-        transform: translateX(-105%);
-        transition: transform 0.25s var(--ease);
-        border-right: 1px solid var(--border);
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.55);
-        overflow-y: auto;
-    }
-    .sidebar-left.mobile-open {
-        transform: translateX(0);
-    }
+    /* Let the whole page scroll instead of being a fixed terminal. */
+    html, body { height: auto; min-height: 100%; overflow: visible; }
+    body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-    /* close button inside the sidebar drawer */
-    .mobile-drawer-close {
+    /* Stack the three panes top-to-bottom. */
+    .app-body {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+    }
+    .chart-area    { order: 1; }   /* search + chart (the hero) */
+    .sidebar-right { order: 2; }   /* indicators / news         */
+    .sidebar-left  { order: 3; }   /* portfolio / alerts        */
+
+    /* Sidebars become full-width stacked sections — no more drawer. */
+    .sidebar-left,
+    .sidebar-right {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        align-self: flex-end;
-        width: 28px; height: 28px;
-        flex-shrink: 0;
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text-secondary);
-        font-size: 12px;
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        margin-bottom: 4px;
-        transition: border-color var(--t), color var(--t);
+        position: static;
+        width: 100%;
+        height: auto;
+        transform: none;
+        overflow: visible;
+        box-shadow: none;
+        border: none;
+        z-index: auto;
+        padding: 10px;
+        gap: 10px;
     }
-    .mobile-drawer-close:hover { border-color: var(--red); color: var(--red); }
+    .panel-portfolio { order: -1; }   /* portfolio above alerts */
 
-    /* right sidebar always hidden on mobile */
-    .sidebar-right { display: none; }
+    /* Chart needs an explicit height in the auto-height column, or it
+       collapses to nothing. ~half the screen, with a sane floor. */
+    .chart-area { height: auto; overflow: visible; }
+    .chart-container {
+        flex: none;
+        height: 50vh;
+        height: 50dvh;
+        min-height: 300px;
+    }
 
+    /* One page scroll only — let inner panels expand, kill nested
+       scroll regions that trap touch gestures. */
+    .panel-grow { flex: none; }
+    .tab-pane { overflow: visible; min-height: 0; }
+    .indicators-panel,
+    .news-feed { max-height: none; overflow: visible; }
 
-    /* header */
+    /* Drawer machinery is unused in the stacked layout — hide it. */
+    .hamburger-btn,
+    .mobile-drawer-close,
+    .mobile-overlay { display: none !important; }
+
+    /* ── Header ── */
     .app-header { padding: 0 12px; }
     .logo-text  { letter-spacing: 2px; font-size: 14px; }
     .market-status { display: none; }
+    .header-right { gap: 8px; }
+    .screener-btn { padding: 8px 10px; font-size: 13px; letter-spacing: 0; }
+    .screener-btn .btn-text { display: none; }
 
-    /* macro ribbon — show only 3 items */
+    /* ── Macro ribbon: trim to the first few items ── */
     .macro-item:nth-child(n+4) { display: none; }
 
-    /* toolbar — two-row stays but make main row scrollable */
+    /* ── Toolbar: full-width search on its own line, controls wrap
+       underneath instead of hiding in a horizontal scroll. ── */
     .toolbar-row-main {
-        overflow-x: auto;
-        scrollbar-width: none;
+        flex-wrap: wrap;
         gap: 6px;
-        padding: 0 10px;
+        padding: 8px 10px;
     }
-    .toolbar-row-main::-webkit-scrollbar { display: none; }
-
+    .symbol-search-wrap { flex: 1 1 100%; }
+    .symbol-input { flex: 1; }
+    .chart-type-group,
+    .timeframe-group { flex-wrap: wrap; }
     .toolbar-row-overlays {
-        overflow-x: auto;
-        scrollbar-width: none;
-        padding: 0 10px;
-    }
-    .toolbar-row-overlays::-webkit-scrollbar { display: none; }
-
-    /* screener modal full width on mobile */
-    .modal-wide {
-        width: 100vw;
-        max-height: 100vh;
-        border-radius: 0;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 10px;
     }
 
-    /* heatmap chart shorter on mobile */
-    .heatmap-chart { height: 320px; }
-
-    /* ski panel full width on mobile */
-    .ski-panel {
-        width: calc(100vw - 20px);
-        right: 10px;
-        left: 10px;
-    }
-
-    /* status bar — shorten brand text */
-    .status-brand { display: none; }
-
-    /* ────────────────────────────────────────────────────────
-       MOBILE USABILITY — easy portfolio entry + comfy tapping
-       ──────────────────────────────────────────────────────── */
-
-    /* Inputs at 16px+ so iOS Safari doesn't auto-zoom on focus.
-       (Sub-16px fonts force a jarring zoom that broke form entry.) */
-    .form-input,
-    .pf-input,
-    .symbol-input,
-    .compare-input,
-    .ski-input,
-    .filter-input,
-    .filter-select,
-    select.form-input {
+    /* ── Inputs ≥16px so iOS never auto-zooms on focus ── */
+    .form-input, .pf-input, .symbol-input, .compare-input,
+    .ski-input, .filter-input, .filter-select, select.form-input {
         font-size: 16px;
     }
 
-    /* Drawer: surface PORTFOLIO first, give the keyboard room to
-       scroll the form into view, and breathe between panels. */
-    .sidebar-left {
-        gap: 12px;
-        padding: 10px 10px 120px;
-    }
-    .mobile-drawer-close { order: -2; }
-    .panel-portfolio     { order: -1; }
-
-    /* Portfolio add form — full-size touch targets (≥44px). */
+    /* ── Comfortable (≥44px) touch targets ── */
     .portfolio-form { gap: 8px; }
     .portfolio-form-row { gap: 8px; }
-    .pf-input {
-        min-height: 44px;
-        padding: 10px 12px;
-    }
-    .pf-add-btn {
-        min-height: 44px;
-        padding: 10px 14px;
-        font-size: 13px;
-    }
-
-    /* Bigger remove / new-alert hit areas. */
-    .pf-delete-btn {
-        font-size: 15px;
-        padding: 4px 8px;
-    }
+    .pf-input  { min-height: 44px; padding: 10px 12px; }
+    .pf-add-btn { min-height: 44px; padding: 10px 14px; font-size: 13px; }
+    .pf-delete-btn { font-size: 15px; padding: 4px 8px; }
     .btn-secondary.full-width,
-    .btn-primary.full-width {
-        min-height: 44px;
-    }
-
-    /* Roomier toolbar buttons so timeframes/overlays are tappable. */
-    .tf-btn {
-        padding: 7px 12px;
-        font-size: 12px;
-    }
-    .ind-btn {
-        padding: 6px 10px;
-        font-size: 11px;
-    }
+    .btn-primary.full-width { min-height: 44px; }
+    .tf-btn  { padding: 7px 12px; font-size: 12px; }
+    .ind-btn { padding: 6px 10px; font-size: 11px; }
     .symbol-go-btn { padding: 7px 14px; }
 
-    /* Header: icon-only secondary buttons so the ☰ menu (the only
-       way into the portfolio drawer) is ALWAYS visible, never pushed
-       off-screen. */
-    .header-right { gap: 8px; }
-    .screener-btn {
-        padding: 8px 10px;
-        font-size: 13px;
-        letter-spacing: 0;
-    }
-    .screener-btn .btn-text { display: none; }
-    .hamburger-btn {
-        width: 38px; height: 38px;
-        font-size: 18px;
-        border-color: var(--amber-dim);
-        color: var(--amber);
-    }
-
-    /* Alert / non-wide modals fit the viewport with a margin. */
+    /* ── Modals / overlays sized for a phone ── */
+    .modal-wide { width: 100vw; max-height: 100vh; border-radius: 0; }
     .modal {
         width: calc(100vw - 24px);
         max-width: 400px;
         max-height: calc(100vh - 32px);
         overflow-y: auto;
     }
+    .heatmap-chart { height: 320px; }
+    .ski-panel { width: calc(100vw - 20px); right: 10px; left: 10px; }
+
+    /* ── Status bar ── */
+    .status-brand { display: none; }
 }
