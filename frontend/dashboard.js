@@ -1808,12 +1808,52 @@ function initMobileDrawer() {
     const btn      = document.getElementById("hamburger-btn");
     const overlay  = document.getElementById("mobile-overlay");
     const closeBtn = document.getElementById("mobile-drawer-close");
+    const sidebar  = document.querySelector(".sidebar-left");
 
     if (!btn || !overlay) return;
 
     btn.addEventListener("click", openMobileDrawer);
     if (closeBtn) closeBtn.addEventListener("click", closeMobileDrawer);
     overlay.addEventListener("click", closeMobileDrawer);
+
+    // Keep the open drawer pinned to the *visible* area. When the iOS
+    // keyboard slides up it shrinks the visual viewport — without this
+    // the drawer stays full-height and the keyboard hides the form
+    // fields (e.g. "Shares"), making entry impossible.
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", syncDrawerToViewport);
+        window.visualViewport.addEventListener("scroll", syncDrawerToViewport);
+    }
+
+    // When a field is focused, lift it into the middle of whatever space
+    // is left above the keyboard so the user always sees what they type.
+    if (sidebar) {
+        sidebar.addEventListener("focusin", (e) => {
+            if (e.target.matches("input, select, textarea")) {
+                setTimeout(() => e.target.scrollIntoView({ block: "center" }), 280);
+            }
+        });
+    }
+
+    // Rotating to landscape (or any non-mobile width) switches to the full
+    // desktop layout — make sure the fixed drawer/overlay never linger.
+    window.addEventListener("resize", () => {
+        const isMobilePortrait = window.matchMedia(
+            "(max-width: 768px) and (orientation: portrait)"
+        ).matches;
+        if (!isMobilePortrait) closeMobileDrawer();
+    });
+}
+
+// Shrink the drawer to the area the keyboard leaves visible.
+function syncDrawerToViewport() {
+    const sidebar = document.querySelector(".sidebar-left");
+    if (!sidebar || !sidebar.classList.contains("mobile-open")) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    sidebar.style.top    = vv.offsetTop + "px";
+    sidebar.style.bottom = "auto";
+    sidebar.style.height = vv.height + "px";
 }
 
 function openMobileDrawer() {
@@ -1824,6 +1864,7 @@ function openMobileDrawer() {
     sidebar.classList.add("mobile-open");
     overlay.style.display = "block";
     document.body.style.overflow = "hidden";
+    syncDrawerToViewport();
 }
 
 function closeMobileDrawer() {
@@ -1834,4 +1875,9 @@ function closeMobileDrawer() {
     sidebar.classList.remove("mobile-open");
     overlay.style.display = "none";
     document.body.style.overflow = "";
+
+    // Drop the keyboard-fit sizing so the drawer is full-height next time.
+    sidebar.style.top    = "";
+    sidebar.style.bottom = "";
+    sidebar.style.height = "";
 }

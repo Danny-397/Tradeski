@@ -1952,29 +1952,16 @@ body::before {
     animation: shimmer 1.5s infinite linear;
 }
 
-/* ── Landscape phone: hide chrome to maximise chart height ──
-   Targets phones in landscape (height ≤500px) only.
-   Tablets and laptops have far more height — unaffected.       */
-@media (orientation: landscape) and (max-height: 500px) {
-    /* Free up ~150px of vertical space for the chart */
-    .ticker-wrap          { display: none; }
-    .macro-ribbon         { display: none; }
-    .status-bar           { display: none; }
-    .toolbar-row-overlays { display: none; }
-
-    /* Narrow sidebars slightly so chart gets more horizontal room */
-    .sidebar-left, .sidebar-right { width: 180px; }
-
-    /* Update CSS vars so Ski panel + any calc() heights stay correct */
-    :root {
-        --sidebar-w: 180px;
-        --ticker-h:  0px;
-        --status-h:  0px;
-    }
-
-    /* Keep inputs ≥16px so iOS doesn't auto-zoom in landscape either. */
+/* ── Touch devices: never auto-zoom on input focus ───────────
+   iOS Safari zooms the page whenever a focused field is <16px,
+   which broke form entry. Forcing 16px on every input kills that
+   zoom in BOTH orientations. Keyed off `pointer: coarse` so it
+   only touches touchscreens — a real laptop is unaffected, and a
+   phone held horizontally gets the exact desktop layout.          */
+@media (pointer: coarse) {
+    input, select, textarea,
     .form-input, .pf-input, .symbol-input, .compare-input,
-    .ski-input, .filter-input, .filter-select, select.form-input {
+    .ski-input, .filter-input, .filter-select {
         font-size: 16px;
     }
 }
