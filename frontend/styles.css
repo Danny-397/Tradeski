@@ -1971,6 +1971,12 @@ body::before {
         --ticker-h:  0px;
         --status-h:  0px;
     }
+
+    /* Keep inputs ≥16px so iOS doesn't auto-zoom in landscape either. */
+    .form-input, .pf-input, .symbol-input, .compare-input,
+    .ski-input, .filter-input, .filter-select, select.form-input {
+        font-size: 16px;
+    }
 }
 
 /* ── Mobile Responsive (portrait only — landscape shows full desktop layout) ── */
@@ -2059,4 +2065,89 @@ body::before {
 
     /* status bar — shorten brand text */
     .status-brand { display: none; }
+
+    /* ────────────────────────────────────────────────────────
+       MOBILE USABILITY — easy portfolio entry + comfy tapping
+       ──────────────────────────────────────────────────────── */
+
+    /* Inputs at 16px+ so iOS Safari doesn't auto-zoom on focus.
+       (Sub-16px fonts force a jarring zoom that broke form entry.) */
+    .form-input,
+    .pf-input,
+    .symbol-input,
+    .compare-input,
+    .ski-input,
+    .filter-input,
+    .filter-select,
+    select.form-input {
+        font-size: 16px;
+    }
+
+    /* Drawer: surface PORTFOLIO first, give the keyboard room to
+       scroll the form into view, and breathe between panels. */
+    .sidebar-left {
+        gap: 12px;
+        padding: 10px 10px 120px;
+    }
+    .mobile-drawer-close { order: -2; }
+    .panel-portfolio     { order: -1; }
+
+    /* Portfolio add form — full-size touch targets (≥44px). */
+    .portfolio-form { gap: 8px; }
+    .portfolio-form-row { gap: 8px; }
+    .pf-input {
+        min-height: 44px;
+        padding: 10px 12px;
+    }
+    .pf-add-btn {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    /* Bigger remove / new-alert hit areas. */
+    .pf-delete-btn {
+        font-size: 15px;
+        padding: 4px 8px;
+    }
+    .btn-secondary.full-width,
+    .btn-primary.full-width {
+        min-height: 44px;
+    }
+
+    /* Roomier toolbar buttons so timeframes/overlays are tappable. */
+    .tf-btn {
+        padding: 7px 12px;
+        font-size: 12px;
+    }
+    .ind-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+    .symbol-go-btn { padding: 7px 14px; }
+
+    /* Header: icon-only secondary buttons so the ☰ menu (the only
+       way into the portfolio drawer) is ALWAYS visible, never pushed
+       off-screen. */
+    .header-right { gap: 8px; }
+    .screener-btn {
+        padding: 8px 10px;
+        font-size: 13px;
+        letter-spacing: 0;
+    }
+    .screener-btn .btn-text { display: none; }
+    .hamburger-btn {
+        width: 38px; height: 38px;
+        font-size: 18px;
+        border-color: var(--amber-dim);
+        color: var(--amber);
+    }
+
+    /* Alert / non-wide modals fit the viewport with a margin. */
+    .modal {
+        width: calc(100vw - 24px);
+        max-width: 400px;
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+    }
 }
