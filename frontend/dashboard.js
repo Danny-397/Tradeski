@@ -27,12 +27,9 @@ let state = {
     chartType:  "candle",
     showRsi:    false,
     showMacd:   false,
-    // On touch screens start with a clean chart (no overlays); the small
-    // canvas gets unreadable with BB+SMA+EMA+VOL all on. Users can still
-    // toggle any of them back on.
-    indicators: IS_TOUCH
-        ? { bb: false, sma: false, ema: false, vol: false }
-        : { bb: true,  sma: true,  ema: true,  vol: true  },
+    // All chart overlays on by default (every device) so the indicators are
+    // visible right away; users can toggle any of them off.
+    indicators: { bb: true, sma: true, ema: true, vol: true },
     chartData:  null,
     alerts:     [],
     lastPrices: {},
