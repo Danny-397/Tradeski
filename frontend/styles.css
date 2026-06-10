@@ -2011,9 +2011,9 @@ body::before {
     .chart-area { height: auto; overflow: visible; }
     .chart-container {
         flex: none;
-        height: 50vh;
-        height: 50dvh;
-        min-height: 300px;
+        height: 44vh;
+        height: 44dvh;
+        min-height: 280px;
     }
 
     /* One page scroll only — let inner panels expand, kill nested
@@ -2036,8 +2036,26 @@ body::before {
     .screener-btn { padding: 8px 10px; font-size: 13px; letter-spacing: 0; }
     .screener-btn .btn-text { display: none; }
 
-    /* ── Macro ribbon: trim to the first few items ── */
-    .macro-item:nth-child(n+4) { display: none; }
+    /* ── FRED macro ribbon: condense into compact, swipeable chips so
+       every series is readable at a glance in portrait (instead of
+       three big stacked cells that crowd the screen). ── */
+    .macro-ribbon { height: auto; }
+    .macro-ribbon-inner {
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .macro-ribbon-inner::-webkit-scrollbar { display: none; }
+    .macro-item {
+        flex: 0 0 auto;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 5px;
+        padding: 7px 12px;
+        border-right: 1px solid var(--border);
+    }
+    .macro-item:nth-child(n+4) { display: flex; }   /* show all, not just 3 */
+    .macro-label { font-size: 8px; }
+    .macro-value { font-size: 11px; }
 
     /* ── Toolbar: full-width search on its own line, controls wrap
        underneath instead of hiding in a horizontal scroll. ── */

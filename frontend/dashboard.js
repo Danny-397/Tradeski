@@ -17,13 +17,22 @@ const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOO
 // STATE
 // ============================================================
 
+// Touch device? (phones/tablets) — drives the cleaner, gesture-friendly
+// chart behaviour and a less cluttered set of default overlays.
+const IS_TOUCH = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+
 let state = {
     symbol:     "AAPL",
     timeframe:  "1D",
     chartType:  "candle",
     showRsi:    false,
     showMacd:   false,
-    indicators: { bb: true, sma: true, ema: true, vol: true },
+    // On touch screens start with a clean chart (no overlays); the small
+    // canvas gets unreadable with BB+SMA+EMA+VOL all on. Users can still
+    // toggle any of them back on.
+    indicators: IS_TOUCH
+        ? { bb: false, sma: false, ema: false, vol: false }
+        : { bb: true,  sma: true,  ema: true,  vol: true  },
     chartData:  null,
     alerts:     [],
     lastPrices: {},
@@ -166,6 +175,8 @@ function initTimeframes() {
 function initIndicatorToggles() {
     // Overlay toggles (BB, SMA, EMA, VOL)
     document.querySelectorAll(".ind-btn[data-ind]").forEach(btn => {
+        // Reflect the actual starting state (overlays default off on mobile).
+        btn.classList.toggle("active", !!state.indicators[btn.dataset.ind]);
         btn.addEventListener("click", () => {
             const k = btn.dataset.ind;
             state.indicators[k] = !state.indicators[k];
@@ -386,6 +397,9 @@ function renderChart(d) {
         zerolinecolor: "rgba(255,255,255,0.06)",
         tickfont: { family: "JetBrains Mono, monospace", size: 10, color: "#6B7280" },
         showgrid: true, zeroline: false, showline: false,
+        // On touch screens lock pan/zoom so a finger-drag reads the value
+        // at that point (spikeline + tooltip) instead of dragging the chart.
+        fixedrange: IS_TOUCH,
     };
 
     const layout = {
@@ -403,7 +417,7 @@ function renderChart(d) {
         margin: { t: 8, l: 10, r: 65, b: 32 },
         xaxis:  { ...ax, ...spike, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
         yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
-        dragmode: "pan",
+        dragmode: IS_TOUCH ? false : "pan",
         hovermode: "closest",
         hoverdistance: 80,
         spikedistance: 100,
@@ -431,7 +445,10 @@ function renderChart(d) {
 
     const config = {
         responsive: true, displaylogo: false,
-        scrollZoom: true, displayModeBar: true,
+        // Touch: no scroll-zoom, and hide the floating mode bar (clutter on
+        // a phone). Desktop keeps the full interactive toolbar.
+        scrollZoom: !IS_TOUCH,
+        displayModeBar: !IS_TOUCH,
         modeBarButtonsToRemove: ["select2d", "lasso2d", "toImage"],
     };
 
@@ -1775,12 +1792,14 @@ async function renderCompareChart() {
             type: "date",
             color: "#475569", gridcolor: "#1E293B",
             tickfont: { color: "#64748B", size: 9, family: "JetBrains Mono" },
+            fixedrange: IS_TOUCH,
         },
         yaxis: {
             ticksuffix: "%",
             color: "#475569", gridcolor: "#1E293B",
             zeroline: true, zerolinecolor: "#334155",
             tickfont: { color: "#64748B", size: 9, family: "JetBrains Mono" },
+            fixedrange: IS_TOUCH,
         },
         legend: {
             font: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
@@ -1788,6 +1807,7 @@ async function renderCompareChart() {
             orientation: "h", y: -0.12,
         },
         hovermode: "x unified",
+        dragmode: IS_TOUCH ? false : "zoom",
     };
 
     Plotly.newPlot("price-chart", traces, layout, { responsive: true, displayModeBar: false });
