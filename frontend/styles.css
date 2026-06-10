@@ -2014,6 +2014,9 @@ body::before {
         height: 44vh;
         height: 44dvh;
         min-height: 280px;
+        /* Gestures on the chart drive the scrubber (read value at point),
+           not page scroll. Scroll the page from outside the chart. */
+        touch-action: none;
     }
 
     /* One page scroll only — let inner panels expand, kill nested
@@ -2057,20 +2060,26 @@ body::before {
     .macro-label { font-size: 8px; }
     .macro-value { font-size: 11px; }
 
-    /* ── Toolbar: full-width search on its own line, controls wrap
-       underneath instead of hiding in a horizontal scroll. ── */
+    /* ── Toolbar: full-width search on its own line, controls wrap onto
+       tidy rows underneath. The desktop rows have a FIXED height, which
+       clipped wrapped buttons and stacked them on top of each other —
+       height:auto lets each wrapped line take its own space. ── */
     .toolbar-row-main {
         flex-wrap: wrap;
+        height: auto;
+        align-items: center;
         gap: 6px;
         padding: 8px 10px;
     }
     .symbol-search-wrap { flex: 1 1 100%; }
-    .symbol-input { flex: 1; }
+    .symbol-input { flex: 1; width: auto; }
     .chart-type-group,
     .timeframe-group { flex-wrap: wrap; }
     .toolbar-row-overlays {
         flex-wrap: wrap;
-        gap: 6px;
+        height: auto;
+        align-items: center;
+        gap: 6px 8px;
         padding: 8px 10px;
     }
 

@@ -463,6 +463,10 @@ function initChartHoverListeners() {
     if (!el || el._tradeskiHoverInit) return;
     el._tradeskiHoverInit = true;
 
+    // On touch, let a finger-drag "scrub" the chart — Plotly only does
+    // tap-to-hover natively, so we drive the hover ourselves.
+    if (IS_TOUCH) attachTouchScrub(el);
+
     el.on("plotly_hover", function(data) {
         if (state.chartType !== "line") return;
         const gd = document.getElementById("price-chart");
@@ -540,6 +544,55 @@ function initChartHoverListeners() {
             </div>
         `;
     });
+}
+
+// Finger-drag scrubbing for touch devices: as the finger moves across the
+// chart we find the nearest data point under it and trigger Plotly's hover,
+// so the tooltip/spike/cursor follow the finger across time.
+function attachTouchScrub(el) {
+    let scheduled = false;
+    let fingerX = null;
+
+    function nearestIndex() {
+        const fl = el._fullLayout;
+        if (!fl || !fl.xaxis || !el.data || !el.data.length) return -1;
+        const xs = el.data[0].x;               // main price trace timestamps
+        if (!xs || !xs.length || fingerX == null) return -1;
+        const xaxis = fl.xaxis;
+        const px = fingerX - el.getBoundingClientRect().left;
+        let best = 0, bestDist = Infinity;
+        for (let i = 0; i < xs.length; i++) {
+            const dist = Math.abs(xaxis.d2p(xs[i]) - px);   // data → pixel
+            if (dist < bestDist) { bestDist = dist; best = i; }
+        }
+        return best;
+    }
+
+    function doScrub() {
+        scheduled = false;
+        const idx = nearestIndex();
+        if (idx < 0) return;
+        try { Plotly.Fx.hover(el, [{ curveNumber: 0, pointNumber: idx }]); } catch (_) {}
+    }
+
+    // touchstart stays passive so a tap still fires plotly_click (OHLC strip).
+    el.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        if (!t) return;
+        fingerX = t.clientX;
+        doScrub();
+    }, { passive: true });
+
+    // touchmove cancels page scroll so the drag reads the chart instead.
+    el.addEventListener("touchmove", (e) => {
+        const t = e.touches[0];
+        if (!t) return;
+        fingerX = t.clientX;
+        e.preventDefault();
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(doScrub);
+    }, { passive: false });
 }
 
 function showChartLoading(on) {
