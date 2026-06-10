@@ -796,6 +796,16 @@ def chat() -> tuple:
 
     # Build system prompt
     system_parts = [_SKI_SYSTEM_PROMPT]
+    now = datetime.datetime.now(datetime.timezone.utc)
+    system_parts.append(
+        f"CURRENT DATE: Today is {now:%A, %B %d, %Y}. "
+        "Your built-in knowledge has a training cutoff and may be stale for time-sensitive facts — "
+        "who currently holds offices (e.g. the Federal Reserve Chair), the latest Fed rate decisions, "
+        "recent economic data releases (CPI, jobs reports), earnings, or breaking news. Whenever a "
+        "question depends on a current fact that could have changed since your training, USE THE "
+        "web_search TOOL to verify it and answer from those fresh results instead of from memory. "
+        "Briefly mention the source/date when you rely on a search."
+    )
     macro_ctx = _get_macro_context()
     if macro_ctx:
         system_parts.append(macro_ctx)
@@ -828,13 +838,37 @@ def chat() -> tuple:
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1024,
-            system="\n\n".join(system_parts),
-            messages=messages,
-        )
-        reply = response.content[0].text
+        system_prompt = "\n\n".join(system_parts)
+
+        def _ask(use_web_search: bool):
+            kwargs = dict(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1024,
+                system=system_prompt,
+                messages=messages,
+            )
+            if use_web_search:
+                # Server-side web search so Ski can pull current facts
+                # (Fed chair, latest data, news) instead of stale memory.
+                kwargs["tools"] = [{
+                    "type": "web_search_20250305",
+                    "name": "web_search",
+                    "max_uses": 5,
+                }]
+            return client.messages.create(**kwargs)
+
+        try:
+            response = _ask(True)
+        except (anthropic.BadRequestError, anthropic.PermissionDeniedError):
+            # Web search not enabled for this account/model — answer without it.
+            response = _ask(False)
+
+        # With web search the response holds several blocks (search calls +
+        # results + answer); the reply is the concatenation of the text blocks.
+        reply = "".join(
+            getattr(b, "text", "") for b in response.content
+            if getattr(b, "type", None) == "text"
+        ).strip() or "Sorry, I couldn't generate a response just now — try again."
         return jsonify({"reply": reply})
     except anthropic.RateLimitError:
         return jsonify({"error": "Ski is at capacity — I've hit my hourly AI quota. Try again in a few minutes."}), 429
