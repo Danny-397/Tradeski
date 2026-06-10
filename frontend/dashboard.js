@@ -407,14 +407,18 @@ function renderChart(d) {
         plot_bgcolor:  "#07090D",
         font: { color: "#D1D5DB", family: "Space Grotesk, sans-serif", size: 11 },
         showlegend: true,
+        // On touch the chart is small, so float the indicator key ABOVE the
+        // plot (y just over the top edge) instead of overlaying the data.
         legend: {
-            x: 0.01, y: 0.99,
-            xanchor: "left", yanchor: "top",
+            x: 0,
+            y: IS_TOUCH ? 1.0 : 0.99,
+            xanchor: "left",
+            yanchor: IS_TOUCH ? "bottom" : "top",
             orientation: "h",
             font: { size: 10, family: "JetBrains Mono, monospace", color: "#6B7280" },
             bgcolor: "transparent",
         },
-        margin: { t: 8, l: 10, r: 65, b: 32 },
+        margin: { t: IS_TOUCH ? 30 : 8, l: 10, r: 65, b: 32 },
         xaxis:  { ...ax, ...spike, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
         yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
         dragmode: IS_TOUCH ? false : "pan",

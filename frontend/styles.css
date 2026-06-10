@@ -2075,12 +2075,27 @@ body::before {
     .symbol-input { flex: 1; width: auto; }
     .chart-type-group,
     .timeframe-group { flex-wrap: wrap; }
+
+    /* Overlays: all six toggles on ONE row, sized to fill the width evenly.
+       Drop the label/divider and flatten the two groups (display:contents)
+       so every button is an equal-width flex item. */
     .toolbar-row-overlays {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         height: auto;
         align-items: center;
-        gap: 6px 8px;
+        gap: 5px;
         padding: 8px 10px;
+    }
+    .toolbar-row-overlays .toolbar-label,
+    .toolbar-row-overlays .toolbar-divider { display: none; }
+    .toolbar-row-overlays .indicator-toggles { display: contents; }
+    .toolbar-row-overlays .ind-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 7px 2px;
+        font-size: 11px;
+        letter-spacing: 0;
+        text-align: center;
     }
 
     /* ── Inputs ≥16px so iOS never auto-zooms on focus ── */
