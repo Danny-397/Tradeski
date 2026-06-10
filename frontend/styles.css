@@ -1352,8 +1352,10 @@ body::before {
     box-shadow: var(--glow-md);
 }
 .ski-fab-icon {
-    font-size: 13px;
-    color: var(--amber);
+    width: 16px;
+    height: 16px;
+    display: block;
+    flex-shrink: 0;
 }
 .ski-fab-label {
     font-family: var(--display);
@@ -1413,8 +1415,10 @@ body::before {
     gap: 10px;
 }
 .ski-icon {
-    font-size: 16px;
-    color: var(--amber);
+    width: 20px;
+    height: 20px;
+    display: block;
+    flex-shrink: 0;
     animation: pulse-icon 5s ease-in-out infinite;
 }
 .ski-title {
