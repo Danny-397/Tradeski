@@ -224,8 +224,10 @@ body::before {
 .logo { display: flex; align-items: center; gap: 9px; }
 
 .logo-icon {
-    font-size: 17px;
-    color: var(--amber);
+    width: 22px;
+    height: 22px;
+    display: block;
+    flex-shrink: 0;
     animation: pulse-icon 5s ease-in-out infinite;
 }
 

@@ -1,5 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="5" fill="#0C0F16"/>
-  <text x="16" y="22" font-family="monospace" font-size="18" font-weight="700" fill="#3B82F6" text-anchor="middle">T</text>
-  <rect x="5" y="25" width="22" height="1.5" rx="0.75" fill="#3B82F6" opacity="0.5"/>
+  <defs>
+    <linearGradient id="tk" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#1E40AF"/>
+      <stop offset="1" stop-color="#60A5FA"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#0C0F16"/>
+  <path d="M4 25 L12 12 L16.5 18 L22 8 L28 25 Z" fill="url(#tk)"/>
+  <path d="M22 8 L20 12 L24 12 Z" fill="#0C0F16"/>
 </svg>

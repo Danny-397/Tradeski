@@ -499,7 +499,13 @@
 
 <nav>
     <a href="/" class="nav-logo">
-        <span class="nav-logo-icon">◈</span>
+        <svg class="nav-logo-icon" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true">
+            <defs><linearGradient id="tk-nav" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0" stop-color="#1E40AF"/><stop offset="1" stop-color="#60A5FA"/>
+            </linearGradient></defs>
+            <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-nav)"/>
+            <path d="M22 6 L19.6 11 L24.4 11 Z" fill="#07090D"/>
+        </svg>
         TRADESKI
     </a>
     <a href="/app" class="nav-launch">Ask Ski →</a>
@@ -756,7 +762,14 @@
 </section>
 
 <footer>
-    <span>◈ TRADESKI</span>
+    <span style="display:inline-flex;align-items:center;gap:7px">
+        <svg viewBox="0 0 32 32" width="15" height="15" aria-hidden="true">
+            <defs><linearGradient id="tk-ft" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0" stop-color="#1E40AF"/><stop offset="1" stop-color="#60A5FA"/>
+            </linearGradient></defs>
+            <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-ft)"/>
+            <path d="M22 6 L19.6 11 L24.4 11 Z" fill="#07090D"/>
+        </svg>TRADESKI</span>
     <span>Tradeski does not sell your data. Portfolio data powers Ski's analysis only.</span>
     <span>tradeski.dev</span>
 </footer>
