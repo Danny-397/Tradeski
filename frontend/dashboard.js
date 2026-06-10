@@ -556,35 +556,113 @@ function initChartHoverListeners() {
 // finger and shows its tooltip + crosshair). Verified on candlestick charts.
 function attachTouchScrub(el) {
     let scheduled = false;
-    let fingerX = null;
+    let xsClient = [];   // latest finger clientX values (1 or 2)
 
-    function doScrub() {
-        scheduled = false;
+    // Nearest data index to a finger's screen-x.
+    function nearestIdx(clientX) {
         const fl = el._fullLayout;
-        if (!fl || !fl.xaxis || fingerX == null) return;
-        // d2p/p2c are gd-relative, so finger x within the div maps straight
-        // through p2c to a data x-value.
-        const xval = fl.xaxis.p2c(fingerX - el.getBoundingClientRect().left);
-        try { Plotly.Fx.hover(el, { xval: xval }); } catch (_) {}
+        const xs = state.chartData && state.chartData.timestamps;
+        if (!fl || !fl.xaxis || !xs || !xs.length) return -1;
+        const px = clientX - el.getBoundingClientRect().left;
+        let best = 0, bestDist = Infinity;
+        for (let i = 0; i < xs.length; i++) {
+            const dist = Math.abs(fl.xaxis.d2p(xs[i]) - px);
+            if (dist < bestDist) { bestDist = dist; best = i; }
+        }
+        return best;
     }
 
-    // Passive so a plain tap still produces a click (candle OHLC strip).
-    el.addEventListener("touchstart", (e) => {
-        if (!e.touches[0]) return;
-        fingerX = e.touches[0].clientX;
-        doScrub();
-    }, { passive: true });
+    function process() {
+        scheduled = false;
+        if (!xsClient.length) return;
+        if (xsClient.length >= 2) {
+            // Two fingers → compare the two points (Apple-style).
+            try { Plotly.Fx.unhover(el); } catch (_) {}
+            const i1 = nearestIdx(xsClient[0]);
+            const i2 = nearestIdx(xsClient[1]);
+            if (i1 >= 0 && i2 >= 0) showChartCompare(el, i1, i2);
+        } else {
+            // One finger → scrub: show the value under the finger.
+            hideChartCompare();
+            const fl = el._fullLayout;
+            if (!fl || !fl.xaxis) return;
+            const xval = fl.xaxis.p2c(xsClient[0] - el.getBoundingClientRect().left);
+            try { Plotly.Fx.hover(el, { xval: xval }); } catch (_) {}
+        }
+    }
 
-    // Non-passive: stop the page scrolling so the drag reads the chart, and
-    // rAF-throttle so hover redraws stay smooth.
+    function read(e) {
+        xsClient = [];
+        for (let i = 0; i < e.touches.length && i < 2; i++) xsClient.push(e.touches[i].clientX);
+    }
+
+    el.addEventListener("touchstart", (e) => { read(e); process(); }, { passive: true });
+
     el.addEventListener("touchmove", (e) => {
-        if (!e.touches[0]) return;
-        fingerX = e.touches[0].clientX;
-        e.preventDefault();
+        read(e);
+        e.preventDefault();                 // keep the page from scrolling mid-gesture
         if (scheduled) return;
         scheduled = true;
-        requestAnimationFrame(doScrub);
+        requestAnimationFrame(process);
     }, { passive: false });
+
+    el.addEventListener("touchend", (e) => {
+        read(e);
+        if (e.touches.length < 2) hideChartCompare();
+        if (e.touches.length === 0) { try { Plotly.Fx.unhover(el); } catch (_) {} }
+        else process();
+    }, { passive: true });
+}
+
+// Two-point comparison overlay (shaded band + delta readout), fixed-positioned
+// over the chart so Plotly never clobbers it.
+let _cmpBand = null, _cmpReadout = null;
+function _ensureCmpEls() {
+    if (_cmpBand) return;
+    _cmpBand = document.createElement("div");
+    _cmpReadout = document.createElement("div");
+    _cmpBand.style.cssText = "position:fixed;z-index:600;pointer-events:none;display:none";
+    _cmpReadout.style.cssText = "position:fixed;z-index:601;pointer-events:none;display:none;" +
+        "background:rgba(12,15,22,0.95);border:1px solid rgba(59,130,246,0.35);border-radius:6px;" +
+        "padding:5px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#D1D5DB;white-space:nowrap";
+    document.body.appendChild(_cmpBand);
+    document.body.appendChild(_cmpReadout);
+}
+
+function showChartCompare(el, i1, i2) {
+    const d = state.chartData;
+    if (!d || !d.close || !d.timestamps || !el._fullLayout) return;
+    _ensureCmpEls();
+    const xaxis = el._fullLayout.xaxis;
+    const rect  = el.getBoundingClientRect();
+    const lo = Math.min(i1, i2), hi = Math.max(i1, i2);
+    const xLo = rect.left + xaxis.d2p(d.timestamps[lo]);
+    const xHi = rect.left + xaxis.d2p(d.timestamps[hi]);
+    const p1 = d.close[lo], p2 = d.close[hi];
+    if (p1 == null || p2 == null) return;
+    const delta = p2 - p1;
+    const pct   = p1 ? (delta / p1 * 100) : 0;
+    const up    = delta >= 0;
+    const col   = up ? "#16A34A" : "#DC2626";
+
+    _cmpBand.style.cssText = "position:fixed;z-index:600;pointer-events:none;display:block;" +
+        `top:${rect.top}px;left:${xLo}px;width:${Math.max(0, xHi - xLo)}px;height:${rect.height}px;` +
+        `background:${up ? "rgba(22,163,74,0.13)" : "rgba(220,38,38,0.13)"};` +
+        `border-left:1px solid ${col};border-right:1px solid ${col}`;
+
+    _cmpReadout.style.display = "block";
+    _cmpReadout.style.top  = (rect.top + 8) + "px";
+    _cmpReadout.style.left = (rect.left + rect.width / 2) + "px";
+    _cmpReadout.style.transform = "translateX(-50%)";
+    const sign = up ? "+" : "-";
+    _cmpReadout.innerHTML =
+        `$${fmt(p1)} <span style="color:#6B7280">&rarr;</span> $${fmt(p2)} &nbsp;` +
+        `<b style="color:${col}">${sign}$${fmt(Math.abs(delta))} (${sign}${Math.abs(pct).toFixed(2)}%)</b>`;
+}
+
+function hideChartCompare() {
+    if (_cmpBand)    _cmpBand.style.display = "none";
+    if (_cmpReadout) _cmpReadout.style.display = "none";
 }
 
 function showChartLoading(on) {
@@ -1190,7 +1268,12 @@ function skiAppendMessage(role, content, isLoading = false) {
     wrap.className = `ski-message ski-message-${role}`;
     const bubble = document.createElement("div");
     bubble.className = "ski-bubble" + (isLoading ? " loading" : "");
-    bubble.textContent = content;
+    if (isLoading) {
+        // Animated typing dots so the user can see Ski is working, not frozen.
+        bubble.innerHTML = '<span class="ski-typing"><span></span><span></span><span></span></span>';
+    } else {
+        bubble.textContent = content;
+    }
     wrap.appendChild(bubble);
     container.appendChild(wrap);
     container.scrollTop = container.scrollHeight;
