@@ -422,7 +422,9 @@ function renderChart(d) {
         xaxis:  { ...ax, ...spike, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
         yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
         dragmode: IS_TOUCH ? false : "pan",
-        hovermode: "closest",
+        // On touch we scrub by x (finger controls time), so hover by x-column;
+        // desktop keeps "closest" for precise mouse hovering.
+        hovermode: IS_TOUCH ? "x" : "closest",
         hoverdistance: 80,
         spikedistance: 100,
         hoverlabel: {
@@ -550,48 +552,37 @@ function initChartHoverListeners() {
     });
 }
 
-// Finger-drag scrubbing for touch devices: as the finger moves across the
-// chart we find the nearest data point under it and trigger Plotly's hover,
-// so the tooltip/spike/cursor follow the finger across time.
+// Finger-drag scrubbing for touch devices. On a laptop, moving the mouse
+// across the chart shows the value under the cursor; we reproduce that on
+// touch by mapping the finger's x to a data value and driving Plotly's hover
+// there (Fx.hover with an xval snaps to the nearest candle/point under the
+// finger and shows its tooltip + crosshair). Verified on candlestick charts.
 function attachTouchScrub(el) {
     let scheduled = false;
     let fingerX = null;
 
-    function nearestIndex() {
-        const fl = el._fullLayout;
-        if (!fl || !fl.xaxis || !el.data || !el.data.length) return -1;
-        const xs = el.data[0].x;               // main price trace timestamps
-        if (!xs || !xs.length || fingerX == null) return -1;
-        const xaxis = fl.xaxis;
-        const px = fingerX - el.getBoundingClientRect().left;
-        let best = 0, bestDist = Infinity;
-        for (let i = 0; i < xs.length; i++) {
-            const dist = Math.abs(xaxis.d2p(xs[i]) - px);   // data → pixel
-            if (dist < bestDist) { bestDist = dist; best = i; }
-        }
-        return best;
-    }
-
     function doScrub() {
         scheduled = false;
-        const idx = nearestIndex();
-        if (idx < 0) return;
-        try { Plotly.Fx.hover(el, [{ curveNumber: 0, pointNumber: idx }]); } catch (_) {}
+        const fl = el._fullLayout;
+        if (!fl || !fl.xaxis || fingerX == null) return;
+        // d2p/p2c are gd-relative, so finger x within the div maps straight
+        // through p2c to a data x-value.
+        const xval = fl.xaxis.p2c(fingerX - el.getBoundingClientRect().left);
+        try { Plotly.Fx.hover(el, { xval: xval }); } catch (_) {}
     }
 
-    // touchstart stays passive so a tap still fires plotly_click (OHLC strip).
+    // Passive so a plain tap still produces a click (candle OHLC strip).
     el.addEventListener("touchstart", (e) => {
-        const t = e.touches[0];
-        if (!t) return;
-        fingerX = t.clientX;
+        if (!e.touches[0]) return;
+        fingerX = e.touches[0].clientX;
         doScrub();
     }, { passive: true });
 
-    // touchmove cancels page scroll so the drag reads the chart instead.
+    // Non-passive: stop the page scrolling so the drag reads the chart, and
+    // rAF-throttle so hover redraws stay smooth.
     el.addEventListener("touchmove", (e) => {
-        const t = e.touches[0];
-        if (!t) return;
-        fingerX = t.clientX;
+        if (!e.touches[0]) return;
+        fingerX = e.touches[0].clientX;
         e.preventDefault();
         if (scheduled) return;
         scheduled = true;
