@@ -2287,3 +2287,41 @@ body::before {
     line-height: 1.5;
 }
 .signed-out-cta { width: auto; padding: 6px 18px; }
+
+/* ===== Offline demo banner (see demo-mode.js) ============================ */
+#demo-banner {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    padding: 10px 18px;
+    background: #2A1F05;
+    border-bottom: 1px solid #6B5310;
+    color: #F5E6B8;
+    font-size: 13px;
+    line-height: 1.5;
+    position: relative;
+    z-index: 900;
+}
+#demo-banner .demo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #E0B341;
+    flex: none;
+    align-self: center;
+}
+#demo-banner .demo-text { flex: 1 1 460px; }
+#demo-banner strong { color: #FFF3D0; font-weight: 600; }
+#demo-banner .demo-link {
+    color: #FFD766;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 215, 102, 0.45);
+    white-space: nowrap;
+    flex: none;
+}
+#demo-banner .demo-link:hover { border-bottom-color: #FFD766; }
+
+@media (max-width: 640px) {
+    #demo-banner { padding: 9px 12px; font-size: 12px; }
+}

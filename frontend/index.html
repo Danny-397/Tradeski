@@ -440,6 +440,9 @@
         </div>
     </div>
 
+    <!-- Must precede dashboard.js: installs the API fetch wrapper that falls
+         back to a recorded data snapshot when the backend is unreachable. -->
+    <script src="demo-mode.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-71%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-86%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 75 tests across 11 files — CI on every push |
+| **Tests** | 86 tests across 12 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -160,7 +160,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │
-├── tests/                     # pytest suite — 75 tests across 11 files
+├── tests/                     # pytest suite — 86 tests across 12 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -243,7 +243,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (75 tests) |
+| Testing | pytest (86 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -312,6 +312,40 @@ Ski can answer "Is now a good time to add to my NVDA position?" with awareness o
 | Health endpoint | `GET /health` returns live API service status — `configured` vs `missing` |
 | Graceful AI errors | `RateLimitError` → 429 · `529 overloaded` → 503 with retry guidance |
 | Frontend error UX | Distinct messages for 429, 503, and network failures |
+| Offline demo mode | Unreachable backend → replays a recorded snapshot of real data instead of failing |
+
+### Offline demo mode
+
+The dashboard is a pure client, so if the API host is unreachable — a paused
+free-tier backend, a cold start that times out, a network blip — every panel
+used to render its own raw fetch failure and the page read as broken.
+
+`frontend/demo-mode.js` installs a wrapper in front of the API origin:
+
+- **The live backend always wins.** Any real response is passed straight
+  through, including `401` / `404` / `429`, which are real state.
+- A `5xx` is only treated as an outage when it *isn't* this app's own JSON
+  error. A structured `{"error": ...}` (say, `/macro` without a FRED key)
+  reaches the panel that asked for it, so one missing key can't make the whole
+  page claim an outage. An HTML `503` from the host does count as an outage.
+- Only then does it lazily load `frontend/demo-snapshot.js` and serve from it,
+  so the healthy path never downloads the snapshot at all.
+- **Reads only.** A failed `POST`/`DELETE` is never faked — writes surface the
+  real error rather than inventing a success.
+- A banner states plainly that the data is a dated snapshot and that streaming,
+  news and accounts need the backend.
+
+The snapshot is genuine: market data captured from this backend running against
+live sources, and macro series from FRED's public CSV endpoint. Regenerate it
+with the backend running locally:
+
+```bash
+python scripts/capture_snapshot.py     # writes frontend/demo-snapshot.js
+```
+
+`tests/test_demo_mode.py` guards the parts that break silently — snapshot
+coverage for every ticker symbol and timeframe, the macro payload shape, series
+length alignment, and that `demo-mode.js` is still loaded before `dashboard.js`.
 
 ### Frontend
 
@@ -500,7 +534,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-75 tests across 11 files:
+86 tests across 12 files:
 
 | File | What it covers |
 |:---|:---|
