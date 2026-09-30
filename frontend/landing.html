@@ -811,12 +811,37 @@
     const SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
     const items = document.querySelectorAll(".ps-item");
 
+    // With the backend paused every fetch fails and the strip would sit on
+    // dashes. Fall back to the same recorded snapshot the dashboard replays
+    // (demo-snapshot.js), and say so under the strip with its capture date.
+    function fromSnapshot() {
+        return new Promise(resolve => {
+            const s = document.createElement("script");
+            s.src = "demo-snapshot.js";
+            s.onload = () => resolve(window.TRADESKI_SNAPSHOT || null);
+            s.onerror = () => resolve(null);
+            document.head.appendChild(s);
+        }).then(snap => {
+            if (!snap) return null;
+            const note = document.createElement("p");
+            note.className = "ps-note";
+            note.textContent = "Snapshot from " + new Date(snap.capturedAt).toLocaleDateString(undefined,
+                { year: "numeric", month: "long", day: "numeric" }) + " · the live data backend is paused";
+            note.style.cssText = "margin:10px 0 0;text-align:center;font-size:12px;opacity:.6";
+            document.getElementById("price-strip").after(note);
+            return SYMS.map(s => snap.endpoints[`/stats?symbol=${s}`] || null);
+        });
+    }
+
     Promise.all(SYMS.map(s =>
-        fetch(`${API}/stats?symbol=${s}`).then(r => r.json()).catch(() => null)
-    )).then(results => {
+        fetch(`${API}/stats?symbol=${s}`).then(r => r.ok ? r.json() : null).catch(() => null)
+    )).then(results =>
+        results.every(d => !d || d.error) ? fromSnapshot().then(r => r || results) : results
+    ).then(results => {
         results.forEach((d, i) => {
             if (!d || d.error) return;
-            const pct  = d.open > 0 ? ((d.close - d.open) / d.open * 100) : 0;
+            // Round before taking the sign, so a -0.004% move reads +0.00%, not -0.00%.
+            const pct  = d.open > 0 ? Math.round((d.close - d.open) / d.open * 10000) / 100 || 0 : 0;
             const dir  = pct >= 0 ? "up" : "down";
             const sign = pct >= 0 ? "+" : "";
             const pEl  = items[i].querySelector(".ps-price");
