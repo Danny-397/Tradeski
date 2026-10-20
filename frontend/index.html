@@ -15,7 +15,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script defer src="/_vercel/insights/script.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Pinned, not "plotly-latest": that alias has been frozen at v1.58.5 since
+         July 2021 and prints a deprecation warning on every load, so the chart
+         was running on a five-year-old build. v3 renders this dashboard
+         identically -- same six traces, same overlays -- and Plotly.Fx.hover /
+         unhover, used for the two-finger compare gesture, still exist. -->
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
