@@ -2,6 +2,10 @@ services:
   - type: web
     name: tradeski-backend
     runtime: python
+    # Without this Render bills the service on its default paid Starter plan.
+    # The dashboard degrades to a recorded snapshot while the service sleeps,
+    # so the free plan's spin-down is survivable here.
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --bind 0.0.0.0:$PORT wsgi:app
     healthCheckPath: /health
