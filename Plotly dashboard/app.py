@@ -54,10 +54,20 @@ socketio = SocketIO(
     async_mode="gevent",
 )
 
+# The default guards the cheap, cached read endpoints only -- /auth/register
+# and /auth/login carry their own, much tighter limits and are untouched by it.
+#
+# It used to be 10/minute, which is below what the dashboard needs to paint
+# itself once: the ticker strip alone requests /stats for all 11 watchlist
+# symbols, so every one of them came back 429 and the panels rendered empty.
+# First paint is ~30 requests and the dashboard refreshes every 10s, so steady
+# state is ~120/minute; 180 leaves headroom without being a blank cheque. These
+# responses are cached (see _CHART_TTL and friends), so repeat traffic is served
+# from memory rather than hitting the upstream providers.
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
-    default_limits=["10 per minute"],
+    default_limits=["180 per minute"],
     storage_uri="memory://",
 )
 
