@@ -1,0 +1,34 @@
+# Lets GitHub show a "Cite this repository" button and gives the project a
+# stable, machine-readable citation. It is also what Zenodo reads when a release
+# is archived to mint a DOI.
+#
+# The name matches the other CITATION.cff files in these projects. The site uses
+# "Dan" as a display byline, which is a separate thing from a citation name.
+cff-version: 1.2.0
+title: "Tradeski — a real-time financial analytics platform for retail investors"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - given-names: Daniel
+    family-names: Lichtenberger
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+repository-code: "https://github.com/Danny-397/Tradeski"
+url: "https://www.tradeski.dev"
+abstract: >-
+  Tradeski is a streaming market dashboard: live price and indicator charts,
+  Federal Reserve macro series, a correlation matrix, a fundamentals screener,
+  portfolio risk analytics, news sentiment scored with a finance-augmented
+  VADER lexicon, and an LLM assistant over the user's own holdings. The
+  technical indicators are implemented on raw NumPy rather than a TA library,
+  so their boundary behaviour is tested directly, and the backend degrades to
+  an honest recorded snapshot rather than a blank page when a data provider or
+  the free-tier host is unavailable.
+keywords:
+  - financial analytics
+  - technical indicators
+  - websockets
+  - FRED macroeconomic data
+  - sentiment analysis
+  - portfolio risk
+license: MIT
+date-released: "2026-10-20"
