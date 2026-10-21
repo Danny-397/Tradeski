@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 86 tests across 12 files — CI on every push |
+| **Tests** | 92 tests across 12 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -160,7 +160,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │
-├── tests/                     # pytest suite — 86 tests across 12 files
+├── tests/                     # pytest suite — 92 tests across 12 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -243,7 +243,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (86 tests) |
+| Testing | pytest (92 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -534,19 +534,22 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-86 tests across 12 files:
+92 tests across 12 files:
 
 | File | What it covers |
 |:---|:---|
 | `test_analyzer.py` | Indicator shape, value range, arithmetic correctness |
 | `test_analyzer_basic.py` | Edge cases: empty input, flat series, single-element arrays |
+| `test_auth.py` | Registration, login, token handling, per-user scoping |
 | `test_database.py` | SQLite round-trips for prices, alerts, portfolio |
+| `test_demo_mode.py` | Demo fallback when no credentials are configured |
 | `test_fred.py` | FRED client with mocked HTTP — trend detection, missing series |
 | `test_news.py` | VADER: financial lexicon augmentation, aggregation |
 | `test_portfolio.py` | CRUD operations, UPSERT behavior, case-insensitive symbols |
-| `test_screener.py` | Data normalization, ETF sector fallback, edge cases |
+| `test_screener.py` | Normalization, ETF sector fallback, and the history fallback for when Yahoo blocks `.info` |
 | `test_notifier.py` | Pushover mock: correct POST structure, skip without credentials |
 | `test_price_fetcher.py` | Live yfinance smoke test |
+| `test_stream_contract.py` | Shape of the streamed payload the dashboard consumes |
 
 ```bash
 flake8 .   # linting
