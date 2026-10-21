@@ -1,6 +1,7 @@
 # tracker/price_fetcher.py
 # Fetches latest stock prices via yfinance.
 
+import math
 from typing import Optional
 import yfinance as yf
 
@@ -16,6 +17,22 @@ def _safe_info(symbol: str) -> dict:
         return info if isinstance(info, dict) else {}
     except Exception:
         return {}
+
+
+def _num(value, digits: int = 2) -> float | None:
+    """Round to a JSON-safe float, or None if the value is unusable.
+
+    Guards the output against NaN and infinity from either source: both
+    serialise as bare `NaN`/`Infinity` tokens, which are not valid JSON and
+    which render as "NaN" in the dashboard.
+    """
+    if value is None:
+        return None
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return None
+    return round(out, digits) if math.isfinite(out) else None
 
 
 def get_screener_data(symbol: str) -> dict | None:
@@ -68,19 +85,24 @@ def get_screener_data(symbol: str) -> dict | None:
             if perf52 is None and closes[0]:
                 perf52 = closes[-1] / closes[0] - 1.0
 
+    price = _num(price)
     if not price:
         return None
+
+    # 52WeekChange is a decimal fraction; the dashboard shows a percentage.
+    perf_frac = _num(perf52, 10)
+    perf_pct = _num(perf_frac * 100) if perf_frac is not None else None
 
     return {
         "symbol":     symbol,
         "name":       name,
-        "price":      round(float(price), 2),
-        "pe":         round(float(pe), 2) if pe is not None else None,
+        "price":      price,
+        "pe":         _num(pe),
         "market_cap": int(mcap) if mcap else None,
         "sector":     sector or "—",
-        "high_52w":   round(float(high52), 2) if high52 else None,
-        "low_52w":    round(float(low52), 2) if low52 else None,
-        "perf_52w":   round(float(perf52) * 100, 2) if perf52 is not None else None,
+        "high_52w":   _num(high52) or None,
+        "low_52w":    _num(low52) or None,
+        "perf_52w":   perf_pct,
     }
 
 
@@ -111,6 +133,14 @@ def get_ohlc_history(symbol: str, period: str = "1mo", interval: str = "1d") -> 
     Each dict: {timestamp, open, high, low, close, volume}
     Returns [] on any failure.
 
+    Rows whose OHLC is not fully finite are dropped. yfinance emits a
+    placeholder bar for the current session with NaN prices but a real volume
+    -- so it survives an `int(volume)` guard -- and NaN then propagates into
+    everything downstream: a NaN close in /stats, gaps in the chart and
+    sparkline endpoints, and a NaN row that poisons the whole correlation
+    matrix via np.corrcoef. NaN also serialises as the bare token `NaN`, which
+    is not valid JSON and which strict clients reject outright.
+
     Valid period/interval combos (yfinance):
       "1d"/"5m", "5d"/"15m", "1mo"/"1d", "3mo"/"1d", "6mo"/"1d", "1y"/"1d"
     """
@@ -121,13 +151,28 @@ def get_ohlc_history(symbol: str, period: str = "1mo", interval: str = "1d") -> 
 
         result = []
         for idx, row in df.iterrows():
+            try:
+                o = float(row["Open"])
+                h = float(row["High"])
+                lo = float(row["Low"])
+                c = float(row["Close"])
+            except (TypeError, ValueError):
+                continue
+            if not all(math.isfinite(v) for v in (o, h, lo, c)):
+                continue
+
+            try:
+                vol = int(row.get("Volume", 0) or 0)
+            except (TypeError, ValueError):
+                vol = 0
+
             result.append({
                 "timestamp": idx.strftime("%Y-%m-%dT%H:%M:%S"),
-                "open":   round(float(row["Open"]),   4),
-                "high":   round(float(row["High"]),   4),
-                "low":    round(float(row["Low"]),    4),
-                "close":  round(float(row["Close"]),  4),
-                "volume": int(row.get("Volume", 0) or 0),
+                "open":   round(o,  4),
+                "high":   round(h,  4),
+                "low":    round(lo, 4),
+                "close":  round(c,  4),
+                "volume": vol,
             })
         return result
     except Exception:
