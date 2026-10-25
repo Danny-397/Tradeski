@@ -22,793 +22,470 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="/_vercel/insights/script.js"></script>
     <link rel="stylesheet" href="tokens.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* This page's short local names, now aliased to the shared tokens in
-           tokens.css rather than holding their own copies of the palette.
-           That is what keeps the landing page and the dashboard the same
-           product: the contrast fixes live in one file and reach both.
-
-           --green, --red, --border, --mono and --sans are deliberately absent
-           -- they are spelled identically in tokens.css, so they cascade in on
-           their own. Re-declaring them here as var(--green) would be a cycle. */
+        /* Page-local names alias the shared tokens in tokens.css, so the
+           landing page and the dashboard stay one product. */
         :root {
-            --bg:       var(--bg-primary);
-            --bg2:      var(--bg-secondary);
-            --blue:     var(--accent);
-            /* Was a local #1E6FF5: the same hue darkened until white label
-               text clears AA. That idea was right and is now the shared
-               --accent-strong, so every filled control on every page gets it. */
-            --blue-btn: var(--accent-strong);
-            --blue-d:   var(--accent-dim);
-            --blue-f:   var(--accent-faint);
-            --text:     var(--text-primary);
-            --muted:    var(--text-secondary);
-            --faint:    var(--text-muted);
+            --bg:     var(--bg-primary);
+            --bg2:    var(--bg-secondary);
+            --text:   var(--text-primary);
+            --muted:  var(--text-secondary);
+            --faint:  var(--text-muted);
+            --maxw:   1080px;
         }
 
-        html, body { height: 100%; }
-
+        html { scroll-behavior: smooth; scroll-padding-top: 72px; -webkit-text-size-adjust: 100%; }
         body {
             font-family: var(--sans);
+            font-size: 17px;
+            line-height: 1.55;
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+        a { color: inherit; text-decoration: none; }
+        .container { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
 
-        /* ── NAV ─────────────────────────────────────────────── */
+        /* ── Nav ─────────────────────────────────────────────── */
         nav {
-            position: fixed; top: 0; left: 0; right: 0;
-            height: 52px;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 32px;
-            background: var(--bg);
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(10, 11, 13, 0.72);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
             border-bottom: 1px solid var(--border);
-            z-index: 100;
+        }
+        .nav-inner {
+            max-width: var(--maxw); margin: 0 auto; padding: 0 24px;
+            height: 52px;
+            display: flex; align-items: center; gap: 24px;
         }
         .nav-logo {
-            display: flex; align-items: center; gap: 9px;
-            font-family: var(--sans);
-            font-size: 15px; font-weight: 700;
-            letter-spacing: 4px;
-            color: var(--text);
-            text-decoration: none;
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+            color: var(--text-strong);
         }
-        .nav-logo-icon { color: var(--blue); }
-        .nav-launch {
-            background: var(--blue-btn);
-            color: #fff;
-            border: none;
-            padding: 7px 20px;
-            font-family: var(--mono);
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            border-radius: 2px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: opacity 0.12s;
-        }
-        .nav-launch:hover { opacity: 0.82; }
-
-        /* ── SHARED ───────────────────────────────────────────── */
-        .section-wrap {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 88px 24px;
-            text-align: center;
-        }
-        .section-wrap.wide { max-width: 1040px; }
-        .section-label {
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 3px;
-            color: var(--blue);
-            text-transform: uppercase;
-            margin-bottom: 14px;
-            display: block;
-        }
-        .section-title {
-            font-size: clamp(22px, 3vw, 36px);
-            font-weight: 700;
-            color: #F1F5F9;
-            letter-spacing: -0.3px;
-            margin-bottom: 14px;
-        }
-        .section-sub {
-            font-size: 15px;
+        .nav-links { display: flex; gap: 4px; margin: 0 auto; }
+        .nav-link {
+            padding: 6px 12px;
+            font-size: 13px; font-weight: 500;
             color: var(--muted);
-            line-height: 1.7;
-            max-width: 560px;
-            margin: 0 auto 52px;
+            border-radius: 8px;
+            transition: color var(--t-fast) var(--ease);
         }
-        .divider { width: 100%; height: 1px; background: var(--border); }
-        .demo-note {
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.7;
-            max-width: 640px;
-            margin: 22px auto 0;
-            text-align: center;
-        }
-        .demo-note em { font-style: italic; color: var(--text); }
-        .demo-note a { color: var(--accent, #60A5FA); text-decoration: none; white-space: nowrap; }
-        .demo-note a:hover { text-decoration: underline; }
+        .nav-link:hover { color: var(--text-strong); }
 
-        /* ── HERO ─────────────────────────────────────────────── */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 100px 24px 64px;
+        /* ── Buttons ─────────────────────────────────────────── */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            height: 44px; padding: 0 22px;
+            border-radius: 10px;
+            font-size: 15px; font-weight: 600;
+            white-space: nowrap;
+            transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
         }
-        .hero-eyebrow {
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 3px;
-            color: var(--blue);
-            text-transform: uppercase;
-            margin-bottom: 24px;
-        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--accent-strong); color: #fff; }
+        .btn-primary:hover { background: var(--accent); }
+        .btn-quiet { color: #8DB8FF; font-weight: 500; padding: 0 8px; }
+        .btn-quiet:hover { color: #B3D0FF; text-decoration: underline; text-underline-offset: 4px; }
+        .btn-sm { height: 30px; padding: 0 14px; font-size: 13px; border-radius: 8px; }
+
+        /* ── Hero ────────────────────────────────────────────── */
+        .hero { padding: 120px 0 96px; text-align: center; }
+        .eyebrow { font-size: 15px; font-weight: 500; color: #8DB8FF; margin-bottom: 16px; }
         h1 {
-            font-size: clamp(36px, 6.5vw, 72px);
+            font-family: var(--display);
+            font-size: clamp(2.6rem, 6.4vw, 4.5rem);
             font-weight: 700;
-            letter-spacing: -1px;
-            line-height: 1.08;
-            color: #F1F5F9;
-            max-width: 700px;
-            margin-bottom: 24px;
-        }
-        .hero-h1-dim {
-            color: var(--muted);
+            letter-spacing: -0.035em;
+            line-height: 1.04;
+            color: var(--text-strong);
+            max-width: 900px;
+            margin: 0 auto 24px;
+            text-wrap: balance;
         }
         .hero-sub {
-            font-size: 16px;
+            font-size: clamp(1.05rem, 1.6vw, 1.25rem);
             color: var(--muted);
-            max-width: 560px;
-            line-height: 1.7;
-            margin-bottom: 28px;
+            max-width: 620px;
+            margin: 0 auto 36px;
         }
-        .hero-pillars {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 8px 4px;
-            margin-bottom: 36px;
-        }
-        .hero-pill {
-            font-family: var(--mono);
-            font-size: 11px;
-            letter-spacing: 0.5px;
-            color: #F1F5F9;
-            background: var(--blue-d);
-            border: 1px solid rgba(59,130,246,0.25);
-            padding: 5px 12px;
-            border-radius: 2px;
-        }
-        .hero-pill-sep {
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--muted);
-            padding: 0 2px;
-        }
-        .hero-pill-eq {
-            font-family: var(--mono);
-            font-size: 11px;
-            letter-spacing: 1px;
-            color: var(--blue);
-            font-weight: 600;
-            padding: 5px 14px;
-            border: 1px solid var(--blue);
-            border-radius: 2px;
-        }
-        .hero-cta {
-            display: flex; gap: 12px;
-            align-items: center; flex-wrap: wrap; justify-content: center;
-            margin-bottom: 52px;
-        }
-        .cta-primary {
-            background: var(--blue-btn);
-            color: #fff;
-            border: none;
-            padding: 13px 36px;
-            font-family: var(--mono);
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            border-radius: 2px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: opacity 0.12s;
-        }
-        .cta-primary:hover { opacity: 0.82; }
-        .cta-ghost {
-            color: var(--muted);
-            font-family: var(--mono);
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-decoration: none;
-            border: 1px solid var(--border);
-            padding: 13px 22px;
-            border-radius: 2px;
-            transition: border-color 0.12s, color 0.12s;
-        }
-        .cta-ghost:hover { border-color: rgba(255,255,255,0.18); color: var(--text); }
+        .hero-cta { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
 
-        /* ── PRICE STRIP ──────────────────────────────────────── */
+        /* Live prices: a quiet row of figures, not a bordered table */
         .price-strip {
-            display: flex;
-            width: 100%;
-            max-width: 660px;
-            border: 1px solid var(--border);
-            background: var(--bg2);
-            overflow: hidden;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            max-width: 640px;
+            margin: 64px auto 0;
+            padding: 18px 8px;
+            background: var(--bg-card);
+            border-radius: 16px;
         }
-        .ps-item {
-            flex: 1;
-            display: flex; flex-direction: column; align-items: center;
-            padding: 12px 6px;
-            border-right: 1px solid var(--border);
-            font-family: var(--mono);
-        }
-        .ps-item:last-child { border-right: none; }
-        .ps-sym   { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 3px; }
-        .ps-price { font-size: 13px; font-weight: 600; color: var(--text); }
-        .ps-chg   { font-size: 10px; margin-top: 2px; }
+        .ps-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .ps-sym   { font-size: 12px; font-weight: 600; color: var(--muted); }
+        .ps-price { font-size: 16px; font-weight: 600; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+        .ps-chg   { font-size: 12px; font-weight: 500; color: var(--faint); font-variant-numeric: tabular-nums; }
         .up   { color: var(--green); }
         .down { color: var(--red); }
 
-        /* ── SKI DEMO ─────────────────────────────────────────── */
-        .chat-window {
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            overflow: hidden;
-            text-align: left;
-        }
-        .chat-window-header {
-            display: flex; align-items: center; gap: 8px;
-            padding: 11px 16px;
-            border-bottom: 1px solid var(--border);
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 2px;
-            color: var(--muted);
-        }
-        .ski-dot {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            background: var(--blue);
-            flex-shrink: 0;
-        }
-        .chat-body {
-            padding: 24px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-        }
-        .chat-exchange {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 20px 0;
-        }
-        .chat-exchange + .chat-exchange {
-            border-top: 1px solid var(--border);
-        }
-        .chat-user {
-            align-self: flex-end;
-            background: var(--blue-d);
-            border: 1px solid rgba(59,130,246,0.22);
-            padding: 10px 14px;
-            font-size: 13px;
-            color: var(--text);
-            line-height: 1.55;
-            max-width: 82%;
-            border-radius: 2px;
-        }
-        .chat-ski { align-self: flex-start; max-width: 88%; }
-        .chat-ski-label {
-            font-family: var(--mono);
-            font-size: 9px;
-            letter-spacing: 2px;
-            color: var(--blue);
-            margin-bottom: 6px;
-        }
-        .chat-ski-bubble {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border);
-            padding: 12px 14px;
-            font-size: 13px;
-            color: var(--text);
-            line-height: 1.7;
-            border-radius: 2px;
-        }
-        .chat-ski-bubble strong { color: #F1F5F9; font-weight: 600; }
-
-        /* ── FEATURES ─────────────────────────────────────────── */
-        .bg-alt {
-            background: var(--bg2);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-        }
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: var(--border);
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-        .feature-card {
-            background: var(--bg2);
-            padding: 32px 24px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: background 0.15s;
-        }
-        .feature-card:hover { background: #0f1319; }
-        .feature-card.highlight { border-top: 2px solid var(--blue); }
-        .feature-num {
-            font-family: var(--mono);
-            font-size: 9px;
-            letter-spacing: 2px;
-            /* --faint (#374151) is only 1.86:1 here — unreadable at 9px. These
-               are section labels, not decoration, so they need to be legible. */
-            color: #6C7F9C;
-            margin-bottom: 14px;
-        }
-        .feature-num.blue { color: var(--blue); }
-        .feature-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #F1F5F9;
-            margin-bottom: 10px;
-        }
-        .feature-desc {
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.65;
-            margin-bottom: 18px;
-            flex: 1;
-        }
-        .feature-tags {
-            display: flex; flex-wrap: wrap; gap: 5px;
-            justify-content: center;
-        }
-        .feature-tag {
-            font-family: var(--mono);
-            font-size: 9px;
-            letter-spacing: 1px;
-            padding: 2px 7px;
-            border: 1px solid rgba(59,130,246,0.18);
-            color: var(--blue);
-            background: var(--blue-f);
-        }
-
-        /* ── COMPARISON ───────────────────────────────────────── */
-        .comparison-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1px;
-            background: var(--border);
-            border: 1px solid var(--border);
-            text-align: left;
-        }
-        .comparison-col { background: var(--bg2); padding: 28px 28px; }
-        .comparison-col-header {
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 2px;
-            padding-bottom: 14px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-            text-align: center;
-        }
-        .comparison-col-header.muted { color: var(--muted); }
-        .comparison-col-header.blue  { color: var(--blue); }
-        .comparison-row {
-            display: flex; align-items: flex-start; gap: 10px;
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.55;
-            margin-bottom: 13px;
-        }
-        .comparison-row:last-child { margin-bottom: 0; }
-        .comparison-col.tradeski .comparison-row { color: var(--text); }
-        .mark { font-family: var(--mono); font-size: 11px; flex-shrink: 0; margin-top: 1px; }
-        .mark-no  { color: var(--faint); }
-        .mark-yes { color: var(--blue); }
-
-        /* ── STACK ────────────────────────────────────────────── */
-        .stack-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 1px;
-            background: var(--border);
-            border: 1px solid var(--border);
-            margin-top: 0;
-        }
-        .stack-item {
-            background: var(--bg2);
-            padding: 14px 10px;
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--muted);
-            letter-spacing: 0.3px;
-            text-align: center;
-            transition: background 0.12s, color 0.12s;
-        }
-        .stack-item:hover { background: #0f1319; color: var(--text); }
-
-        /* ── PRIVACY ──────────────────────────────────────────── */
-        .privacy-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: var(--border);
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-        .privacy-item {
-            background: var(--bg2);
-            padding: 32px 24px;
-        }
-        .privacy-num {
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 2px;
-            color: var(--blue);
-            margin-bottom: 14px;
-        }
-        .privacy-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #F1F5F9;
-            margin-bottom: 10px;
-        }
-        .privacy-text {
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.65;
-        }
-
-        /* ── BOTTOM CTA ───────────────────────────────────────── */
-        .bottom-cta {
-            padding: 88px 24px;
-            text-align: center;
-        }
-        .bottom-cta h2 {
-            font-size: clamp(22px, 3vw, 36px);
+        /* ── Sections ────────────────────────────────────────── */
+        .section { padding: 112px 0; }
+        .section-alt { background: var(--bg2); }
+        .section-head { max-width: 680px; margin: 0 auto 56px; text-align: center; }
+        .section-head h2 {
+            font-family: var(--display);
+            font-size: clamp(1.9rem, 3.6vw, 2.75rem);
             font-weight: 700;
-            color: #F1F5F9;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: var(--text-strong);
+            margin-bottom: 14px;
+            text-wrap: balance;
+        }
+        .section-head p { font-size: 1.1rem; color: var(--muted); }
+
+        /* ── Ski conversation ────────────────────────────────── */
+        .chat {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 28px;
+            background: var(--bg-card);
+            border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .chat-head {
+            display: flex; align-items: center; gap: 10px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px; font-weight: 600; color: var(--text-strong);
+        }
+        .chat-head span { font-weight: 400; color: var(--faint); }
+        .bubble {
+            max-width: 84%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.55;
+        }
+        .bubble-user {
+            align-self: flex-end;
+            background: var(--accent-strong);
+            color: #fff;
+            border-bottom-right-radius: 6px;
+        }
+        .bubble-ski {
+            align-self: flex-start;
+            background: var(--bg-control);
+            color: var(--text);
+            border-bottom-left-radius: 6px;
+        }
+        .bubble-ski strong { color: var(--text-strong); font-weight: 600; }
+        .bubble-user + .bubble-ski { margin-top: -4px; }
+        .bubble-ski + .bubble-user { margin-top: 10px; }
+        .demo-note {
+            font-size: 14px;
+            color: var(--faint);
+            line-height: 1.6;
+            max-width: 620px;
+            margin: 28px auto 0;
+            text-align: center;
+        }
+        .demo-note a { color: #8DB8FF; white-space: nowrap; }
+        .demo-note a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+        /* ── Features: hairline grid, no boxes or tags ───────── */
+        .features { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 48px; }
+        .feature { padding: 28px 0; border-top: 1px solid var(--border); }
+        .feature h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-strong); margin-bottom: 8px; }
+        .feature p  { font-size: 15px; color: var(--muted); line-height: 1.6; }
+
+        /* ── Comparison ──────────────────────────────────────── */
+        .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin: 0 auto; }
+        .compare-col { padding: 28px 30px; border-radius: 16px; background: var(--bg-card); }
+        .compare-col.ours { background: var(--accent-faint); box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25); }
+        .compare-col h3 { font-size: 15px; font-weight: 600; color: var(--muted); margin-bottom: 18px; }
+        .compare-col.ours h3 { color: #8DB8FF; }
+        .compare-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+        .compare-col li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; font-size: 15px; color: var(--muted); line-height: 1.5; }
+        .compare-col.ours li { color: var(--text); }
+        .mark { font-weight: 600; }
+        .mark-no  { color: var(--faint); }
+        .mark-yes { color: var(--accent); }
+
+        /* ── Stack: one quiet line of names ──────────────────── */
+        .stack {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px;
+            max-width: 760px; margin: 0 auto;
+            font-size: 15px; color: var(--muted);
+        }
+
+        /* ── Privacy ─────────────────────────────────────────── */
+        .privacy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; }
+        .privacy h3 { font-size: 17px; font-weight: 600; color: var(--text-strong); margin-bottom: 8px; }
+        .privacy p  { font-size: 15px; color: var(--muted); line-height: 1.6; }
+        .privacy-more { text-align: center; margin-top: 48px; font-size: 15px; color: var(--muted); }
+        .privacy-more a { color: #8DB8FF; }
+        .privacy-more a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+        /* ── CTA ─────────────────────────────────────────────── */
+        .cta { text-align: center; padding: 120px 0; border-top: 1px solid var(--border); }
+        .cta h2 {
+            font-family: var(--display);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: var(--text-strong);
             margin-bottom: 14px;
         }
-        .bottom-cta p {
-            font-size: 15px;
-            color: var(--muted);
-            margin-bottom: 32px;
-        }
+        .cta p { font-size: 1.1rem; color: var(--muted); margin: 0 auto 32px; max-width: 520px; }
 
-        /* ── FOOTER ───────────────────────────────────────────── */
-        footer {
-            padding: 18px 32px;
-            display: flex; align-items: center; justify-content: space-between;
-            font-family: var(--mono);
-            font-size: 10px;
-            color: var(--faint);
-            letter-spacing: 0.5px;
-            border-top: 1px solid var(--border);
-            flex-wrap: wrap;
-            gap: 8px;
+        /* ── Footer ──────────────────────────────────────────── */
+        footer { border-top: 1px solid var(--border); background: var(--bg2); }
+        .footer-inner {
+            max-width: var(--maxw); margin: 0 auto; padding: 28px 24px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap;
+            font-size: 13px; color: var(--faint);
         }
+        .footer-inner a { color: var(--muted); }
+        .footer-inner a:hover { color: var(--text-strong); }
 
-        /* ── MOBILE ───────────────────────────────────────────── */
-        @media (max-width: 700px) {
-            nav { padding: 0 16px; }
-            .section-wrap { padding: 64px 16px; }
-            .features-grid { grid-template-columns: 1fr; }
-            .comparison-grid { grid-template-columns: 1fr; }
-            .privacy-grid { grid-template-columns: 1fr; }
-            footer { flex-direction: column; gap: 6px; text-align: center; }
+        /* ── Responsive ──────────────────────────────────────── */
+        @media (max-width: 880px) {
+            .nav-links { display: none; }
+            .nav-cta   { margin-left: auto; }
+            .hero { padding: 80px 0 72px; }
+            .section, .cta { padding: 88px 0; }
+            .features { grid-template-columns: 1fr 1fr; column-gap: 32px; }
+            .privacy  { grid-template-columns: 1fr; gap: 28px; }
+        }
+        @media (max-width: 600px) {
+            body { font-size: 16px; }
+            .container, .nav-inner { padding-left: 16px; padding-right: 16px; }
+            .hero { padding: 56px 0; }
+            h1 br { display: none; }
+            .hero-cta { flex-direction: column; align-items: stretch; }
+            .price-strip { grid-template-columns: repeat(3, 1fr); row-gap: 16px; margin-top: 48px; }
+            .chat { padding: 18px; border-radius: 16px; }
+            .bubble { max-width: 92%; font-size: 14px; }
+            .features { grid-template-columns: 1fr; }
+            .compare  { grid-template-columns: 1fr; }
+            .section, .cta { padding: 72px 0; }
+            .footer-inner { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
 
-<nav>
-    <a href="/" class="nav-logo">
-        <svg class="nav-logo-icon" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true">
-            <defs><linearGradient id="tk-nav" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0" stop-color="#1E40AF"/><stop offset="1" stop-color="#60A5FA"/>
-            </linearGradient></defs>
-            <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-nav)"/>
-            <path d="M22 6 L19.6 11 L24.4 11 Z" fill="#07090D"/>
-        </svg>
-        TRADESKI
-    </a>
-    <a href="/app" class="nav-launch">Ask Ski →</a>
+<nav aria-label="Main">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo" aria-label="Tradeski home">
+            <svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true">
+                <defs><linearGradient id="tk-nav" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0" stop-color="#1E40AF"/><stop offset="1" stop-color="#60A5FA"/>
+                </linearGradient></defs>
+                <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-nav)"/>
+                <path d="M22 6 L19.6 11 L24.4 11 Z" fill="#0A0B0D"/>
+            </svg>
+            Tradeski
+        </a>
+        <div class="nav-links">
+            <a href="#ski" class="nav-link">Ski</a>
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#privacy" class="nav-link">Privacy</a>
+            <a href="https://github.com/Danny-397/Tradeski" class="nav-link" target="_blank" rel="noopener">Source</a>
+        </div>
+        <a href="/app" class="btn btn-primary btn-sm nav-cta">Open the dashboard</a>
+    </div>
 </nav>
 
+<main>
 <!-- HERO -->
-<section class="hero">
-    <p class="hero-eyebrow">AI Financial Analyst</p>
-    <h1>Ask Ski.<br><span class="hero-h1-dim">Own your portfolio.</span></h1>
-    <p class="hero-sub">
-        Ski pulls your actual holdings, live market prices, Federal Reserve macro data,
-        and real-time news sentiment — then answers exactly how today's conditions
-        affect <em>your</em> positions.
-    </p>
-    <div class="hero-pillars">
-        <span class="hero-pill">◈ Your Portfolio</span>
-        <span class="hero-pill-sep">+</span>
-        <span class="hero-pill">◈ Live Market Data</span>
-        <span class="hero-pill-sep">+</span>
-        <span class="hero-pill">◈ Fed Macro Data</span>
-        <span class="hero-pill-sep">+</span>
-        <span class="hero-pill">◈ News Sentiment</span>
-        <span class="hero-pill-eq">= Ski</span>
-    </div>
-    <div class="hero-cta">
-        <a href="/app" class="cta-primary">Ask Ski Now</a>
-        <a href="https://github.com/Danny-397/Tradeski" target="_blank" rel="noopener" class="cta-ghost">GitHub ↗</a>
-    </div>
-    <div class="price-strip" id="price-strip">
-        <div class="ps-item"><span class="ps-sym">AAPL</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
-        <div class="ps-item"><span class="ps-sym">MSFT</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
-        <div class="ps-item"><span class="ps-sym">NVDA</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
-        <div class="ps-item"><span class="ps-sym">TSLA</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
-        <div class="ps-item"><span class="ps-sym">SPY</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
-    </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- SKI DEMO -->
-<section class="section-wrap">
-    <span class="section-label">Ski in action</span>
-    <h2 class="section-title">Questions your charts can't answer</h2>
-    <p class="section-sub">
-        Ski sees your holdings, today's Federal Reserve data, and current news sentiment — all at once.
-    </p>
-    <div class="chat-window">
-        <div class="chat-window-header">
-            <span class="ski-dot"></span>
-            SKI — AI FINANCIAL ANALYST
+<header class="hero">
+    <div class="container">
+        <p class="eyebrow">An AI analyst for your portfolio</p>
+        <h1>Ask Ski. <br>Own your portfolio.</h1>
+        <p class="hero-sub">
+            Ski reads your actual holdings, live prices, Federal Reserve data, and news sentiment,
+            then explains how today's conditions affect <em>your</em> positions.
+        </p>
+        <div class="hero-cta">
+            <a href="/app" class="btn btn-primary">Open the dashboard</a>
+            <a href="https://github.com/Danny-397/Tradeski" target="_blank" rel="noopener" class="btn btn-quiet">View the source <span aria-hidden="true">›</span></a>
         </div>
-        <div class="chat-body">
-
-            <div class="chat-exchange">
-                <div class="chat-user">Given today's Fed rate decision, what in my holdings is most exposed?</div>
-                <div class="chat-ski">
-                    <div class="chat-ski-label">SKI</div>
-                    <div class="chat-ski-bubble">
-                        <strong>Your growth positions carry the most rate sensitivity.</strong> When the Fed holds rates elevated, the discount rate applied to future earnings rises — this compresses valuations on high-multiple names first. NVDA and similar tech holdings reprice harder than defensive names. AAPL is more insulated given its cash position and buyback program, though it's not immune. Watch the yield curve spread in your macro ribbon — steepening signals the market expects growth to hold; inversion historically triggers rotation to defensives.
-                    </div>
-                </div>
-            </div>
-
-            <div class="chat-exchange">
-                <div class="chat-user">What changed for my positions since yesterday?</div>
-                <div class="chat-ski">
-                    <div class="chat-ski-label">SKI</div>
-                    <div class="chat-ski-bubble">
-                        <strong>I can see your current holdings and live P&amp;L.</strong> For intraday changes, the 1D chart on any position shows exactly where it opened versus where it trades now. Cross-reference that with the news sentiment panel — a shift from neutral to bearish sentiment often precedes price pressure. If a position is down but sentiment is unchanged and macro data is stable, that's more likely noise than a signal worth acting on.
-                    </div>
-                </div>
-            </div>
-
-            <div class="chat-exchange">
-                <div class="chat-user">How does current inflation data affect my AAPL and NVDA positions?</div>
-                <div class="chat-ski">
-                    <div class="chat-ski-label">SKI</div>
-                    <div class="chat-ski-bubble">
-                        <strong>The CPI reading in your macro ribbon is the baseline.</strong> Elevated inflation keeps the Fed hawkish, which compresses forward earnings multiples. NVDA gets hit harder — its valuation is weighted toward future AI capex earnings, and a high discount rate makes those earnings worth less today. AAPL is more defensive: its earnings are current, not future-weighted. If CPI cools toward 2%, both names benefit — but NVDA benefits disproportionately as growth multiples expand.
-                    </div>
-                </div>
-            </div>
-
+        <div class="price-strip" id="price-strip" aria-label="Today's prices">
+            <div class="ps-item"><span class="ps-sym">AAPL</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+            <div class="ps-item"><span class="ps-sym">MSFT</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+            <div class="ps-item"><span class="ps-sym">NVDA</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+            <div class="ps-item"><span class="ps-sym">TSLA</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
+            <div class="ps-item"><span class="ps-sym">SPY</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
         </div>
     </div>
-    <p class="demo-note">
-        Illustrative examples. In the live app, Ski answers from <em>your</em> actual holdings, live P&amp;L,
-        today's Federal Reserve data, and current news — and greets you with a proactive briefing the moment
-        you sign in. <a href="/app">Try it with your portfolio →</a>
-    </p>
-</section>
+</header>
 
-<div class="divider"></div>
+<!-- SKI -->
+<section class="section section-alt" id="ski">
+    <div class="container">
+        <div class="section-head">
+            <h2>Questions your charts can't answer.</h2>
+            <p>Ski sees your holdings, today's Federal Reserve data, and current news sentiment at once.</p>
+        </div>
+        <div class="chat">
+            <div class="chat-head">Ski <span>· your financial analyst</span></div>
+
+            <div class="bubble bubble-user">Given today's Fed rate decision, what in my holdings is most exposed?</div>
+            <div class="bubble bubble-ski">
+                <strong>Your growth positions carry the most rate sensitivity.</strong> When the Fed holds rates elevated, the discount rate applied to future earnings rises, which compresses valuations on high-multiple names first. NVDA and similar tech holdings reprice harder than defensive names. AAPL is more insulated given its cash position and buyback program, though it's not immune.
+            </div>
+
+            <div class="bubble bubble-user">What changed for my positions since yesterday?</div>
+            <div class="bubble bubble-ski">
+                <strong>I can see your current holdings and live P&amp;L.</strong> The 1D chart on any position shows where it opened versus where it trades now. Cross-reference that with the news sentiment panel: if a position is down but sentiment is unchanged and macro data is stable, that's more likely noise than a signal worth acting on.
+            </div>
+
+            <div class="bubble bubble-user">How does current inflation data affect my AAPL and NVDA positions?</div>
+            <div class="bubble bubble-ski">
+                <strong>The CPI reading in your macro ribbon is the baseline.</strong> Elevated inflation keeps the Fed hawkish, which compresses forward earnings multiples. NVDA gets hit harder because its valuation is weighted toward future earnings. If CPI cools toward 2%, both names benefit, but NVDA disproportionately.
+            </div>
+        </div>
+        <p class="demo-note">
+            Illustrative examples. In the app, Ski answers from your actual holdings, live P&amp;L, today's
+            Federal Reserve data, and current news, and greets you with a briefing when you sign in.
+            <a href="/app">Try it with your portfolio ›</a>
+        </p>
+    </div>
+</section>
 
 <!-- FEATURES -->
-<section class="bg-alt">
-    <div class="section-wrap wide">
-        <span class="section-label">Features</span>
-        <h2 class="section-title">Everything in one place</h2>
-        <p class="section-sub">From your portfolio to Federal Reserve data to live charts — all connected.</p>
-        <div class="features-grid">
-
-            <div class="feature-card highlight">
-                <div class="feature-num blue">01 — SKI</div>
-                <div class="feature-title">Ski — AI Financial Analyst</div>
-                <p class="feature-desc">Ask questions about your specific portfolio. Ski receives your live holdings, P&L, Federal Reserve macro data, and news sentiment on every request.</p>
-                <div class="feature-tags">
-                    <span class="feature-tag">PORTFOLIO AWARE</span>
-                    <span class="feature-tag">MACRO CONTEXT</span>
-                    <span class="feature-tag">NEWS SENTIMENT</span>
-                </div>
+<section class="section" id="features">
+    <div class="container">
+        <div class="section-head">
+            <h2>Everything in one place.</h2>
+            <p>Your portfolio, Federal Reserve data, and live charts, all connected.</p>
+        </div>
+        <div class="features">
+            <div class="feature">
+                <h3>Ski, your AI analyst</h3>
+                <p>Ask about your specific portfolio. Every request carries your live holdings, P&amp;L, macro data, and news sentiment.</p>
             </div>
-
-            <div class="feature-card highlight">
-                <div class="feature-num blue">02 — PORTFOLIO</div>
-                <div class="feature-title">Portfolio + Risk Analytics</div>
-                <p class="feature-desc">Track holdings with live P&L. Sharpe ratio, beta vs SPY, and annualized volatility from one year of daily returns — all injected into Ski automatically.</p>
-                <div class="feature-tags">
-                    <span class="feature-tag">SHARPE</span>
-                    <span class="feature-tag">BETA</span>
-                    <span class="feature-tag">VOLATILITY</span>
-                </div>
+            <div class="feature">
+                <h3>Portfolio and risk</h3>
+                <p>Live P&amp;L, plus Sharpe ratio, beta against SPY, and annualized volatility from a year of daily returns.</p>
             </div>
-
-            <div class="feature-card highlight">
-                <div class="feature-num blue">03 — MACRO</div>
-                <div class="feature-title">Federal Reserve Macro Ribbon</div>
-                <p class="feature-desc">CPI, Fed Funds Rate, GDP, Unemployment, 10-Year Treasury, Yield Curve, and Credit Spreads — pulled hourly from the St. Louis Fed and fed into Ski's context.</p>
-                <div class="feature-tags">
-                    <span class="feature-tag">CPI</span>
-                    <span class="feature-tag">FED RATE</span>
-                    <span class="feature-tag">10Y YIELD</span>
-                    <span class="feature-tag">HY SPREAD</span>
-                </div>
+            <div class="feature">
+                <h3>Federal Reserve ribbon</h3>
+                <p>CPI, fed funds, GDP, unemployment, the 10-year yield, the yield curve, and credit spreads, refreshed hourly from the St. Louis Fed.</p>
             </div>
-
-            <div class="feature-card">
-                <div class="feature-num">04 — CHARTS</div>
-                <div class="feature-title">Real-Time Price Charts</div>
-                <p class="feature-desc">Candlestick and line charts across six timeframes — 1D through 1Y. Click any candle for exact OHLC data. Compare up to five symbols on a normalized baseline.</p>
-                <div class="feature-tags">
-                    <span class="feature-tag">CANDLESTICK</span>
-                    <span class="feature-tag">LINE</span>
-                    <span class="feature-tag">COMPARE MODE</span>
-                </div>
+            <div class="feature">
+                <h3>Real-time charts</h3>
+                <p>Candlestick and line charts from one day to one year. Click any candle for exact OHLC, or compare up to five symbols.</p>
             </div>
-
-            <div class="feature-card">
-                <div class="feature-num">05 — INDICATORS</div>
-                <div class="feature-title">Technical Indicators</div>
-                <p class="feature-desc">RSI, MACD, Bollinger Bands, SMA 20/50, EMA 20, Z-Score, ATR, and linear regression — implemented from first principles, overlaid on the chart.</p>
-                <div class="feature-tags">
-                    <span class="feature-tag">RSI</span>
-                    <span class="feature-tag">MACD</span>
-                    <span class="feature-tag">BOLLINGER</span>
-                    <span class="feature-tag">SMA / EMA</span>
-                </div>
+            <div class="feature">
+                <h3>Technical indicators</h3>
+                <p>RSI, MACD, Bollinger Bands, moving averages, Z-score, ATR, and regression, implemented from first principles.</p>
             </div>
-
-            <div class="feature-card">
-                <div class="feature-num">06 — CORRELATION</div>
-                <div class="feature-title">Correlation Heatmap</div>
-                <p class="feature-desc">90-day pairwise return correlation matrix across 11 symbols. Spot diversification gaps and sector clustering at a glance.</p>
-                <div class="feature-tags">
-                    <span class="feature-tag">90-DAY RETURNS</span>
-                    <span class="feature-tag">11 SYMBOLS</span>
-                </div>
+            <div class="feature">
+                <h3>Correlation heatmap</h3>
+                <p>A 90-day correlation matrix across 11 symbols, so diversification gaps and sector clusters stand out.</p>
             </div>
-
         </div>
     </div>
 </section>
-
-<div class="divider"></div>
 
 <!-- COMPARISON -->
-<section class="section-wrap">
-    <span class="section-label">Built different</span>
-    <h2 class="section-title">Why not just use TradingView?</h2>
-    <p class="section-sub">TradingView shows you great charts. It has no idea who you are.</p>
-    <div class="comparison-grid">
-        <div class="comparison-col">
-            <div class="comparison-col-header muted">TRADINGVIEW / FINVIZ</div>
-            <div class="comparison-row"><span class="mark mark-no">—</span><span>Generic charts built for any user</span></div>
-            <div class="comparison-row"><span class="mark mark-no">—</span><span>No awareness of your holdings or cost basis</span></div>
-            <div class="comparison-row"><span class="mark mark-no">—</span><span>No live Federal Reserve macro integration</span></div>
-            <div class="comparison-row"><span class="mark mark-no">—</span><span>Charts can't connect macro conditions to your positions</span></div>
-            <div class="comparison-row"><span class="mark mark-no">—</span><span>No AI analyst — you interpret everything yourself</span></div>
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-head">
+            <h2>Why not just use TradingView?</h2>
+            <p>TradingView shows you great charts. It has no idea who you are.</p>
         </div>
-        <div class="comparison-col tradeski">
-            <div class="comparison-col-header blue">TRADESKI + SKI</div>
-            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Personalized to your specific portfolio</span></div>
-            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Ski knows your holdings, shares, and P&L in real time</span></div>
-            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Live FRED data — CPI, Fed Funds Rate, yield curve — updated hourly</span></div>
-            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Ski explains how today's macro data affects your positions specifically</span></div>
-            <div class="comparison-row"><span class="mark mark-yes">→</span><span>Ask it anything — it answers with your context, not generic advice</span></div>
+        <div class="compare">
+            <div class="compare-col">
+                <h3>TradingView, Finviz</h3>
+                <ul>
+                    <li><span class="mark mark-no">–</span><span>Generic charts built for any user</span></li>
+                    <li><span class="mark mark-no">–</span><span>No awareness of your holdings or cost basis</span></li>
+                    <li><span class="mark mark-no">–</span><span>No live Federal Reserve integration</span></li>
+                    <li><span class="mark mark-no">–</span><span>You interpret everything yourself</span></li>
+                </ul>
+            </div>
+            <div class="compare-col ours">
+                <h3>Tradeski and Ski</h3>
+                <ul>
+                    <li><span class="mark mark-yes">✓</span><span>Personalized to your specific portfolio</span></li>
+                    <li><span class="mark mark-yes">✓</span><span>Knows your holdings, shares, and P&amp;L in real time</span></li>
+                    <li><span class="mark mark-yes">✓</span><span>Live FRED data, updated hourly</span></li>
+                    <li><span class="mark mark-yes">✓</span><span>Explains how today's macro data affects your positions</span></li>
+                </ul>
+            </div>
         </div>
     </div>
 </section>
-
-<div class="divider"></div>
 
 <!-- STACK -->
-<section class="bg-alt">
-    <div class="section-wrap">
-        <span class="section-label">Stack</span>
-        <h2 class="section-title">How it's built</h2>
-        <p class="section-sub">Production-deployed on Render and Vercel. 110 passing tests. CI on every push.</p>
-        <div class="stack-grid">
-            <div class="stack-item">Python / Flask</div>
-            <div class="stack-item">Flask-SocketIO</div>
-            <div class="stack-item">Plotly.js</div>
-            <div class="stack-item">yfinance</div>
-            <div class="stack-item">FRED API</div>
-            <div class="stack-item">NewsAPI</div>
-            <div class="stack-item">VADER Sentiment</div>
-            <div class="stack-item">Anthropic Claude</div>
-            <div class="stack-item">NumPy</div>
-            <div class="stack-item">Postgres (Neon)</div>
-            <div class="stack-item">Render</div>
-            <div class="stack-item">Vercel</div>
+<section class="section">
+    <div class="container">
+        <div class="section-head">
+            <h2>How it's built.</h2>
+            <p>Deployed on Render and Vercel, with 110 passing tests and CI on every push.</p>
+        </div>
+        <div class="stack">
+            <span>Python and Flask</span><span>Flask-SocketIO</span><span>Plotly.js</span><span>yfinance</span>
+            <span>FRED API</span><span>NewsAPI</span><span>VADER sentiment</span><span>Anthropic Claude</span>
+            <span>NumPy</span><span>Postgres on Neon</span><span>Render</span><span>Vercel</span>
         </div>
     </div>
 </section>
-
-<div class="divider"></div>
 
 <!-- PRIVACY -->
-<section class="section-wrap">
-    <span class="section-label">Privacy</span>
-    <h2 class="section-title">Your data</h2>
-    <p class="section-sub">Browse freely without an account. Create one only when you want to save your work — and no tracking beyond what powers the platform itself.</p>
-    <div class="privacy-grid">
-        <div class="privacy-item">
-            <div class="privacy-num">WHAT WE COLLECT</div>
-            <div class="privacy-title">Only what you choose to save</div>
-            <p class="privacy-text">An email and password (stored only as a salted hash) if you create an account, plus the holdings, alerts, and watchlist you save. No brokerage, bank, or payment details.</p>
+<section class="section section-alt" id="privacy">
+    <div class="container">
+        <div class="section-head">
+            <h2>Your data stays yours.</h2>
+            <p>Browse without an account. Create one only when you want to save your work.</p>
         </div>
-        <div class="privacy-item">
-            <div class="privacy-num">WHAT IT'S USED FOR</div>
-            <div class="privacy-title">Powering Ski's analysis</div>
-            <p class="privacy-text">Your holdings are used exclusively so Ski can answer questions about your specific positions rather than generic ones.</p>
+        <div class="privacy">
+            <div>
+                <h3>Only what you save</h3>
+                <p>An email and a salted password hash if you create an account, plus the holdings, alerts, and watchlist you save. No brokerage, bank, or payment details.</p>
+            </div>
+            <div>
+                <h3>Used only for Ski</h3>
+                <p>Your holdings are used so Ski can answer questions about your specific positions rather than generic ones.</p>
+            </div>
+            <div>
+                <h3>Never sold or shared</h3>
+                <p>Tradeski does not sell your data, share it with third parties, or use it for advertising.</p>
+            </div>
         </div>
-        <div class="privacy-item">
-            <div class="privacy-num">WHAT WE NEVER DO</div>
-            <div class="privacy-title">Sell or share your data</div>
-            <p class="privacy-text">Tradeski does not sell your data, share it with third parties, or use it for advertising. Ever.</p>
-        </div>
+        <p class="privacy-more">Read the full <a href="/privacy.html">privacy policy</a>.</p>
     </div>
-    <p class="section-sub" style="margin-top:22px">Read the full <a href="/privacy.html" style="color:var(--accent,#60A5FA)">Privacy Policy</a>.</p>
 </section>
 
-<div class="divider"></div>
-
-<!-- BOTTOM CTA -->
-<section class="bottom-cta">
-    <h2>Ask Ski about your portfolio.</h2>
-    <p>Free to start — create an account to save your holdings, then ask Ski anything.</p>
-    <a href="/app" class="cta-primary">Open Dashboard</a>
+<!-- CTA -->
+<section class="cta">
+    <div class="container">
+        <h2>Ask Ski about your portfolio.</h2>
+        <p>Free to start. Create an account to save your holdings, then ask Ski anything.</p>
+        <a href="/app" class="btn btn-primary">Open the dashboard</a>
+    </div>
 </section>
+</main>
 
 <footer>
-    <span style="display:inline-flex;align-items:center;gap:7px">
-        <svg viewBox="0 0 32 32" width="15" height="15" aria-hidden="true">
-            <defs><linearGradient id="tk-ft" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0" stop-color="#1E40AF"/><stop offset="1" stop-color="#60A5FA"/>
-            </linearGradient></defs>
-            <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-ft)"/>
-            <path d="M22 6 L19.6 11 L24.4 11 Z" fill="#07090D"/>
-        </svg>TRADESKI</span>
-    <span>Tradeski does not sell your data. Portfolio data powers Ski's analysis only.</span>
-    <span><a href="/privacy.html" style="color:inherit">Privacy Policy</a> · Built by <a href="https://danny-397.github.io/" style="color:inherit">Dan Lichtenberger</a> · tradeski.dev</span>
+    <div class="footer-inner">
+        <span>© 2026 Tradeski · Educational tool, not investment advice.</span>
+        <span><a href="/privacy.html">Privacy policy</a> · Built by <a href="https://danny-397.github.io/">Dan Lichtenberger</a></span>
+    </div>
 </footer>
 
 <script>

@@ -33,13 +33,16 @@
 
 :root {
     /* ---- Surfaces ---- */
-    --bg-primary:      #07090D;
-    --bg-secondary:    #0C0F16;
-    --bg-card:         #0C0F16;
-    --bg-raised:       #11151E;             /* menus, popovers, modals */
-    --bg-hover:        rgba(59, 130, 246, 0.05);
-    --bg-active:       rgba(59, 130, 246, 0.10);
-    --bg-sunken:       rgba(0, 0, 0, 0.30); /* inputs and wells */
+    /* Neutral near-black, lifted in even steps. The old surfaces carried a
+       blue cast that made every panel read as tinted glass. */
+    --bg-primary:      #0A0B0D;
+    --bg-secondary:    #111215;
+    --bg-card:         #16181B;
+    --bg-raised:       #1C1E22;             /* menus, popovers, modals */
+    --bg-control:      #22252A;             /* buttons, segmented tracks */
+    --bg-hover:        rgba(255, 255, 255, 0.04);
+    --bg-active:       rgba(255, 255, 255, 0.08);
+    --bg-sunken:       rgba(255, 255, 255, 0.04); /* inputs and wells */
 
     /* ---- Accent ----
        --accent is the brand blue, for text, borders and icons on dark.
@@ -82,15 +85,16 @@
     --notice-link:     #FFD766;
 
     /* ---- Text ramp ---- */
-    --text-primary:    #D1D5DB;   /* 13.01:1 */
-    --text-secondary:  #8A93A3;   /*  6.19:1 */
-    --text-muted:      #757F8E;   /*  4.73:1 */
+    --text-strong:     #F4F5F7;   /* headings, key figures */
+    --text-primary:    #DCDFE4;   /* 14.2:1 */
+    --text-secondary:  #9BA2AD;   /*  7.3:1 */
+    --text-muted:      #7C838E;   /*  4.9:1 */
 
     /* ---- Borders ---- */
     --border:          rgba(255, 255, 255, 0.07);
-    --border-subtle:   rgba(255, 255, 255, 0.04);
-    --border-hover:    rgba(59, 130, 246, 0.30);
-    --border-strong:   rgba(59, 130, 246, 0.55);
+    --border-subtle:   rgba(255, 255, 255, 0.045);
+    --border-hover:    rgba(255, 255, 255, 0.16);
+    --border-strong:   rgba(255, 255, 255, 0.22);
 
     /* ---- Elevation ----
        Real shadows cast downward. The old --glow-* tokens were coloured halos
@@ -124,6 +128,7 @@
     --fs-micro: 11px;
     --fs-xs:    12px;
     --fs-sm:    13px;
+    --fs-base:  14px;
     --fs-md:    15px;
     --fs-lg:    17px;
     --fs-xl:    20px;
@@ -135,16 +140,16 @@
     --lh-base:  1.55;
 
     /* ---- Radii ----
-       Crisp on purpose: a trading terminal, not a consumer app. The old
-       2px/1px/1px trio read as an accident; 3/6/10 reads as precision. */
-    --radius-sm:       3px;
-    --radius:          6px;
-    --radius-lg:       10px;
-    --radius-xs:       3px;
+       Controls 6, cards 10, sheets 14. Soft enough to feel finished, tight
+       enough that a dense data view still reads as precise. */
+    --radius-xs:       4px;
+    --radius-sm:       6px;
+    --radius:          10px;
+    --radius-lg:       14px;
     --radius-pill:     999px;
 
     /* ---- Layout ---- */
-    --header-h:        48px;
+    --header-h:        52px;
     --ticker-h:        28px;
     --status-h:        22px;
     --sidebar-w:       222px;
@@ -152,9 +157,14 @@
     --page-max:        1120px;   /* shared reading width for prose pages */
 
     /* ---- Fonts ---- */
-    --display:         'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    --mono:            'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-    --sans:            'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    /* One UI face everywhere: SF on Apple devices, Inter elsewhere. Numbers
+       use the same face with tabular figures (--data) rather than a separate
+       monospace, so a price and its label read as one line of type.
+       --mono remains for genuine code only. */
+    --display:         -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --sans:            -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --data:            var(--sans);
+    --mono:            'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
 
     /* ---- Motion ----
        Three durations, two curves. --ease-out decelerates, for things entering
@@ -167,7 +177,7 @@
 
     /* One focus ring for every interactive element. The inner ring is the page
        colour, so the accent ring reads against any surface it lands on. */
-    --focus-ring:      0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
+    --focus-ring:      0 0 0 2px var(--bg-primary), 0 0 0 4px rgba(59, 130, 246, 0.75);
 }
 
 /* ============================================================
@@ -186,7 +196,7 @@
     border-radius: var(--radius-sm);
 }
 
-::selection { background: var(--accent-dim); color: #fff; }
+::selection { background: rgba(59, 130, 246, 0.35); color: #fff; }
 
 /* ---- Scrollbars ----
    Were 3px wide on the dashboard: too thin to grab, and the thumb was a 16%

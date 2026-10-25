@@ -106,8 +106,8 @@ function closeAuthModal() {
 function setAuthMode(mode) {
     authState.mode = mode;
     const isLogin = mode === "login";
-    document.getElementById("auth-title").textContent = isLogin ? "SIGN IN" : "CREATE ACCOUNT";
-    document.getElementById("auth-submit-btn").textContent = isLogin ? "SIGN IN" : "CREATE ACCOUNT";
+    document.getElementById("auth-title").textContent = isLogin ? "Sign in" : "Create account";
+    document.getElementById("auth-submit-btn").textContent = isLogin ? "Sign in" : "Create account";
     document.getElementById("auth-intro").textContent = isLogin
         ? "Sign in to save your portfolio, alerts, and watchlist across devices."
         : "Create a free account to save your portfolio, alerts, and watchlist.";
@@ -283,18 +283,18 @@ function updateMarketStatus() {
 
     if (day === 0 || day === 6) {
         dot.className = "status-dot closed";
-        label.textContent = "WEEKEND";
+        label.textContent = "Weekend · market closed";
         return;
     }
     if (h >= 9.5 && h < 16) {
         dot.className = "status-dot open";
-        label.textContent = "MARKET OPEN";
+        label.textContent = "Market open";
     } else if ((h >= 4 && h < 9.5) || (h >= 16 && h < 20)) {
         dot.className = "status-dot pre";
-        label.textContent = "EXTENDED HRS";
+        label.textContent = "Extended hours";
     } else {
         dot.className = "status-dot closed";
-        label.textContent = "MARKET CLOSED";
+        label.textContent = "Market closed";
     }
 }
 
@@ -318,7 +318,7 @@ function setWs(connected) {
     const dot   = document.getElementById("ws-dot");
     const label = document.querySelector(".ws-label");
     if (dot)   dot.className    = connected ? "ws-dot on" : "ws-dot";
-    if (label) label.textContent = connected ? "LIVE" : "OFFLINE";
+    if (label) label.textContent = connected ? "Live" : "Offline";
 }
 
 function onPriceUpdate(msg) {
@@ -362,9 +362,10 @@ function switchSymbol(sym) {
 // ============================================================
 
 function initTimeframes() {
-    document.querySelectorAll(".tf-btn").forEach(btn => {
+    const tfBtns = document.querySelectorAll("#timeframe-group .tf-btn[data-tf]");
+    tfBtns.forEach(btn => {
         btn.addEventListener("click", () => {
-            document.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
+            tfBtns.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             state.timeframe = btn.dataset.tf;
             loadChart(state.symbol);
@@ -405,11 +406,9 @@ function initIndicatorToggles() {
             const p = btn.dataset.panel;
             if (p === "rsi") {
                 state.showRsi = !state.showRsi;
-                btn.textContent = (state.showRsi ? "− RSI" : "+ RSI");
                 btn.classList.toggle("active", state.showRsi);
             } else if (p === "macd") {
                 state.showMacd = !state.showMacd;
-                btn.textContent = (state.showMacd ? "− MACD" : "+ MACD");
                 btn.classList.toggle("active", state.showMacd);
             }
             if (state.chartData) renderChart(state.chartData);
@@ -501,12 +500,12 @@ function renderChart(d) {
     // Bollinger Bands
     if (state.indicators.bb) {
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.upper_band, name: "BB Upper",
-            line: { color: "rgba(139,92,246,0.5)", width: 1 },
+            line: { color: "rgba(148,163,184,0.45)", width: 1 },
             xaxis: "x", yaxis: "y", showlegend: true,
             hovertemplate: "<b>%{y:.2f}</b><extra>BB Upper</extra>" });
         traces.push({ type: "scatter", mode: "lines", x: ts, y: d.lower_band, name: "BB Lower",
-            line: { color: "rgba(139,92,246,0.5)", width: 1 },
-            fill: "tonexty", fillcolor: "rgba(109,40,217,0.05)",
+            line: { color: "rgba(148,163,184,0.45)", width: 1 },
+            fill: "tonexty", fillcolor: "rgba(148,163,184,0.06)",
             xaxis: "x", yaxis: "y", showlegend: false,
             hovertemplate: "<b>%{y:.2f}</b><extra>BB Lower</extra>" });
     }
@@ -599,7 +598,7 @@ function renderChart(d) {
         gridcolor:     "rgba(255,255,255,0.04)",
         linecolor:     "rgba(255,255,255,0.07)",
         zerolinecolor: "rgba(255,255,255,0.06)",
-        tickfont: { family: "JetBrains Mono, monospace", size: 10, color: "#6B7280" },
+        tickfont: { family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif", size: 11, color: "#7C838E" },
         showgrid: true, zeroline: false, showline: false,
         // On touch screens lock pan/zoom so a finger-drag reads the value
         // at that point (spikeline + tooltip) instead of dragging the chart.
@@ -607,24 +606,24 @@ function renderChart(d) {
     };
 
     const layout = {
-        paper_bgcolor: "#07090D",
-        plot_bgcolor:  "#07090D",
-        font: { color: "#D1D5DB", family: "Space Grotesk, sans-serif", size: 11 },
+        paper_bgcolor: "#0A0B0D",
+        plot_bgcolor:  "#0A0B0D",
+        font: { color: "#DCDFE4", family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif", size: 11 },
         showlegend: true,
         // On touch the chart is small, so float the indicator key ABOVE the
         // plot (y just over the top edge) instead of overlaying the data.
         legend: {
             x: 0,
-            y: IS_TOUCH ? 1.0 : 0.99,
+            y: 1.0,
             xanchor: "left",
-            yanchor: IS_TOUCH ? "bottom" : "top",
+            yanchor: "bottom",
             orientation: "h",
-            font: { size: 10, family: "JetBrains Mono, monospace", color: "#6B7280" },
+            font: { size: 11, family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif", color: "#9BA2AD" },
             bgcolor: "transparent",
         },
-        margin: { t: IS_TOUCH ? 30 : 8, l: 10, r: 65, b: 32 },
+        margin: { t: 30, l: 10, r: 60, b: 32 },
         xaxis:  { ...ax, ...spike, domain: [0, 1], anchor: "y", type: "date", rangeslider: { visible: false } },
-        yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "Price", font: { size: 9 } } },
+        yaxis:  { ...ax, ...spike, domain: mainDom, side: "right", title: { text: "" } },
         dragmode: IS_TOUCH ? false : "pan",
         // On touch we scrub by x (finger controls time), so hover by x-column;
         // desktop keeps "closest" for precise mouse hovering.
@@ -632,9 +631,9 @@ function renderChart(d) {
         hoverdistance: 80,
         spikedistance: 100,
         hoverlabel: {
-            bgcolor: "#0C0F16",
-            bordercolor: "rgba(59,130,246,0.3)",
-            font: { family: "JetBrains Mono, monospace", size: 11, color: "#D1D5DB" },
+            bgcolor: "#1C1E22",
+            bordercolor: "rgba(255,255,255,0.14)",
+            font: { family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif", size: 12, color: "#F4F5F7" },
             namelength: -1,
         },
         shapes,
@@ -644,13 +643,13 @@ function renderChart(d) {
         layout.xaxis2 = { ...ax, ...spike, domain: [0, 1], anchor: "y3", matches: "x",
             type: "date", showticklabels: !showMacd };
         layout.yaxis3 = { ...ax, ...spike, domain: rsiDom, side: "right", range: [0, 100],
-            title: { text: "RSI", font: { size: 9 } } };
+            title: { text: "RSI", font: { size: 11, color: "#7C838E" } } };
     }
     if (showMacd) {
         layout.xaxis3 = { ...ax, ...spike, domain: [0, 1], anchor: "y4", matches: "x",
             type: "date", showticklabels: false };
         layout.yaxis4 = { ...ax, ...spike, domain: macdDom, side: "right",
-            title: { text: "MACD", font: { size: 9 } } };
+            title: { text: "MACD", font: { size: 11, color: "#7C838E" } } };
     }
 
     const config = {
@@ -658,12 +657,13 @@ function renderChart(d) {
         // Touch: no scroll-zoom, and hide the floating mode bar (clutter on
         // a phone). Desktop keeps the full interactive toolbar.
         scrollZoom: !IS_TOUCH,
-        displayModeBar: !IS_TOUCH,
+        displayModeBar: IS_TOUCH ? false : "hover",
         modeBarButtonsToRemove: ["select2d", "lasso2d", "toImage"],
     };
 
     if (!document.getElementById("price-chart")) return;
     Plotly.react("price-chart", traces, layout, config);
+    watchChartSize();
     initChartHoverListeners();
     updateIndicatorsPanel(d);
 }
@@ -823,6 +823,20 @@ function attachTouchScrub(el) {
 
 // Two-point comparison overlay (shaded band + delta readout), fixed-positioned
 // over the chart so Plotly never clobbers it.
+let _chartSizeObserver = null;
+function watchChartSize() {
+    const el = document.getElementById("price-chart");
+    if (_chartSizeObserver || !el || typeof ResizeObserver === "undefined") return;
+    let raf = 0;
+    _chartSizeObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+            if (el.data) Plotly.Plots.resize(el);
+        });
+    });
+    _chartSizeObserver.observe(el);
+}
+
 let _cmpBand = null, _cmpReadout = null;
 function _ensureCmpEls() {
     if (_cmpBand) return;
@@ -830,8 +844,8 @@ function _ensureCmpEls() {
     _cmpReadout = document.createElement("div");
     _cmpBand.style.cssText = "position:fixed;z-index:600;pointer-events:none;display:none";
     _cmpReadout.style.cssText = "position:fixed;z-index:601;pointer-events:none;display:none;" +
-        "background:rgba(12,15,22,0.95);border:1px solid rgba(59,130,246,0.35);border-radius:6px;" +
-        "padding:5px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#D1D5DB;white-space:nowrap";
+        "background:rgba(28,30,34,0.96);border:1px solid rgba(255,255,255,0.14);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.45);" +
+        "padding:5px 12px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',Inter,'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:#F4F5F7;white-space:nowrap";
     document.body.appendChild(_cmpBand);
     document.body.appendChild(_cmpReadout);
 }
@@ -971,35 +985,35 @@ function updateIndicatorsPanel(d) {
     const ema20    = last(d.ema20);
 
     // RSI
-    let rsiSig = "neutral", rsiLabel = "NEUTRAL";
+    let rsiSig = "neutral", rsiLabel = "Neutral";
     if (rsiVal != null) {
-        if (rsiVal > 70)      { rsiSig = "sell"; rsiLabel = "OVERBOUGHT"; }
-        else if (rsiVal < 30) { rsiSig = "buy";  rsiLabel = "OVERSOLD"; }
+        if (rsiVal > 70)      { rsiSig = "sell"; rsiLabel = "Overbought"; }
+        else if (rsiVal < 30) { rsiSig = "buy";  rsiLabel = "Oversold"; }
     }
     const rsiPct   = rsiVal != null ? Math.min(100, Math.max(0, rsiVal)) : 0;
     const rsiClass = rsiVal > 70 ? "overbought" : rsiVal < 30 ? "oversold" : "neutral";
 
     // MACD
-    let macdSig = "neutral", macdLabel = "FLAT";
+    let macdSig = "neutral", macdLabel = "Flat";
     if (macdVal != null && sigVal != null) {
         macdSig   = macdVal > sigVal ? "buy" : "sell";
-        macdLabel = macdVal > sigVal ? "BULLISH" : "BEARISH";
+        macdLabel = macdVal > sigVal ? "Bullish" : "Bearish";
     }
 
     // BB
-    let bbSig = "neutral", bbLabel = "MID BAND";
+    let bbSig = "neutral", bbLabel = "Mid band";
     if (closeVal && upper && lower) {
         const span = upper - lower;
         const pct  = span > 0 ? (closeVal - lower) / span : 0.5;
-        if (pct > 0.85)      { bbSig = "sell"; bbLabel = "NEAR UPPER"; }
-        else if (pct < 0.15) { bbSig = "buy";  bbLabel = "NEAR LOWER"; }
+        if (pct > 0.85)      { bbSig = "sell"; bbLabel = "Near upper"; }
+        else if (pct < 0.15) { bbSig = "buy";  bbLabel = "Near lower"; }
     }
 
     // Z-Score
-    let zSig = "neutral", zLabel = "NORMAL";
+    let zSig = "neutral", zLabel = "Normal";
     if (zVal != null) {
-        if (zVal > 2)        { zSig = "sell"; zLabel = "HIGH"; }
-        else if (zVal < -2)  { zSig = "buy";  zLabel = "LOW"; }
+        if (zVal > 2)        { zSig = "sell"; zLabel = "High"; }
+        else if (zVal < -2)  { zSig = "buy";  zLabel = "Low"; }
     }
 
     const smaArrow  = v => closeVal && v ? (closeVal > v ? "▲ Above" : "▼ Below") : "—";
@@ -1084,11 +1098,10 @@ async function buildTickerTape() {
     const html = [...results, ...results].map(({ symbol, price, pct }) => {
         const dir   = pct >= 0 ? "up" : "down";
         const sign  = pct >= 0 ? "+" : "";
-        const arrow = pct >= 0 ? "▲" : "▼";
         return `<span class="ticker-item">
             <span class="ticker-symbol">${symbol}</span>
             <span class="ticker-price">$${fmt(price)}</span>
-            <span class="ticker-change ${dir}">${arrow}${sign}${pct.toFixed(2)}%</span>
+            <span class="ticker-change ${dir}">${sign}${pct.toFixed(2)}%</span>
         </span>`;
     }).join("");
 
@@ -1555,7 +1568,7 @@ function renderSkiBriefing(text) {
 
     const label = document.createElement("div");
     label.className = "ski-briefing-label";
-    label.textContent = "YOUR BRIEFING";
+    label.textContent = "Your briefing";
     const body = document.createElement("div");
     body.className = "ski-briefing-body";
     body.textContent = text;
@@ -1638,12 +1651,12 @@ document.addEventListener("DOMContentLoaded", () => { initSki(); });
 
 const MACRO_LABELS = {
     CPIAUCSL:     { short: "CPI",      tip: "Consumer Price Index YoY %" },
-    FEDFUNDS:     { short: "FED RATE", tip: "Effective Federal Funds Rate" },
+    FEDFUNDS:     { short: "Fed funds", tip: "Effective Federal Funds Rate" },
     GDP:          { short: "GDP",      tip: "Real GDP (Chained 2017 $B)" },
-    UNRATE:       { short: "UNEMP",    tip: "Unemployment Rate" },
-    DGS10:        { short: "10Y",      tip: "10-Year Treasury Yield" },
-    T10Y2Y:       { short: "CURVE",    tip: "Yield Curve (10Y−2Y Spread)" },
-    BAMLH0A0HYM2: { short: "HY SPD",  tip: "High Yield OAS Credit Spread" },
+    UNRATE:       { short: "Unemployment", tip: "Unemployment Rate" },
+    DGS10:        { short: "10Y yield", tip: "10-Year Treasury Yield" },
+    T10Y2Y:       { short: "Yield curve", tip: "Yield Curve (10Y−2Y Spread)" },
+    BAMLH0A0HYM2: { short: "HY spread", tip: "High Yield OAS Credit Spread" },
 };
 
 async function loadMacroRibbon() {
@@ -1656,7 +1669,7 @@ async function loadMacroRibbon() {
         try { data = await res.json(); } catch { data = {}; }
         if (!res.ok || data.error) {
             const msg = data.error || `HTTP ${res.status}`;
-            inner.innerHTML = `<div class="macro-item"><span class="macro-error">FRED: ${msg}</span></div>`;
+            inner.innerHTML = `<div class="macro-item"><span class="macro-error">Federal Reserve data unavailable (${msg})</span></div>`;
             return;
         }
 
@@ -1669,7 +1682,10 @@ async function loadMacroRibbon() {
 
             const arrowMap = { up: " ▲", down: " ▼", neutral: "" };
             const cls      = info.trend === "up" ? "up" : info.trend === "down" ? "down" : "neutral";
-            const val      = info.value != null ? `${info.value}${info.unit}` : "—";
+            const val      = info.value == null ? "—"
+                : (info.unit === "B" && Math.abs(info.value) >= 1000)
+                    ? `$${(info.value / 1000).toFixed(1)}T`
+                    : `${info.value}${info.unit}`;
             const arrow    = arrowMap[info.trend] || "";
 
             item.innerHTML = `
@@ -1724,7 +1740,7 @@ async function loadNews(sym) {
         if (chip) {
             const label = agg.label || "neutral";
             const sign  = (agg.score || 0) >= 0 ? "+" : "";
-            chip.textContent = `${label.toUpperCase()} ${sign}${(agg.score || 0).toFixed(2)}`;
+            chip.textContent = `${label.charAt(0).toUpperCase() + label.slice(1)} ${sign}${(agg.score || 0).toFixed(2)}`;
             chip.className   = `sentiment-chip ${label}`;
         }
 
@@ -1741,7 +1757,7 @@ async function loadNews(sym) {
             item.className = "news-item";
             item.innerHTML = `
                 <div class="news-item-header">
-                    <span class="news-sentiment ${lbl}">${lbl.toUpperCase()} ${score}</span>
+                    <span class="news-sentiment ${lbl}">${lbl.charAt(0).toUpperCase() + lbl.slice(1)} ${score}</span>
                 </div>
                 <a class="news-title" href="${escapeHtml(a.url || "#")}" target="_blank" rel="noopener">
                     ${escapeHtml(a.title || "")}
@@ -2013,27 +2029,27 @@ async function loadHeatmap() {
             zmin: -1, zmax: 1,
             text: zReversed.map(row => row.map(v => v.toFixed(2))),
             texttemplate: "%{text}",
-            textfont: { size: 11, color: "#F8FAFC", family: "JetBrains Mono" },
+            textfont: { size: 11, color: "#F8FAFC", family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif" },
             hovertemplate: "<b>%{x} / %{y}</b><br>Correlation: %{z:.3f}<extra></extra>",
             showscale: true,
             colorbar: {
                 thickness: 14,
                 len: 0.9,
-                tickfont: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+                tickfont: { color: "#9BA2AD", size: 11, family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif" },
                 tickvals: [-1, -0.5, 0, 0.5, 1],
             },
         };
 
         const layout = {
-            paper_bgcolor: "#0F172A",
-            plot_bgcolor:  "#0F172A",
+            paper_bgcolor: "#1C1E22",
+            plot_bgcolor:  "#1C1E22",
             margin: { l: 70, r: 20, t: 20, b: 70 },
             xaxis: {
-                tickfont: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+                tickfont: { color: "#9BA2AD", size: 11, family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif" },
                 showgrid: false, zeroline: false,
             },
             yaxis: {
-                tickfont: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+                tickfont: { color: "#9BA2AD", size: 11, family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif" },
                 showgrid: false, zeroline: false,
             },
         };
@@ -2185,24 +2201,24 @@ async function renderCompareChart() {
     });
 
     const layout = {
-        paper_bgcolor: "#0F172A",
-        plot_bgcolor:  "#0F172A",
+        paper_bgcolor: "#0A0B0D",
+        plot_bgcolor:  "#0A0B0D",
         margin: { l: 50, r: 10, t: 10, b: 40 },
         xaxis: {
             type: "date",
-            color: "#475569", gridcolor: "#1E293B",
-            tickfont: { color: "#64748B", size: 9, family: "JetBrains Mono" },
+            color: "#7C838E", gridcolor: "rgba(255,255,255,0.05)",
+            tickfont: { color: "#7C838E", size: 11, family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif" },
             fixedrange: IS_TOUCH,
         },
         yaxis: {
             ticksuffix: "%",
-            color: "#475569", gridcolor: "#1E293B",
-            zeroline: true, zerolinecolor: "#334155",
-            tickfont: { color: "#64748B", size: 9, family: "JetBrains Mono" },
+            color: "#7C838E", gridcolor: "rgba(255,255,255,0.05)",
+            zeroline: true, zerolinecolor: "rgba(255,255,255,0.18)",
+            tickfont: { color: "#7C838E", size: 11, family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif" },
             fixedrange: IS_TOUCH,
         },
         legend: {
-            font: { color: "#94A3B8", size: 10, family: "JetBrains Mono" },
+            font: { color: "#9BA2AD", size: 11, family: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', system-ui, sans-serif" },
             bgcolor: "rgba(0,0,0,0)",
             orientation: "h", y: -0.12,
         },
