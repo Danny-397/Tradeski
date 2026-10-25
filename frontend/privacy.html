@@ -9,46 +9,51 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tokens.css">
     <style>
+        /* Local names aliased to the shared tokens in tokens.css. This page had
+           drifted furthest: a different accent blue (#60A5FA against the brand
+           #3B82F6), a 0.08 border where the rest of the product uses 0.07, and
+           a --muted at 3.96:1. --border and --accent are spelled the same as
+           the shared tokens, so they cascade in and are not redeclared. */
         :root {
-            --bg:      #07090D;
-            --card:    #0C0F16;
-            --border:  rgba(255, 255, 255, 0.08);
-            --text:    #D1D5DB;
-            --muted:   #6B7280;
-            --accent:  #60A5FA;
+            --bg:      var(--bg-primary);
+            --card:    var(--bg-secondary);
+            --text:    var(--text-primary);
+            --muted:   var(--text-secondary);
         }
         * { box-sizing: border-box; }
         body {
             margin: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-family: var(--sans);
             line-height: 1.7;
-            font-size: 15px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
         }
-        .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
-        a { color: var(--accent); text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+        a { color: #8DB8FF; text-decoration: none; }
+        a:hover { text-decoration: underline; text-underline-offset: 3px; }
         .brand {
             display: inline-flex; align-items: center; gap: 10px;
-            font-weight: 700; letter-spacing: 0.04em; font-size: 18px;
-            color: #fff; text-decoration: none; margin-bottom: 40px;
+            font-weight: 600; letter-spacing: -0.01em; font-size: 16px;
+            color: var(--text-strong); text-decoration: none; margin-bottom: 40px;
         }
-        .brand svg { width: 26px; height: 26px; }
-        h1 { font-size: 30px; color: #fff; margin: 0 0 6px; }
-        h2 { font-size: 19px; color: #fff; margin: 40px 0 10px; }
-        .updated { color: var(--muted); font-size: 13px; font-family: "JetBrains Mono", monospace; margin-bottom: 32px; }
-        .lead { color: var(--text); font-size: 16px; }
+        .brand svg { width: 22px; height: 22px; }
+        h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; color: var(--text-strong); margin: 0 0 8px; }
+        h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; color: var(--text-strong); margin: 44px 0 10px; }
+        .updated { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+        .lead { color: var(--text); font-size: 18px; line-height: 1.6; }
         ul { padding-left: 20px; }
         li { margin: 6px 0; }
         table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
         th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-        th { color: #fff; font-weight: 600; }
+        th { color: var(--text-strong); font-weight: 600; font-size: 13px; }
         .callout {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 10px; padding: 16px 18px; margin: 20px 0;
+            background: var(--bg-card);
+            border-radius: 12px; padding: 16px 18px; margin: 20px 0;
             color: var(--muted); font-size: 13.5px;
         }
         .callout strong { color: var(--text); }
@@ -64,10 +69,10 @@
                 </linearGradient></defs>
                 <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk)"/>
             </svg>
-            TRADESKI
+            Tradeski
         </a>
 
-        <h1>Privacy Policy</h1>
+        <h1>Privacy policy</h1>
         <p class="updated">Last updated: July 2, 2026</p>
 
         <p class="lead">

@@ -12,7 +12,10 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0A0B0D">
+    <!-- Shared design tokens. Must load before any page styles. -->
+    <link rel="stylesheet" href="tokens.css">
     <link rel="stylesheet" href="styles.css">
     <script defer src="/_vercel/insights/script.js"></script>
     <!-- Pinned, not "plotly-latest": that alias has been frozen at v1.58.5 since
@@ -37,20 +40,44 @@
                     <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-hd)"/>
                     <path d="M22 6 L19.6 11 L24.4 11 Z" fill="#0C0F16"/>
                 </svg>
-                <span class="logo-text">TRADESKI</span>
+                <span class="logo-text">Tradeski</span>
             </div>
             <div class="market-status" id="market-status">
                 <span class="status-dot" id="status-dot"></span>
-                <span id="status-label">CHECKING...</span>
+                <span id="status-label">Checking market…</span>
                 <span class="status-time" id="status-time"></span>
             </div>
         </div>
 
         <div class="header-right">
-<button class="screener-btn" id="open-heatmap-btn" title="Correlation Heatmap">⊞ <span class="btn-text">HEATMAP</span></button>
-            <button class="screener-btn" id="open-screener-btn" title="Stock Screener">⊞ <span class="btn-text">SCREENER</span></button>
+            <!-- Both buttons used to render the same literal glyph (U+229E). The
+                 label is hidden below 640px, so on a phone the header showed two
+                 identical marks and nothing said which was which. These are two
+                 distinct icons: a filled cell grid for the correlation heatmap,
+                 a funnel for the screener. aria-label carries the name when the
+                 text is hidden. -->
+            <button class="screener-btn" id="open-heatmap-btn"
+                    title="Correlation Heatmap" aria-label="Correlation heatmap">
+                <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <rect x="1.5" y="1.5" width="4" height="4" rx="1" fill="currentColor" opacity=".95"/>
+                    <rect x="6.5" y="1.5" width="4" height="4" rx="1" fill="currentColor" opacity=".45"/>
+                    <rect x="11.5" y="1.5" width="3" height="4" rx="1" fill="currentColor" opacity=".7"/>
+                    <rect x="1.5" y="6.5" width="4" height="4" rx="1" fill="currentColor" opacity=".45"/>
+                    <rect x="6.5" y="6.5" width="4" height="4" rx="1" fill="currentColor" opacity=".8"/>
+                    <rect x="11.5" y="6.5" width="3" height="4" rx="1" fill="currentColor" opacity=".3"/>
+                    <rect x="1.5" y="11.5" width="4" height="3" rx="1" fill="currentColor" opacity=".7"/>
+                    <rect x="6.5" y="11.5" width="4" height="3" rx="1" fill="currentColor" opacity=".3"/>
+                    <rect x="11.5" y="11.5" width="3" height="3" rx="1" fill="currentColor" opacity=".9"/>
+                </svg><span class="btn-text">Heatmap</span></button>
+            <button class="screener-btn" id="open-screener-btn"
+                    title="Stock Screener" aria-label="Stock screener">
+                <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"
+                     fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1.8 2.6h12.4L9.4 8.2v4.6l-2.8 1.6V8.2z"/>
+                </svg><span class="btn-text">Screener</span></button>
             <div class="auth-area" id="auth-area">
-                <button class="screener-btn auth-signin-btn" id="signin-btn" title="Sign in to save your portfolio">SIGN IN</button>
+                <button class="screener-btn auth-signin-btn" id="signin-btn" title="Sign in to save your portfolio">Sign in</button>
                 <div class="auth-user" id="auth-user" style="display:none">
                     <span class="auth-email" id="auth-email"></span>
                     <button class="auth-logout-btn" id="logout-btn" title="Sign out">Sign out</button>
@@ -68,8 +95,7 @@
         <div class="ticker-inner">
             <div class="ticker-tape" id="ticker-tape">
                 <span class="ticker-item">
-                    <span class="ticker-symbol">LOADING</span>
-                    <span class="ticker-price">——</span>
+                    <span class="ticker-price">Loading prices…</span>
                 </span>
             </div>
         </div>
@@ -79,7 +105,7 @@
     <div class="macro-ribbon" id="macro-ribbon">
         <div class="macro-ribbon-inner" id="macro-inner">
             <div class="macro-item macro-loading">
-                <span class="macro-label">LOADING FRED DATA</span>
+                <span class="macro-label">Loading Federal Reserve data…</span>
             </div>
         </div>
     </div>
@@ -93,21 +119,21 @@
 
             <div class="panel panel-alerts">
                 <div class="panel-header">
-                    <span class="panel-title">ACTIVE ALERTS</span>
+                    <span class="panel-title">Alerts</span>
                     <span class="badge" id="alert-count">0</span>
                 </div>
                 <div id="active-alerts-list" class="alerts-list">
                     <div class="feed-empty">No alerts set</div>
                 </div>
                 <div class="panel-footer" id="alert-footer">
-                    <button class="btn-secondary full-width" id="create-alert-btn">+ New Alert</button>
+                    <button class="btn-secondary full-width" id="create-alert-btn">New alert</button>
                 </div>
             </div>
 
             <!-- PORTFOLIO PANEL -->
             <div class="panel panel-portfolio">
                 <div class="panel-header">
-                    <span class="panel-title">PORTFOLIO</span>
+                    <span class="panel-title">Portfolio</span>
                     <span class="portfolio-total-badge" id="portfolio-total-badge">—</span>
                 </div>
                 <div id="portfolio-list" class="portfolio-list">
@@ -115,15 +141,15 @@
                 </div>
                 <div id="pf-risk" class="pf-risk" style="display:none">
                     <span class="pf-risk-item" title="Sharpe Ratio — risk-adjusted return (higher is better)">
-                        <span class="pf-risk-label">SHARPE</span>
+                        <span class="pf-risk-label">Sharpe</span>
                         <span class="pf-risk-val" id="pf-sharpe">—</span>
                     </span>
                     <span class="pf-risk-item" title="Portfolio Beta vs S&P 500 (1.0 = market)">
-                        <span class="pf-risk-label">BETA</span>
+                        <span class="pf-risk-label">Beta</span>
                         <span class="pf-risk-val" id="pf-beta">—</span>
                     </span>
                     <span class="pf-risk-item" title="Annualized Volatility %">
-                        <span class="pf-risk-label">VOL</span>
+                        <span class="pf-risk-label">Volatility</span>
                         <span class="pf-risk-val" id="pf-vol">—</span>
                     </span>
                 </div>
@@ -134,8 +160,8 @@
                             <input type="number" id="pf-shares"   class="form-input pf-input" placeholder="Shares" min="0.0001" step="any" />
                         </div>
                         <div class="portfolio-form-row">
-                            <input type="number" id="pf-avgcost"  class="form-input pf-input" placeholder="Avg cost (opt)" min="0" step="any" />
-                            <button class="btn-primary pf-add-btn" id="pf-add-btn">+ ADD</button>
+                            <input type="number" id="pf-avgcost"  class="form-input pf-input" placeholder="Avg cost (optional)" min="0" step="any" />
+                            <button class="btn-primary pf-add-btn" id="pf-add-btn">Add</button>
                         </div>
                     </div>
                 </div>
@@ -153,20 +179,20 @@
                         <input id="symbol-input" type="text" class="symbol-input"
                                placeholder="Ticker" autocomplete="off"
                                spellcheck="false" maxlength="10" />
-                        <button id="symbol-go-btn" class="symbol-go-btn">GO</button>
+                        <button id="symbol-go-btn" class="symbol-go-btn">Go</button>
                     </div>
 
                     <div class="chart-type-group" id="chart-type-group">
-                        <button class="tf-btn" data-type="line">LINE</button>
-                        <button class="tf-btn active" data-type="candle">CANDLE</button>
-                        <button class="tf-btn" id="compare-btn">COMPARE</button>
+                        <button class="tf-btn" data-type="line">Line</button>
+                        <button class="tf-btn active" data-type="candle">Candle</button>
+                        <button class="tf-btn" id="compare-btn">Compare</button>
                     </div>
 
                     <div class="compare-controls" id="compare-controls" style="display:none">
-                        <button id="compare-exit-btn" class="tf-btn compare-exit-btn" title="Exit compare mode">← BACK</button>
+                        <button id="compare-exit-btn" class="tf-btn compare-exit-btn" title="Exit compare mode">← Back</button>
                         <input type="text" id="compare-input" class="symbol-input compare-input"
                                placeholder="Add symbol…" maxlength="10" autocomplete="off" spellcheck="false" />
-                        <button id="compare-add-btn" class="symbol-go-btn">+</button>
+                        <button id="compare-add-btn" class="symbol-go-btn" aria-label="Add symbol to comparison">Add</button>
                         <div id="compare-chips" class="compare-chips"></div>
                     </div>
 
@@ -182,7 +208,7 @@
 
                 <!-- Row 2: overlay toggles -->
                 <div class="toolbar-row-overlays">
-                    <span class="toolbar-label">OVERLAYS</span>
+                    <span class="toolbar-label">Overlays</span>
                     <div class="indicator-toggles">
                         <button class="ind-btn active" data-ind="bb" title="Bollinger Bands">BB</button>
                         <button class="ind-btn active" data-ind="sma" title="Simple Moving Average">SMA</button>
@@ -191,8 +217,8 @@
                     </div>
                     <div class="toolbar-divider"></div>
                     <div class="indicator-toggles">
-                        <button class="ind-btn" data-panel="rsi">+ RSI</button>
-                        <button class="ind-btn" data-panel="macd">+ MACD</button>
+                        <button class="ind-btn" data-panel="rsi">RSI</button>
+                        <button class="ind-btn" data-panel="macd">MACD</button>
                     </div>
                 </div>
             </div>
@@ -200,7 +226,7 @@
             <div id="price-chart" class="chart-container">
                 <div class="chart-loading" id="chart-loading">
                     <div class="loading-spinner"></div>
-                    <span>Fetching market data...</span>
+                    <span>Fetching market data…</span>
                 </div>
             </div>
 
@@ -215,19 +241,19 @@
 
             <div class="panel panel-grow">
                 <div class="sidebar-tabs">
-                    <button class="sidebar-tab active" data-tab="indicators">INDICATORS</button>
-                    <button class="sidebar-tab" data-tab="news">NEWS</button>
+                    <button class="sidebar-tab active" data-tab="indicators">Indicators</button>
+                    <button class="sidebar-tab" data-tab="news">News</button>
                 </div>
 
                 <div id="tab-indicators" class="tab-pane">
                     <div id="indicators-panel" class="indicators-panel">
-                        <div class="feed-empty">Loading indicators...</div>
+                        <div class="feed-empty">Loading indicators…</div>
                     </div>
                 </div>
 
                 <div id="tab-news" class="tab-pane" style="display:none">
                     <div class="news-tab-meta">
-                        <span class="news-tab-label">SENTIMENT</span>
+                        <span class="news-tab-label">Overall sentiment</span>
                         <span class="sentiment-chip" id="agg-sentiment-chip">—</span>
                     </div>
                     <div id="news-feed" class="news-feed">
@@ -243,8 +269,8 @@
     <div class="modal-overlay" id="alert-modal" style="display:none">
         <div class="modal">
             <div class="modal-header">
-                <span class="panel-title">CREATE ALERT</span>
-                <button class="btn-icon" id="close-modal-btn">✕</button>
+                <span class="panel-title">New alert</span>
+                <button class="btn-icon" id="close-modal-btn" aria-label="Close">✕</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -256,19 +282,19 @@
                 <div class="form-group">
                     <label>Trigger</label>
                     <select id="alert-type" class="form-input">
-                        <option value="price_above">Price Crosses Above</option>
-                        <option value="price_below">Price Crosses Below</option>
-                        <option value="rsi_overbought">RSI Overbought (&gt;70)</option>
-                        <option value="rsi_oversold">RSI Oversold (&lt;30)</option>
-                        <option value="volume_spike">Volume Spike</option>
-                        <option value="volatility_spike">Volatility Spike</option>
+                        <option value="price_above">Price crosses above</option>
+                        <option value="price_below">Price crosses below</option>
+                        <option value="rsi_overbought">RSI overbought (&gt;70)</option>
+                        <option value="rsi_oversold">RSI oversold (&lt;30)</option>
+                        <option value="volume_spike">Volume spike</option>
+                        <option value="volatility_spike">Volatility spike</option>
                     </select>
                 </div>
                 <div class="form-group" id="threshold-group">
-                    <label>Price Threshold ($)</label>
+                    <label>Price threshold ($)</label>
                     <input type="number" id="alert-threshold" class="form-input" placeholder="e.g. 200.00" step="0.01" min="0">
                 </div>
-                <button class="btn-primary full-width" id="submit-alert-btn">CREATE ALERT</button>
+                <button class="btn-primary full-width" id="submit-alert-btn">Create alert</button>
             </div>
         </div>
     </div>
@@ -277,8 +303,8 @@
     <div class="modal-overlay" id="auth-modal" style="display:none">
         <div class="modal">
             <div class="modal-header">
-                <span class="panel-title" id="auth-title">SIGN IN</span>
-                <button class="btn-icon" id="close-auth-btn">✕</button>
+                <span class="panel-title" id="auth-title">Sign in</span>
+                <button class="btn-icon" id="close-auth-btn" aria-label="Close">✕</button>
             </div>
             <div class="modal-body">
                 <p class="auth-intro" id="auth-intro">Sign in to save your portfolio, alerts, and watchlist across devices.</p>
@@ -294,7 +320,7 @@
                            placeholder="At least 8 characters" autocomplete="current-password" />
                 </div>
                 <div class="auth-error" id="auth-error" style="display:none"></div>
-                <button class="btn-primary full-width" id="auth-submit-btn">SIGN IN</button>
+                <button class="btn-primary full-width" id="auth-submit-btn">Sign in</button>
                 <p class="auth-toggle">
                     <span id="auth-toggle-text">New to Tradeski?</span>
                     <button type="button" class="auth-toggle-btn" id="auth-toggle-btn">Create an account</button>
@@ -312,9 +338,9 @@
     <div class="modal-overlay" id="heatmap-modal" style="display:none">
         <div class="modal modal-wide">
             <div class="modal-header">
-                <span class="panel-title">CORRELATION HEATMAP</span>
-                <span class="badge">90D RETURNS</span>
-                <button class="btn-icon" id="close-heatmap-btn">✕</button>
+                <span class="panel-title">Correlation heatmap</span>
+                <span class="badge">90-day returns</span>
+                <button class="btn-icon" id="close-heatmap-btn" aria-label="Close">✕</button>
             </div>
             <div class="modal-body heatmap-body">
                 <div id="heatmap-chart" class="heatmap-chart">
@@ -331,13 +357,13 @@
     <div class="modal-overlay" id="screener-modal" style="display:none">
         <div class="modal modal-wide">
             <div class="modal-header">
-                <span class="panel-title">STOCK SCREENER</span>
+                <span class="panel-title">Stock screener</span>
                 <span class="badge" id="screener-count">—</span>
-                <button class="btn-icon" id="close-screener-btn">✕</button>
+                <button class="btn-icon" id="close-screener-btn" aria-label="Close">✕</button>
             </div>
             <div class="screener-filters">
                 <div class="filter-group">
-                    <label class="filter-label">P/E RATIO</label>
+                    <label class="filter-label">P/E ratio</label>
                     <div class="filter-range">
                         <input type="number" id="pe-min" class="filter-input" placeholder="Min" min="0" step="0.5">
                         <span class="filter-sep">–</span>
@@ -345,7 +371,7 @@
                     </div>
                 </div>
                 <div class="filter-group">
-                    <label class="filter-label">MARKET CAP</label>
+                    <label class="filter-label">Market cap</label>
                     <select id="mcap-filter" class="filter-select">
                         <option value="">Any</option>
                         <option value="mega">Mega (&gt;$200B)</option>
@@ -355,13 +381,13 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label class="filter-label">SECTOR</label>
+                    <label class="filter-label">Sector</label>
                     <select id="sector-filter" class="filter-select">
-                        <option value="">All Sectors</option>
+                        <option value="">All sectors</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label class="filter-label">52W PERF %</label>
+                    <label class="filter-label">52-week change, %</label>
                     <div class="filter-range">
                         <input type="number" id="perf-min" class="filter-input" placeholder="Min" step="5">
                         <span class="filter-sep">–</span>
@@ -374,15 +400,15 @@
                 <table class="screener-table" id="screener-table">
                     <thead>
                         <tr>
-                            <th class="sortable" data-col="symbol">SYMBOL <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="name">NAME <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="price">PRICE <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="symbol">Symbol <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="name">Name <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="price">Price <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="pe">P/E <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="market_cap">MKT CAP <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="sector">SECTOR <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="high_52w">52W HIGH <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="low_52w">52W LOW <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="perf_52w">52W PERF <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="market_cap">Market cap <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="sector">Sector <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="high_52w">52W high <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="low_52w">52W low <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="perf_52w">52W change <span class="sort-icon">↕</span></th>
                         </tr>
                     </thead>
                     <tbody id="screener-tbody"></tbody>
@@ -393,22 +419,22 @@
 
     <!-- ===== STATUS BAR ===== -->
     <footer class="status-bar">
-        <span id="status-msg">Initializing...</span>
+        <span id="status-msg">Starting…</span>
         <span id="last-update">—</span>
-        <span class="status-brand">Tradeski v2.0 · Real-Time Market Analytics</span>
+        <span class="status-brand">Tradeski · Educational tool, not investment advice</span>
     </footer>
 
     <!-- ===== SKI CHATBOT WIDGET ===== -->
-    <div class="ski-fab" id="ski-fab" title="Ask Ski">
+    <button type="button" class="ski-fab" id="ski-fab" title="Ask Ski" aria-label="Ask Ski">
         <svg class="ski-fab-icon" viewBox="0 0 32 32" aria-hidden="true">
             <defs><linearGradient id="tk-skifab" x1="0" y1="1" x2="0" y2="0">
                 <stop offset="0" stop-color="#1E40AF"/><stop offset="1" stop-color="#60A5FA"/>
             </linearGradient></defs>
             <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-skifab)"/>
         </svg>
-        <span class="ski-fab-label">SKI</span>
+        <span class="ski-fab-label">Ask Ski</span>
         <span class="ski-fab-badge" id="ski-badge" style="display:none">1</span>
-    </div>
+    </button>
 
     <div class="ski-panel" id="ski-panel">
         <div class="ski-header">
@@ -420,17 +446,15 @@
                     <path d="M2 27 L11 11 L16 19 L22 6 L30 27 Z" fill="url(#tk-skihdr)"/>
                 </svg>
                 <div>
-                    <div class="ski-title">SKI</div>
-                    <div class="ski-subtitle">Financial Intelligence</div>
+                    <div class="ski-title">Ski</div>
+                    <div class="ski-subtitle">Your financial analyst</div>
                 </div>
             </div>
-            <button class="btn-icon" id="ski-close-btn">✕</button>
+            <button class="btn-icon" id="ski-close-btn" aria-label="Close Ski">✕</button>
         </div>
         <div class="ski-messages" id="ski-messages">
             <div class="ski-message ski-message-assistant">
-                <div class="ski-bubble">
-                    Hey — I'm Ski, your financial intelligence assistant. Ask me anything: market concepts, macro trends, indicator signals, sector analysis. What do you want to know?
-                </div>
+                <div class="ski-bubble">Hi, I'm Ski. Ask me about your holdings, today's macro data, indicator signals, or how the news affects a position.</div>
             </div>
         </div>
         <div class="ski-starters" id="ski-starters">
@@ -438,8 +462,8 @@
             <button class="ski-starter-btn" data-prompt="What changed for my positions since yesterday?">What changed today?</button>
         </div>
         <div class="ski-input-row">
-            <input type="text" class="ski-input" id="ski-input" placeholder="Ask a financial question..." autocomplete="off" />
-            <button class="ski-send-btn" id="ski-send-btn">
+            <input type="text" class="ski-input" id="ski-input" placeholder="Ask about your portfolio…" autocomplete="off" />
+            <button class="ski-send-btn" id="ski-send-btn" aria-label="Send">
                 <span>↑</span>
             </button>
         </div>

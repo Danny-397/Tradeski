@@ -1,0 +1,239 @@
+/* ============================================================
+   TRADESKI — DESIGN TOKENS
+   ============================================================
+
+   The single source of truth for colour, space, type, motion, radius and
+   elevation across every page.
+
+   WHY THIS FILE EXISTS
+   Tradeski had four pages and four separate design systems. Only index.html
+   linked styles.css; landing.html, privacy.html and 404.html each carried
+   their own inline <style> with their own :root. They had drifted:
+
+     - privacy.html used a different accent blue (#60A5FA vs #3B82F6)
+     - three different names for the same surface (--bg-secondary / --bg2 / --card)
+     - --border was 0.07 in two places and 0.08 in a third
+     - the contrast fixes applied to one page reached none of the others
+
+   That is why the product did not feel like one product. Each page now links
+   this file first and aliases its own local names to these tokens, so a change
+   here lands everywhere and the page-specific CSS keeps working unchanged.
+
+   COLOUR METHOD
+   The text ramp, the red and the filled-button blue were chosen by measuring
+   WCAG contrast against the surface each actually sits on, not by eye:
+
+     --text-muted      #374151 -> #757F8E   (1.86:1 -> 4.73:1)
+     --text-secondary  #6B7280 -> #8A93A3   (3.96:1 -> 6.19:1)
+     --red             #DC2626 -> #EF4444   (3.97:1 -> 5.09:1)
+     --accent-strong   (new)      #2563EB   (white label: 3.68:1 -> 5.17:1)
+
+   The brand blue and the green already passed and are untouched.
+   ============================================================ */
+
+:root {
+    /* ---- Surfaces ---- */
+    /* Neutral near-black, lifted in even steps. The old surfaces carried a
+       blue cast that made every panel read as tinted glass. */
+    --bg-primary:      #0A0B0D;
+    --bg-secondary:    #111215;
+    --bg-card:         #16181B;
+    --bg-raised:       #1C1E22;             /* menus, popovers, modals */
+    --bg-control:      #22252A;             /* buttons, segmented tracks */
+    --bg-hover:        rgba(255, 255, 255, 0.04);
+    --bg-active:       rgba(255, 255, 255, 0.08);
+    --bg-sunken:       rgba(255, 255, 255, 0.04); /* inputs and wells */
+
+    /* ---- Accent ----
+       --accent is the brand blue, for text, borders and icons on dark.
+       --accent-strong is the same hue darkened until white label text clears
+       AA; use it for any FILLED control whose text is white. Reading #3B82F6
+       as a button fill is the mistake this pair exists to prevent. */
+    --accent:          #3B82F6;
+    --accent-strong:   #2563EB;
+    --accent-hover:    #5B9BFF;
+    --accent-dim:      rgba(59, 130, 246, 0.16);
+    --accent-faint:    rgba(59, 130, 246, 0.06);
+
+    /* Historical names kept as aliases so existing call sites keep working
+       rather than being churned. The theme was amber long ago. */
+    --amber:           var(--accent);
+    --amber-dim:       var(--accent-dim);
+    --amber-faint:     var(--accent-faint);
+    --cyan:            var(--accent);
+    --cyan-dim:        var(--accent-dim);
+    --cyan-faint:      var(--accent-faint);
+
+    /* ---- Semantic ---- */
+    --green:           #16A34A;   /* 5.82:1 */
+    --green-dim:       rgba(22, 163, 74, 0.12);
+    --red:             #EF4444;   /* 5.09:1 */
+    --red-dim:         rgba(239, 68, 68, 0.12);
+    --yellow:          #CA8A04;
+    --orange:          #EA580C;
+
+    /* ---- Notice ----
+       The offline-demo banner is the one surface that deliberately steps
+       outside the blue palette, because its whole job is to say "what you are
+       looking at is not live". It was a set of loose hex values; naming them
+       makes it a role in the system rather than an exception to it. */
+    --notice-bg:       #2A1F05;
+    --notice-border:   #6B5310;
+    --notice-text:     #F5E6B8;
+    --notice-strong:   #FFF3D0;
+    --notice-accent:   #E0B341;
+    --notice-link:     #FFD766;
+
+    /* ---- Text ramp ---- */
+    --text-strong:     #F4F5F7;   /* headings, key figures */
+    --text-primary:    #DCDFE4;   /* 14.2:1 */
+    --text-secondary:  #9BA2AD;   /*  7.3:1 */
+    --text-muted:      #7C838E;   /*  4.9:1 */
+
+    /* ---- Borders ---- */
+    --border:          rgba(255, 255, 255, 0.07);
+    --border-subtle:   rgba(255, 255, 255, 0.045);
+    --border-hover:    rgba(255, 255, 255, 0.16);
+    --border-strong:   rgba(255, 255, 255, 0.22);
+
+    /* ---- Elevation ----
+       Real shadows cast downward. The old --glow-* tokens were coloured halos
+       (0 0 Npx blue), the signature of the generic AI-SaaS look; they alias to
+       honest shadows rather than being deleted, since rules still name them. */
+    --shadow-sm:       0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-md:       0 4px 12px rgba(0, 0, 0, 0.45);
+    --shadow-lg:       0 16px 40px rgba(0, 0, 0, 0.55);
+    --glow-sm:         var(--shadow-sm);
+    --glow-md:         var(--shadow-md);
+    --glow-lg:         var(--shadow-lg);
+
+    /* ---- Space scale (4px grid; 2 and 6 are the tight-UI exceptions) ----
+       Replaces 17 ad-hoc values (1,2,3,4,5,6,7,8,9,10,12,13,14,16,18,22,40). */
+    --s-1:  2px;
+    --s-2:  4px;
+    --s-3:  6px;
+    --s-4:  8px;
+    --s-5:  12px;
+    --s-6:  16px;
+    --s-7:  20px;
+    --s-8:  24px;
+    --s-9:  32px;
+    --s-10: 40px;
+    --s-11: 56px;
+    --s-12: 80px;
+
+    /* ---- Type scale ----
+       Replaces 14 sizes including 9.5/10.5/11.5/12.5px half-pixels. Nothing
+       below 11px: a trading UI is dense, but 7-9px text is not legible. */
+    --fs-micro: 11px;
+    --fs-xs:    12px;
+    --fs-sm:    13px;
+    --fs-base:  14px;
+    --fs-md:    15px;
+    --fs-lg:    17px;
+    --fs-xl:    20px;
+    --fs-2xl:   24px;
+    --fs-3xl:   30px;
+
+    --lh-tight: 1.25;
+    --lh-snug:  1.4;
+    --lh-base:  1.55;
+
+    /* ---- Radii ----
+       Controls 6, cards 10, sheets 14. Soft enough to feel finished, tight
+       enough that a dense data view still reads as precise. */
+    --radius-xs:       4px;
+    --radius-sm:       6px;
+    --radius:          10px;
+    --radius-lg:       14px;
+    --radius-pill:     999px;
+
+    /* ---- Layout ---- */
+    --header-h:        52px;
+    --ticker-h:        28px;
+    --status-h:        22px;
+    --sidebar-w:       222px;
+    --toolbar-h:       38px;
+    --page-max:        1120px;   /* shared reading width for prose pages */
+
+    /* ---- Fonts ---- */
+    /* One UI face everywhere: SF on Apple devices, Inter elsewhere. Numbers
+       use the same face with tabular figures (--data) rather than a separate
+       monospace, so a price and its label read as one line of type.
+       --mono remains for genuine code only. */
+    --display:         -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --sans:            -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --data:            var(--sans);
+    --mono:            'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+
+    /* ---- Motion ----
+       Three durations, two curves. --ease-out decelerates, for things entering
+       or answering a pointer; --ease is symmetric, for state that changes. */
+    --ease:            cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+    --t-fast:          0.12s;
+    --t:               0.18s;
+    --t-slow:          0.28s;
+
+    /* One focus ring for every interactive element. The inner ring is the page
+       colour, so the accent ring reads against any surface it lands on. */
+    --focus-ring:      0 0 0 2px var(--bg-primary), 0 0 0 4px rgba(59, 130, 246, 0.75);
+}
+
+/* ============================================================
+   GLOBAL PRIMITIVES
+   Behaviour that should be identical on all four pages.
+   ============================================================ */
+
+/* ---- Focus ----
+   Every page's reset cleared the default outline without replacing it, and no
+   page defined a :focus-visible rule, so keyboard users had no visible focus
+   anywhere in the product. :focus-visible paints for keyboard and AT users
+   only, so pointer users see no change. */
+:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-sm);
+}
+
+::selection { background: rgba(59, 130, 246, 0.35); color: #fff; }
+
+/* ---- Scrollbars ----
+   Were 3px wide on the dashboard: too thin to grab, and the thumb was a 16%
+   accent wash that vanished against the track. */
+::-webkit-scrollbar            { width: 10px; height: 10px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      {
+    background: rgba(255, 255, 255, 0.11);
+    border-radius: var(--radius-pill);
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
+    background-clip: content-box;
+}
+::-webkit-scrollbar-corner     { background: transparent; }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.14) transparent; }
+
+/* ---- Numerals ----
+   Tabular figures wherever numbers live, so a price ticking from 9.99 to 10.01
+   doesn't shift the glyphs around it. */
+.mono, [class*="price"], [class*="value"], [class*="pct"], [class*="change"],
+td, th, input[type="number"] { font-variant-numeric: tabular-nums; }
+
+/* ---- Reduced motion ----
+   Honour the OS setting. Transitions collapse to near-zero rather than zero so
+   transitionend listeners still fire; looping decorative animation stops, and
+   the ticker tapes park at their start instead of translating forever. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .ticker-track, .news-ticker-track,
+    .hero-ticker, .marquee { animation: none !important; transform: none !important; }
+    .flash-up, .flash-down { animation: none !important; }
+}

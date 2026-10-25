@@ -3,109 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 — Tradeski</title>
+    <title>Page not found — Tradeski</title>
+    <meta name="theme-color" content="#0A0B0D">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="/_vercel/insights/script.js"></script>
+    <link rel="stylesheet" href="tokens.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Space Grotesk', sans-serif;
-            background: #07090D;
-            color: #D1D5DB;
+            font-family: var(--sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
             padding: 40px 24px;
+            -webkit-font-smoothing: antialiased;
         }
-        body::before {
-            content: '';
-            position: fixed; inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-            opacity: 0.028;
-            pointer-events: none;
-        }
-        .container { position: relative; z-index: 1; max-width: 480px; }
+        .container { max-width: 440px; }
         .code {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 80px;
+            font-size: 15px;
             font-weight: 600;
-            color: #3B82F6;
-            line-height: 1;
-            margin-bottom: 8px;
-            letter-spacing: -2px;
+            color: #8DB8FF;
+            margin-bottom: 12px;
         }
-        .terminal {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: #6B7280;
-            background: #0C0F16;
-            border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 4px;
-            padding: 16px 20px;
-            text-align: left;
-            margin: 24px 0;
-            letter-spacing: 0.3px;
-            line-height: 1.7;
+        h1 {
+            font-size: 40px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: var(--text-strong);
+            margin-bottom: 12px;
         }
-        .prompt { color: #3B82F6; }
-        .error  { color: #DC2626; }
-        .ok     { color: #16A34A; }
-        h1 { font-size: 22px; font-weight: 600; color: #F1F5F9; margin-bottom: 8px; }
-        p  { font-size: 14px; color: #6B7280; line-height: 1.6; margin-bottom: 28px; }
-        .links { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-        .btn-primary {
-            background: #3B82F6;
-            color: #fff;
-            border: none;
-            padding: 10px 26px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            border-radius: 2px;
-            cursor: pointer;
+        p { font-size: 17px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 32px; }
+        .path {
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: bottom;
+            color: var(--text-primary);
+            font-family: var(--mono);
+            font-size: 15px;
+        }
+        .links { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            height: 44px; padding: 0 22px;
+            border-radius: 10px;
+            font-size: 15px; font-weight: 600;
             text-decoration: none;
-            transition: opacity 0.15s;
+            transition: background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
         }
-        .btn-primary:hover { opacity: 0.85; }
-        .btn-secondary {
-            color: #6B7280;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-decoration: none;
-            border: 1px solid rgba(255,255,255,0.07);
-            padding: 10px 20px;
-            border-radius: 2px;
-            transition: border-color 0.15s, color 0.15s;
-        }
-        .btn-secondary:hover { border-color: rgba(59,130,246,0.4); color: #D1D5DB; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--accent-strong); color: #fff; }
+        .btn-primary:hover { background: var(--accent); }
+        .btn-quiet { color: #8DB8FF; font-weight: 500; padding: 0 8px; }
+        .btn-quiet:hover { text-decoration: underline; text-underline-offset: 4px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="code">404</div>
-        <h1>Page not found</h1>
-        <p>The route you're looking for doesn't exist on this terminal.</p>
-        <div class="terminal">
-            <div><span class="prompt">$</span> GET /<span id="path-display">unknown</span></div>
-            <div><span class="error">ERROR</span> 404 Not Found</div>
-            <div><span class="ok">HINT</span> Try navigating to / or /app</div>
-        </div>
+    <main class="container">
+        <p class="code">404</p>
+        <h1>This page doesn't exist.</h1>
+        <p>Nothing lives at <span class="path" id="path-display">this address</span>.</p>
         <div class="links">
-            <a href="/" class="btn-primary">← Home</a>
-            <a href="/app" class="btn-secondary">Launch App</a>
+            <a href="/app" class="btn btn-primary">Open the dashboard</a>
+            <a href="/" class="btn btn-quiet">Go to the home page <span aria-hidden="true">›</span></a>
         </div>
-    </div>
+    </main>
     <script>
         const p = window.location.pathname;
         const el = document.getElementById("path-display");
-        if (el) el.textContent = p.length > 30 ? p.slice(0, 30) + "…" : p;
+        if (el) el.textContent = p.length > 40 ? p.slice(0, 40) + "…" : p;
     </script>
 </body>
 </html>
