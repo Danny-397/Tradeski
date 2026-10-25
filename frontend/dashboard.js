@@ -1002,10 +1002,14 @@ function updateIndicatorsPanel(d) {
         else if (zVal < -2)  { zSig = "buy";  zLabel = "LOW"; }
     }
 
-    const smaColor  = v => closeVal && v ? (closeVal > v ? "var(--green)" : "var(--red)") : "var(--text-muted)";
     const smaArrow  = v => closeVal && v ? (closeVal > v ? "▲ Above" : "▼ Below") : "—";
+    const smaSig    = v => closeVal && v ? (closeVal > v ? "buy" : "sell") : "neutral";
     const chip      = (sig, label) => `<span class="signal-chip ${sig}">${label}</span>`;
-    const trendBadge = v => `<span class="ind-trend" style="color:${smaColor(v)}">${smaArrow(v)}</span>`;
+    // Reuses the chip the four indicators above use, instead of an inline
+    // style="color:..." on bare text. The moving-average rows sat in the same
+    // column as RSI/MACD/Bollinger/Z-score but rendered as loose red words, so
+    // the column read as two different kinds of thing stacked together.
+    const trendBadge = v => chip(smaSig(v), smaArrow(v));
 
     const panel = document.getElementById("indicators-panel");
     if (!panel) return;

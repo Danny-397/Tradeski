@@ -4,74 +4,14 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ===== CSS VARIABLES ===== */
-:root {
-    --bg-primary:      #07090D;
-    --bg-secondary:    #0C0F16;
-    --bg-card:         #0C0F16;
-    --bg-hover:        rgba(59, 130, 246, 0.04);
-
-    /* Blue accent — primary */
-    --amber:           #3B82F6;
-    --amber-dim:       rgba(59, 130, 246, 0.16);
-    --amber-faint:     rgba(59, 130, 246, 0.06);
-
-    /* Legacy aliases — keep for any runtime reads */
-    --cyan:            #3B82F6;
-    --cyan-dim:        rgba(59, 130, 246, 0.16);
-    --cyan-faint:      rgba(59, 130, 246, 0.06);
-    --purple:          #3B82F6;
-    --purple-dim:      rgba(59, 130, 246, 0.16);
-
-    /* Semantic */
-    --green:           #16A34A;
-    --green-dim:       rgba(22, 163, 74, 0.12);
-    --red:             #DC2626;
-    --red-dim:         rgba(220, 38, 38, 0.12);
-    --yellow:          #CA8A04;
-    --orange:          #EA580C;
-
-    /* Text */
-    --text-primary:    #D1D5DB;
-    --text-secondary:  #6B7280;
-    --text-muted:      #374151;
-
-    /* Borders */
-    --border:          rgba(255, 255, 255, 0.07);
-    --border-hover:    rgba(59, 130, 246, 0.30);
-    --border-strong:   rgba(59, 130, 246, 0.55);
-
-    /* Shadows — restrained */
-    --glow-sm:         0 0 12px rgba(59, 130, 246, 0.08);
-    --glow-md:         0 0 22px rgba(59, 130, 246, 0.13);
-    --glow-lg:         0 0 36px rgba(59, 130, 246, 0.18);
-
-    /* Layout */
-    --header-h:        48px;
-    --ticker-h:        28px;
-    --status-h:        22px;
-    --sidebar-w:       222px;
-    --toolbar-h:       38px;
-
-    /* Sharp edges */
-    --radius:          2px;
-    --radius-sm:       1px;
-    --radius-xs:       1px;
-
-    /* Fonts */
-    --display:         'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    --mono:            'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-    --sans:            'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-
-    --ease:            cubic-bezier(0.4, 0, 0.2, 1);
-    --t:               0.15s;
-}
+/* Design tokens (colour, space, type, motion, radius, elevation) and the
+   global primitives (focus ring, scrollbars, reduced motion, tabular figures)
+   now live in tokens.css, which every page links before its own styles. This
+   file holds only what is specific to the dashboard. */
 
 /* ===== RESET ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-button { cursor: pointer; outline: none; }
-select { outline: none; }
-input  { outline: none; }
+button { cursor: pointer; }
 a      { color: inherit; text-decoration: none; }
 
 html, body {
@@ -82,27 +22,33 @@ html, body {
 
 body {
     font-family: var(--sans);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: var(--fs-sm);
+    line-height: var(--lh-base);
     background: var(--bg-primary);
     color: var(--text-primary);
     display: flex;
     flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
-/* ===== SCROLLBARS ===== */
-::-webkit-scrollbar            { width: 3px; height: 3px; }
-::-webkit-scrollbar-track      { background: transparent; }
-::-webkit-scrollbar-thumb      { background: var(--amber-dim); border-radius: 1px; }
-::-webkit-scrollbar-thumb:hover{ background: var(--amber); }
-
-/* ===== GRAIN TEXTURE ===== */
+/* Tabular figures, the focus ring, scrollbars, selection colour and the
+   reduced-motion block all live in tokens.css so every page shares them.
+   Only the per-component focus overrides stay here. */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-icon:focus-visible,
+.form-input:focus-visible { box-shadow: var(--focus-ring); }
+/* ===== GRAIN TEXTURE =====
+   Kept, at half the old opacity. It gave the panels a little depth, but at
+   0.028 over every surface it also fuzzed 11px type. */
 body::before {
     content: '';
     position: fixed;
     inset: 0;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-    opacity: 0.028;
+    opacity: 0.014;
     pointer-events: none;
     z-index: 0;
 }
@@ -144,7 +90,7 @@ body::before {
 /* EST time in market status */
 .status-time {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     letter-spacing: 1px;
     color: var(--text-muted);
     opacity: 0.7;
@@ -179,7 +125,7 @@ body::before {
     gap: 6px;
     padding: 0 16px;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.3px;
     color: var(--text-secondary);
     text-decoration: none;
@@ -190,7 +136,7 @@ body::before {
 .news-tick-loading { color: var(--text-muted); font-style: italic; }
 
 .news-tick-dot {
-    font-size: 9px;
+    font-size: var(--fs-micro);
     flex-shrink: 0;
 }
 .news-tick-item.news-tick-bullish .news-tick-dot { color: var(--green); }
@@ -206,7 +152,7 @@ body::before {
 }
 
 .news-tick-source {
-    font-size: 9px;
+    font-size: var(--fs-micro);
     color: var(--amber);
     opacity: 0.55;
     flex-shrink: 0;
@@ -215,7 +161,7 @@ body::before {
 .news-tick-sep {
     color: var(--text-muted);
     padding: 0 8px;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     opacity: 0.4;
     flex-shrink: 0;
 }
@@ -233,7 +179,7 @@ body::before {
 
 .logo-text {
     font-family: var(--display);
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 700;
     letter-spacing: 4px;
     color: var(--text-primary);
@@ -246,7 +192,7 @@ body::before {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-secondary);
     background: rgba(0,0,0,0.3);
@@ -273,9 +219,9 @@ body::before {
 }
 .header-price-item:hover { border-color: var(--border-hover); }
 
-.hp-symbol { font-family: var(--mono); font-weight: 600; font-size: 12px; color: var(--text-secondary); }
-.hp-price  { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
-.hp-change { font-family: var(--mono); font-size: 11px; }
+.hp-symbol { font-family: var(--mono); font-weight: 600; font-size: var(--fs-xs); color: var(--text-secondary); }
+.hp-price  { font-family: var(--mono); font-size: var(--fs-md); font-weight: 600; letter-spacing: 0.5px; }
+.hp-change { font-family: var(--mono); font-size: var(--fs-micro); }
 .hp-price.up,  .hp-change.up   { color: var(--green); }
 .hp-price.down, .hp-change.down { color: var(--red); }
 .hp-price.neutral               { color: var(--text-primary); }
@@ -284,18 +230,18 @@ body::before {
 .ws-indicator {
     display: flex; align-items: center; gap: 6px;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     letter-spacing: 2px;
     color: var(--text-muted);
 }
 .ws-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); }
 .ws-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 1.5s ease-in-out infinite; }
-.ws-label  { font-size: 10px; }
+.ws-label  { font-size: var(--fs-micro); }
 
 /* Clock */
 .clock {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: var(--fs-sm);
     color: var(--amber);
     letter-spacing: 1px;
     min-width: 70px;
@@ -332,7 +278,7 @@ body::before {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 0 22px;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     border-right: 1px solid var(--border);
 }
 .ticker-symbol  { color: var(--amber); letter-spacing: 0.5px; font-weight: 600; }
@@ -377,7 +323,7 @@ body::before {
 
 .macro-label {
     font-family: var(--mono);
-    font-size: 8px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-secondary);
     text-transform: uppercase;
@@ -389,7 +335,7 @@ body::before {
 
 .macro-value {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -399,14 +345,14 @@ body::before {
 
 .macro-date {
     font-family: var(--mono);
-    font-size: 8px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
     white-space: nowrap;
 }
 
 .macro-error {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
     letter-spacing: 1px;
 }
@@ -414,7 +360,7 @@ body::before {
 /* ===== PORTFOLIO PANEL ===== */
 .portfolio-total-badge {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     font-weight: 600;
     color: var(--amber);
     letter-spacing: 0.5px;
@@ -444,7 +390,7 @@ body::before {
 
 .pf-symbol {
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: 0.5px;
@@ -454,7 +400,7 @@ body::before {
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     padding: 0 2px;
     line-height: 1;
     transition: color var(--t) var(--ease);
@@ -468,24 +414,24 @@ body::before {
     gap: 4px;
 }
 
-.pf-shares { font-family: var(--mono); font-size: 10px; color: var(--text-secondary); }
+.pf-shares { font-family: var(--mono); font-size: var(--fs-micro); color: var(--text-secondary); }
 
 .pf-value {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .pf-pnl {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     font-weight: 600;
 }
 .pf-pnl.up   { color: var(--green); }
 .pf-pnl.down { color: var(--red); }
 
-.pf-no-price { font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
+.pf-no-price { font-family: var(--mono); font-size: var(--fs-micro); color: var(--text-muted); }
 
 .portfolio-form { display: flex; flex-direction: column; gap: 6px; }
 
@@ -499,13 +445,13 @@ body::before {
     flex: 1;
     min-width: 0;
     padding: 5px 7px;
-    font-size: 11px;
+    font-size: var(--fs-micro);
 }
 
 .pf-add-btn {
     flex-shrink: 0;
     padding: 5px 9px;
-    font-size: 10px;
+    font-size: var(--fs-micro);
     font-family: var(--mono);
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -560,7 +506,7 @@ body::before {
 
 .panel-title {
     font-family: var(--display);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 2.5px;
     color: var(--amber);
     font-weight: 600;
@@ -586,12 +532,12 @@ body::before {
 .wl-top  { display: flex; align-items: center; justify-content: space-between; }
 .wl-left { display: flex; flex-direction: column; gap: 1px; }
 
-.wl-symbol { font-family: var(--mono); font-weight: 600; font-size: 13px; }
-.wl-name   { font-size: 10px; color: var(--text-muted); }
+.wl-symbol { font-family: var(--mono); font-weight: 600; font-size: var(--fs-sm); }
+.wl-name   { font-size: var(--fs-micro); color: var(--text-muted); }
 
 .wl-right  { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.wl-price  { font-family: var(--mono); font-weight: 600; font-size: 13px; }
-.wl-change { font-family: var(--mono); font-size: 10px; }
+.wl-price  { font-family: var(--mono); font-weight: 600; font-size: var(--fs-sm); }
+.wl-change { font-family: var(--mono); font-size: var(--fs-micro); }
 
 .wl-price.up,   .wl-change.up   { color: var(--green); }
 .wl-price.down, .wl-change.down { color: var(--red); }
@@ -639,17 +585,17 @@ body::before {
 .wl-chip .wl-symbol {
     font-family: var(--mono);
     font-weight: 600;
-    font-size: 11px;
+    font-size: var(--fs-micro);
     color: var(--text-primary);
     letter-spacing: 0.3px;
 }
 .wl-chip .wl-price-row { display: flex; gap: 5px; align-items: center; }
-.wl-chip .wl-price  { font-family: var(--mono); font-size: 11px; font-weight: 600; }
-.wl-chip .wl-change { font-family: var(--mono); font-size: 9px; }
+.wl-chip .wl-price  { font-family: var(--mono); font-size: var(--fs-micro); font-weight: 600; }
+.wl-chip .wl-change { font-family: var(--mono); font-size: var(--fs-micro); }
 .wl-chip .wl-remove-btn {
     position: absolute;
     top: 2px; right: 3px;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     padding: 0 2px;
     opacity: 0;
     transition: opacity var(--t);
@@ -699,7 +645,7 @@ body::before {
 
 .toolbar-label {
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 2px;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -711,7 +657,7 @@ body::before {
     border: 1px solid var(--border);
     color: var(--text-primary);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     padding: 4px 10px;
     border-radius: var(--radius-sm);
@@ -726,7 +672,7 @@ body::before {
     color: #000;
     border: none;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     font-weight: 700;
     padding: 4px 10px;
     border-radius: var(--radius-sm);
@@ -740,7 +686,7 @@ body::before {
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: var(--fs-md);
     cursor: pointer;
     padding: 0 2px;
     line-height: 1;
@@ -754,7 +700,7 @@ body::before {
     border: 1px solid transparent;
     color: var(--text-muted);
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     padding: 3px 8px;
     border-radius: var(--radius-sm);
     transition: all var(--t) var(--ease);
@@ -769,7 +715,7 @@ body::before {
     border: 1px solid var(--border);
     color: var(--text-muted);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     padding: 2px 7px;
     border-radius: var(--radius-sm);
     transition: all var(--t) var(--ease);
@@ -790,7 +736,7 @@ body::before {
     gap: 10px;
     color: var(--text-secondary);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     background: var(--bg-primary);
     z-index: 10;
 }
@@ -831,7 +777,7 @@ body::before {
 
 .md-label {
     font-family: var(--mono);
-    font-size: 8px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
     letter-spacing: 0.6px;
     text-transform: uppercase;
@@ -839,7 +785,7 @@ body::before {
 }
 .md-value {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
@@ -896,7 +842,7 @@ body::before {
 
 .stat-label {
     font-family: var(--mono);
-    font-size: 8px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -904,7 +850,7 @@ body::before {
 
 .stat-value {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: var(--fs-md);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -919,7 +865,7 @@ body::before {
 }
 .range-label {
     font-family: var(--mono);
-    font-size: 8px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-muted);
     margin-bottom: 7px;
@@ -948,7 +894,7 @@ body::before {
     display: flex; justify-content: space-between;
     margin-top: 5px;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
 }
 
@@ -966,7 +912,7 @@ body::before {
     border-bottom: 2px solid transparent;
     color: var(--text-muted);
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 2px;
     padding: 8px 4px;
     cursor: pointer;
@@ -996,64 +942,103 @@ body::before {
 }
 .news-tab-label {
     font-family: var(--mono);
-    font-size: 8px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-muted);
     text-transform: uppercase;
 }
 
-/* ===== INDICATORS PANEL ===== */
-.indicators-panel { padding: 5px; display: flex; flex-direction: column; gap: 3px; }
+/* ===== INDICATORS PANEL =====
+   Was seven bordered, filled cards stacked inside an already-bordered panel:
+   nested boxes, three borders deep at the edges, and the eye had to cross a
+   frame to read each value. It is now one continuous list separated by
+   hairline rules -- the same information, with the structure carried by
+   alignment and spacing instead of by outlines.
+
+   The rows are a two-column grid rather than space-between, so every label and
+   every value sits on a shared axis down the panel. That also stops a long
+   label like "Bollinger Bands" from wrapping under its own chip. */
+.indicators-panel { padding: 0; display: flex; flex-direction: column; }
 
 .ind-card {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: rgba(0,0,0,0.15);
-    transition: border-color var(--t);
+    border: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background: transparent;
+    padding: var(--s-4) var(--s-5);
+    transition: background-color var(--t-fast) var(--ease);
 }
-.ind-card:hover { border-color: var(--border-hover); }
+.ind-card:last-child { border-bottom: 0; }
+.ind-card:hover { background: var(--bg-hover); }
 
 .ind-header-static {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    justify-content: space-between;
-    padding: 5px 8px;
+    gap: var(--s-3);
+    padding: 0;
+    min-height: 20px;
 }
 
+/* The value sits directly under its own label, no divider between them --
+   they are one unit, and the rule below separates indicators, not lines. */
 .ind-detail {
-    padding: 2px 8px 6px;
-    border-top: 1px solid var(--border);
+    padding: var(--s-2) 0 0;
+    border-top: 0;
 }
 
 .ind-row {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 3px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: var(--s-3);
+    margin-bottom: var(--s-1);
 }
+.ind-row:last-child { margin-bottom: 0; }
+
 .ind-name {
     font-family: var(--mono);
-    font-size: 8px;
-    letter-spacing: 1px;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.04em;      /* 1px on 11px mono was too airy to scan */
     color: var(--text-secondary);
     text-transform: uppercase;
+    line-height: var(--lh-snug);
+    min-width: 0;
 }
-.ind-val   { font-family: var(--mono); font-size: 12px; font-weight: 600; }
-.ind-sub   { font-family: var(--mono); font-size: 9px; color: var(--text-secondary); }
-.ind-trend { font-family: var(--mono); font-size: 9px; font-weight: 600; }
+.ind-val   {
+    font-family: var(--mono);
+    font-size: var(--fs-sm);     /* the number is the point -- was 12px */
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.ind-sub   { font-family: var(--mono); font-size: var(--fs-micro); color: var(--text-secondary); }
+.ind-trend { font-family: var(--mono); font-size: var(--fs-micro); font-weight: 600; }
 
+/* One chip treatment for every state. The bordered pills varied in weight and
+   width and competed with the values they were annotating; these are a flat
+   tint, so the number stays the loudest thing in the row. */
 .signal-chip {
     font-family: var(--mono);
-    font-size: 7px;
-    padding: 1px 5px;
-    border-radius: var(--radius-xs);
-    letter-spacing: 0.8px;
+    font-size: var(--fs-micro);
+    padding: var(--s-1) var(--s-3);
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     font-weight: 600;
-    border: 1px solid transparent;
+    border: 0;
     flex-shrink: 0;
+    white-space: nowrap;
+    line-height: var(--lh-snug);
 }
-.signal-chip.buy     { color: var(--green); background: var(--green-dim); border-color: rgba(22,163,74,0.25); }
-.signal-chip.sell    { color: var(--red);   background: var(--red-dim);   border-color: rgba(220,38,38,0.25); }
-.signal-chip.neutral { color: var(--text-muted); background: rgba(255,255,255,0.04); border-color: var(--border); }
+.signal-chip.buy     { color: var(--green);         background: var(--green-dim); }
+.signal-chip.sell    { color: var(--red);           background: var(--red-dim); }
+.signal-chip.neutral { color: var(--text-secondary); background: rgba(255,255,255,0.05); }
+
+/* .ind-trend carries "Below"/"Above" as bare coloured text while the four
+   indicators above use chips. Give it the chip shape so the column reads as
+   one kind of thing. */
+.ind-trend.up   { color: var(--green); }
+.ind-trend.down { color: var(--red); }
 
 /* RSI Gauge */
 .gauge-track {
@@ -1092,19 +1077,19 @@ body::before {
     border-radius: var(--radius-sm);
     margin-bottom: 3px;
     background: rgba(0,0,0,0.15);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     transition: border-color var(--t);
 }
 .alert-row:hover     { border-color: var(--border-hover); }
 .alert-row-left      { display: flex; flex-direction: column; gap: 1px; }
-.alert-sym-type      { font-family: var(--mono); font-weight: 600; color: var(--amber); font-size: 11px; }
-.alert-thresh        { font-family: var(--mono); font-size: 9px; color: var(--text-muted); }
+.alert-sym-type      { font-family: var(--mono); font-weight: 600; color: var(--amber); font-size: var(--fs-micro); }
+.alert-thresh        { font-family: var(--mono); font-size: var(--fs-micro); color: var(--text-muted); }
 
 .del-btn {
     background: transparent;
     border: none;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     padding: 2px 5px;
     border-radius: var(--radius-sm);
     transition: color var(--t), background var(--t);
@@ -1124,7 +1109,7 @@ body::before {
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     border-left: 2px solid var(--amber);
     background: rgba(59, 130, 246, 0.04);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     line-height: 1.4;
 }
 .feed-item.alert { border-left-color: var(--orange); background: rgba(234,88,12,0.04); }
@@ -1134,13 +1119,13 @@ body::before {
 .feed-time {
     display: block;
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
     margin-top: 3px;
 }
 
 .feed-empty {
-    font-size: 11px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
     text-align: center;
     padding: 16px 8px;
@@ -1150,114 +1135,196 @@ body::before {
 /* ===== BADGE ===== */
 .badge {
     font-family: var(--mono);
-    font-size: 10px;
-    padding: 1px 7px;
-    border-radius: 2px;
-    background: var(--amber-dim);
-    color: var(--amber);
-    border: 1px solid var(--amber-dim);
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    padding: var(--s-1) var(--s-3);
+    border-radius: var(--radius-sm);
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid transparent;   /* dim-on-dim read as a smudge */
     min-width: 22px;
     text-align: center;
+    line-height: var(--lh-snug);
 }
 
 .symbol-badge {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     font-weight: 700;
-    color: var(--amber);
-    letter-spacing: 1px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTONS =====
+   Three tiers with real separation: primary is a filled accent, secondary is
+   an outline, icon is bare. Previously primary and secondary were both a thin
+   border with accent text over a near-transparent wash, which left no visual
+   answer to "which one submits the form".
+
+   `transition: all` was animating layout properties (width, padding, border)
+   on every hover, so each one risked a reflow; each button now transitions
+   only paint properties. */
 .btn-icon {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    width: 22px; height: 22px;
+    width: 26px; height: 26px;      /* was 22px -- under the 24px minimum */
     border-radius: var(--radius-sm);
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    transition: all var(--t) var(--ease);
+    font-size: var(--fs-sm);
+    transition: background-color var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease),
+                color var(--t-fast) var(--ease);
 }
-.btn-icon:hover { border-color: var(--amber); color: var(--amber); }
+.btn-icon:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+.btn-icon:active { background: var(--bg-active); }
 
 .btn-secondary {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 6px 12px;
+    padding: var(--s-3) var(--s-5);
+    min-height: 30px;
     border-radius: var(--radius-sm);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.5px;
-    transition: all var(--t) var(--ease);
+    font-family: var(--sans);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    letter-spacing: 0;
+    transition: background-color var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease),
+                color var(--t-fast) var(--ease);
 }
-.btn-secondary:hover { border-color: var(--amber); color: var(--amber); background: var(--bg-hover); }
+.btn-secondary:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+.btn-secondary:active { background: var(--bg-active); }
 
 .btn-primary {
-    background: var(--amber-faint);
-    border: 1px solid var(--amber-dim);
-    color: var(--amber);
-    padding: 9px 16px;
+    /* --accent-strong, not --accent: white text on the brand blue is 3.68:1
+       and fails AA. Darkening the same hue takes it to 5.17:1. */
+    background: var(--accent-strong);
+    border: 1px solid var(--accent-strong);
+    color: #fff;
+    padding: var(--s-4) var(--s-6);
+    min-height: 34px;
     border-radius: var(--radius-sm);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 1px;
+    font-family: var(--sans);
+    font-size: var(--fs-xs);
     font-weight: 600;
-    text-transform: uppercase;
-    transition: all var(--t) var(--ease);
+    letter-spacing: 0;               /* uppercase + 1px tracking shouted */
+    text-transform: none;
+    box-shadow: var(--shadow-sm);
+    transition: background-color var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease),
+                transform var(--t-fast) var(--ease);
 }
-.btn-primary:hover { background: rgba(59, 130, 246, 0.12); }
+.btn-primary:hover {
+    background: var(--accent);       /* lifts toward the brand blue on hover */
+    border-color: var(--accent);
+}
+.btn-primary:active { transform: translateY(1px); }
+
+/* Destructive actions must not look like ordinary secondary ones. */
+.btn-danger {
+    background: transparent;
+    border: 1px solid var(--red-dim);
+    color: var(--red);
+    padding: var(--s-3) var(--s-5);
+    min-height: 30px;
+    border-radius: var(--radius-sm);
+    font-family: var(--sans);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    transition: background-color var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease);
+}
+.btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+
+.btn-primary:disabled, .btn-secondary:disabled, .btn-icon:disabled, .btn-danger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
 
 .full-width { width: 100%; }
 
 /* ===== MODAL ===== */
 .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.82);
+    background: rgba(3, 5, 8, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 500;
     display: flex; align-items: center; justify-content: center;
-    animation: fade-in 0.18s ease;
+    padding: var(--s-6);
+    animation: fade-in var(--t) var(--ease-out);
 }
 
 .modal {
-    background: #0C0F16;
-    border: 1px solid var(--border-hover);
-    border-radius: var(--radius);
-    width: 360px;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);     /* accent border read as a warning */
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 380px;
+    box-shadow: var(--shadow-lg);
+    /* Rises as it fades in, so it reads as arriving rather than blinking on. */
+    animation: modal-in var(--t-slow) var(--ease-out);
 }
 
 .modal-header {
-    padding: 13px 16px;
+    padding: var(--s-5) var(--s-6);
     border-bottom: 1px solid var(--border);
     display: flex; justify-content: space-between; align-items: center;
+    gap: var(--s-4);
 }
 
-.modal-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.modal-body { padding: var(--s-6); display: flex; flex-direction: column; gap: var(--s-5); }
 
-.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group { display: flex; flex-direction: column; gap: var(--s-3); }
 .form-group label {
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    color: var(--text-muted);
-    text-transform: uppercase;
+    font-family: var(--sans);
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    letter-spacing: 0.02em;          /* 1.5px tracking on 9px was unreadable */
+    color: var(--text-secondary);    /* was --text-muted at 1.86:1 */
+    text-transform: none;
 }
 
 .form-input {
-    background: rgba(0,0,0,0.35);
+    background: var(--bg-sunken);
     border: 1px solid var(--border);
     color: var(--text-primary);
-    padding: 8px 10px;
+    padding: var(--s-4) var(--s-5);
+    min-height: 34px;
     border-radius: var(--radius-sm);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-sm);         /* was 12px -- below comfortable input size */
     width: 100%;
-    transition: border-color var(--t), box-shadow var(--t);
+    transition: border-color var(--t-fast) var(--ease),
+                background-color var(--t-fast) var(--ease);
 }
-.form-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(245,158,11,0.07); }
-.form-input option { background: #0C0F16; }
+.form-input::placeholder { color: var(--text-muted); }
+/* Was `rgba(245,158,11,...)` -- an amber ring left behind when the theme
+   stopped being amber, on a blue input. */
+.form-input:focus {
+    border-color: var(--accent);
+    background: rgba(0, 0, 0, 0.45);
+    outline: none;
+}
+.form-input:focus-visible { box-shadow: var(--focus-ring); }
+.form-input option { background: var(--bg-raised); }
+.form-input[aria-invalid="true"] { border-color: var(--red); }
+.form-error {
+    font-size: var(--fs-micro);
+    color: var(--red);
+    display: flex; align-items: center; gap: var(--s-2);
+}
 
 /* ===== STATUS BAR ===== */
 .status-bar {
@@ -1266,26 +1333,64 @@ body::before {
     background: var(--bg-secondary);
     border-top: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 14px;
+    padding: 0 var(--s-5);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
-    letter-spacing: 0.5px;
+    letter-spacing: 0.02em;
 }
-.status-brand { color: var(--text-muted); opacity: 0.5; }
+/* opacity 0.5 on a 1.86:1 colour put this near 1.4:1. */
+.status-brand { color: var(--text-muted); opacity: 0.85; }
 
 /* ===== LOADING SPINNER ===== */
 .loading-spinner {
     width: 14px; height: 14px;
-    border: 1px solid var(--border);
-    border-top-color: var(--amber);
+    border: 1.5px solid var(--border);
+    border-top-color: var(--accent);
     border-radius: 50%;
-    animation: spin 0.75s linear infinite;
+    animation: spin 0.7s linear infinite;
     flex-shrink: 0;
 }
 
-/* ===== SKELETON ===== */
+/* ===== SKELETON =====
+   A shimmering placeholder block, so a slow feed reads as loading rather than
+   as empty. Pairs with .skeleton on a container. */
 .skeleton .hp-price { color: var(--text-muted); }
+.skeleton-line {
+    height: 10px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 0%,
+        rgba(255,255,255,0.09) 50%,
+        rgba(255,255,255,0.04) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s var(--ease) infinite;
+}
+.skeleton-line + .skeleton-line { margin-top: var(--s-3); }
+.skeleton-line.w-60 { width: 60%; }
+.skeleton-line.w-40 { width: 40%; }
+
+/* ===== EMPTY STATES =====
+   Previously absent, so a panel with no data rendered as blank space. */
+.empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: var(--s-3);
+    padding: var(--s-9) var(--s-6);
+    text-align: center;
+    color: var(--text-muted);
+}
+.empty-state-icon { opacity: 0.45; }
+.empty-state-title {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.empty-state-text {
+    font-size: var(--fs-micro);
+    line-height: var(--lh-snug);
+    max-width: 30ch;
+}
 
 /* ===== FLASH ANIMATIONS ===== */
 @keyframes flash-up {
@@ -1329,6 +1434,20 @@ body::before {
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Dialogs rise a few pixels and settle, rather than appearing instantly.
+   Deliberately small -- 8px and 280ms reads as physical, 40px reads as a
+   stage entrance and delays access to the content. */
+@keyframes modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* Sweeps the highlight across a skeleton placeholder. */
+@keyframes shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+
 /* ===== SKI CHATBOT ===== */
 
 .ski-fab {
@@ -1359,7 +1478,7 @@ body::before {
 }
 .ski-fab-label {
     font-family: var(--display);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     font-weight: 700;
     letter-spacing: 3px;
     color: var(--amber);
@@ -1373,7 +1492,7 @@ body::before {
     border-radius: 50%;
     background: var(--red);
     color: #fff;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -1423,14 +1542,14 @@ body::before {
 }
 .ski-title {
     font-family: var(--display);
-    font-size: 13px;
+    font-size: var(--fs-sm);
     font-weight: 700;
     letter-spacing: 3px;
     color: var(--amber);
 }
 .ski-subtitle {
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 1px;
     color: var(--text-secondary);
     margin-top: 1px;
@@ -1456,7 +1575,7 @@ body::before {
 .ski-bubble {
     max-width: 85%;
     padding: 8px 12px;
-    font-size: 12.5px;
+    font-size: var(--fs-sm);
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
@@ -1473,7 +1592,7 @@ body::before {
     border: 1px solid var(--border);
     color: var(--text-primary);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-xs);
 }
 .ski-message-assistant .ski-bubble.loading {
     color: var(--text-secondary);
@@ -1487,7 +1606,7 @@ body::before {
 }
 .ski-briefing-label {
     font-family: var(--mono);
-    font-size: 9.5px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.12em;
     color: var(--blue, #60A5FA);
     margin-bottom: 6px;
@@ -1527,7 +1646,7 @@ body::before {
 .ski-starters.visible { display: flex; }
 .ski-starter-btn {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.5px;
     color: var(--text-muted);
     background: transparent;
@@ -1560,7 +1679,7 @@ body::before {
     border-radius: var(--radius-sm);
     padding: 8px 10px;
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     color: var(--text-primary);
     transition: border-color var(--t) var(--ease);
 }
@@ -1574,7 +1693,7 @@ body::before {
     background: var(--amber);
     border: none;
     color: #000;
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -1614,7 +1733,7 @@ body::before {
 
 .news-sentiment {
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     font-weight: 700;
     letter-spacing: 1.5px;
     padding: 2px 6px;
@@ -1638,7 +1757,7 @@ body::before {
 }
 
 .news-title {
-    font-size: 11.5px;
+    font-size: var(--fs-xs);
     line-height: 1.45;
     color: var(--text-primary);
     display: block;
@@ -1653,20 +1772,20 @@ body::before {
 }
 .news-source {
     font-family: var(--mono);
-    font-size: 9.5px;
+    font-size: var(--fs-micro);
     color: var(--amber);
     opacity: 0.65;
 }
 .news-time {
     font-family: var(--mono);
-    font-size: 9.5px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
 }
 
 /* Aggregate sentiment chip */
 .sentiment-chip {
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     font-weight: 700;
     letter-spacing: 1.5px;
     padding: 2px 7px;
@@ -1695,20 +1814,50 @@ body::before {
 /* ===== SCREENER ===== */
 
 .screener-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-3);              /* one icon-to-text gap for every such button */
     font-family: var(--display);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     font-weight: 600;
-    letter-spacing: 1.5px;
-    padding: 5px 12px;
+    letter-spacing: 0.08em;       /* 1.5px was tracking tuned for a larger size */
+    padding: var(--s-3) var(--s-5);
+    min-height: 28px;
     border-radius: var(--radius-sm);
     background: transparent;
-    border: 1px solid var(--border-hover);
-    color: var(--amber);
-    transition: border-color var(--t) var(--ease), background var(--t) var(--ease);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: border-color var(--t-fast) var(--ease),
+                background-color var(--t-fast) var(--ease),
+                color var(--t-fast) var(--ease);
 }
 .screener-btn:hover {
-    border-color: var(--amber);
-    background: var(--amber-faint);
+    border-color: var(--border-hover);
+    background: var(--bg-hover);
+    color: var(--accent);
+}
+.screener-btn:active { background: var(--bg-active); }
+
+/* Icons ride at the cap height of the label rather than on the baseline, and
+   never shrink when the button is squeezed. */
+.btn-ico {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    display: block;
+}
+
+/* SIGN IN is the only call to action in the header, so it alone gets filled
+   treatment -- previously all three were identical outlines competing. */
+.auth-signin-btn {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+    color: #fff;
+}
+.auth-signin-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
 }
 
 .modal-wide {
@@ -1733,7 +1882,7 @@ body::before {
 
 .filter-label {
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -1753,7 +1902,7 @@ body::before {
     padding: 5px 8px;
     border-radius: var(--radius-sm);
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     transition: border-color var(--t) var(--ease);
 }
 .filter-input:focus { border-color: var(--amber); }
@@ -1766,19 +1915,19 @@ body::before {
     padding: 5px 8px;
     border-radius: var(--radius-sm);
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     transition: border-color var(--t) var(--ease);
     min-width: 140px;
 }
 .filter-select:focus { border-color: var(--amber); }
 
-.filter-sep { color: var(--text-muted); font-size: 11px; }
+.filter-sep { color: var(--text-muted); font-size: var(--fs-micro); }
 
 .filter-reset {
     margin-left: auto;
     align-self: flex-end;
     padding: 5px 12px;
-    font-size: 10px;
+    font-size: var(--fs-micro);
 }
 
 .screener-table-wrap {
@@ -1790,7 +1939,7 @@ body::before {
 .screener-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: var(--fs-xs);
 }
 
 .screener-table thead {
@@ -1804,7 +1953,7 @@ body::before {
     padding: 9px 12px;
     text-align: left;
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-muted);
     border-bottom: 1px solid var(--border);
@@ -1819,14 +1968,14 @@ body::before {
 .screener-table th.sortable:hover  { color: var(--text-secondary); }
 .screener-table th.sortable.sorted { color: var(--amber); }
 
-.sort-icon { font-size: 10px; opacity: 0.5; margin-left: 3px; }
+.sort-icon { font-size: var(--fs-micro); opacity: 0.5; margin-left: 3px; }
 .screener-table th.sorted .sort-icon { opacity: 1; }
 
 .screener-table td {
     padding: 8px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     white-space: nowrap;
 }
 
@@ -1839,18 +1988,18 @@ body::before {
     font-weight: 600;
     color: var(--amber);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--fs-xs);
 }
 .sc-symbol:hover { text-decoration: underline; }
 
 .sc-name   { color: var(--text-secondary); max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .sc-price, .sc-pe, .sc-mcap, .sc-high, .sc-low { font-family: var(--mono); }
-.sc-sector { font-size: 10px; color: var(--text-secondary); font-family: var(--mono); }
+.sc-sector { font-size: var(--fs-micro); color: var(--text-secondary); font-family: var(--mono); }
 
 .sc-perf {
     font-family: var(--mono);
     font-weight: 600;
-    font-size: 12px;
+    font-size: var(--fs-xs);
 }
 .sc-perf.positive { color: var(--green); }
 .sc-perf.negative { color: var(--red); }
@@ -1860,7 +2009,7 @@ body::before {
     padding: 40px !important;
     color: var(--text-secondary);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1884,13 +2033,13 @@ body::before {
 }
 .pf-risk-label {
     font-family: var(--mono);
-    font-size: 8px;
+    font-size: var(--fs-micro);
     letter-spacing: 1.5px;
     color: var(--text-muted);
 }
 .pf-risk-val {
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -1936,7 +2085,7 @@ body::before {
     align-items: center;
     gap: 4px;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     font-weight: 600;
     padding: 2px 7px;
     border-radius: 99px;
@@ -1948,7 +2097,7 @@ body::before {
     border: none;
     color: inherit;
     cursor: pointer;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     padding: 0;
     line-height: 1;
     opacity: 0.7;
@@ -1962,7 +2111,7 @@ body::before {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    font-size: 16px;
+    font-size: var(--fs-lg);
     width: 34px; height: 34px;
     border-radius: var(--radius-sm);
     align-items: center;
@@ -2006,7 +2155,7 @@ body::before {
     input, select, textarea,
     .form-input, .pf-input, .symbol-input, .compare-input,
     .ski-input, .filter-input, .filter-select {
-        font-size: 16px;
+        font-size: var(--fs-lg);
     }
 }
 
@@ -2084,7 +2233,7 @@ body::before {
         padding: 7px 4px;
         border-bottom: 1px solid var(--border);
     }
-    .md-item .md-value { font-size: 12px; }
+    .md-item .md-value { font-size: var(--fs-xs); }
     /* 52-week range bar: full-width row under the stats, made clearly
        visible (the desktop track is only 2px). */
     .md-range-item {
@@ -2094,7 +2243,7 @@ body::before {
         padding: 10px 14px;
         gap: 8px;
     }
-    .md-range-item .md-label { font-size: 9px; color: var(--text-secondary); }
+    .md-range-item .md-label { font-size: var(--fs-micro); color: var(--text-secondary); }
     .md-range-track { height: 5px; }
     .md-range-cursor { width: 11px; height: 11px; border-width: 2px; }
 
@@ -2105,10 +2254,10 @@ body::before {
 
     /* ── Header ── */
     .app-header { padding: 0 12px; }
-    .logo-text  { letter-spacing: 2px; font-size: 14px; }
+    .logo-text  { letter-spacing: 2px; font-size: var(--fs-md); }
     .market-status { display: none; }
     .header-right { gap: 8px; }
-    .screener-btn { padding: 8px 10px; font-size: 13px; letter-spacing: 0; }
+    .screener-btn { padding: 8px 10px; font-size: var(--fs-sm); letter-spacing: 0; }
     .screener-btn .btn-text { display: none; }
 
     /* ── FRED macro ribbon: condense into compact, swipeable chips so
@@ -2129,8 +2278,8 @@ body::before {
         border-right: 1px solid var(--border);
     }
     .macro-item:nth-child(n+4) { display: flex; }   /* show all, not just 3 */
-    .macro-label { font-size: 8px; }
-    .macro-value { font-size: 11px; }
+    .macro-label { font-size: var(--fs-micro); }
+    .macro-value { font-size: var(--fs-micro); }
 
     /* ── Toolbar: full-width search on its own line, controls wrap onto
        tidy rows underneath. The desktop rows have a FIXED height, which
@@ -2165,7 +2314,7 @@ body::before {
         flex: 1 1 0;
         min-width: 0;
         padding: 7px 2px;
-        font-size: 11px;
+        font-size: var(--fs-micro);
         letter-spacing: 0;
         text-align: center;
     }
@@ -2173,19 +2322,19 @@ body::before {
     /* ── Inputs ≥16px so iOS never auto-zooms on focus ── */
     .form-input, .pf-input, .symbol-input, .compare-input,
     .ski-input, .filter-input, .filter-select, select.form-input {
-        font-size: 16px;
+        font-size: var(--fs-lg);
     }
 
     /* ── Comfortable (≥44px) touch targets ── */
     .portfolio-form { gap: 8px; }
     .portfolio-form-row { gap: 8px; }
     .pf-input  { min-height: 44px; padding: 10px 12px; }
-    .pf-add-btn { min-height: 44px; padding: 10px 14px; font-size: 13px; }
-    .pf-delete-btn { font-size: 15px; padding: 4px 8px; }
+    .pf-add-btn { min-height: 44px; padding: 10px 14px; font-size: var(--fs-sm); }
+    .pf-delete-btn { font-size: var(--fs-md); padding: 4px 8px; }
     .btn-secondary.full-width,
     .btn-primary.full-width { min-height: 44px; }
-    .tf-btn  { padding: 7px 12px; font-size: 12px; }
-    .ind-btn { padding: 6px 10px; font-size: 11px; }
+    .tf-btn  { padding: 7px 12px; font-size: var(--fs-xs); }
+    .ind-btn { padding: 6px 10px; font-size: var(--fs-micro); }
     .symbol-go-btn { padding: 7px 14px; }
 
     /* ── Modals / overlays sized for a phone ── */
@@ -2213,7 +2362,7 @@ body::before {
 
 .auth-email {
     font-family: "JetBrains Mono", monospace;
-    font-size: 11px;
+    font-size: var(--fs-micro);
     color: var(--text-primary);
     max-width: 160px;
     overflow: hidden;
@@ -2225,7 +2374,7 @@ body::before {
     background: none;
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: var(--fs-micro);
     padding: 4px 8px;
     border-radius: 5px;
     cursor: pointer;
@@ -2235,7 +2384,7 @@ body::before {
 
 .auth-intro {
     color: var(--text-secondary);
-    font-size: 12.5px;
+    font-size: var(--fs-sm);
     line-height: 1.5;
     margin: 0 0 16px;
 }
@@ -2244,7 +2393,7 @@ body::before {
     background: var(--red-dim);
     border: 1px solid rgba(220, 38, 38, 0.35);
     color: #FCA5A5;
-    font-size: 12px;
+    font-size: var(--fs-xs);
     padding: 8px 10px;
     border-radius: 6px;
     margin-bottom: 12px;
@@ -2252,7 +2401,7 @@ body::before {
 
 .auth-toggle {
     text-align: center;
-    font-size: 12px;
+    font-size: var(--fs-xs);
     color: var(--text-secondary);
     margin: 14px 0 0;
 }
@@ -2260,7 +2409,7 @@ body::before {
     background: none;
     border: none;
     color: #3B82F6;
-    font-size: 12px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     cursor: pointer;
     padding: 0 0 0 4px;
@@ -2269,7 +2418,7 @@ body::before {
 
 .auth-legal {
     text-align: center;
-    font-size: 10.5px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
     line-height: 1.5;
     margin: 16px 0 0;
@@ -2293,13 +2442,13 @@ body::before {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
-    gap: 8px 14px;
-    padding: 10px 18px;
-    background: #2A1F05;
-    border-bottom: 1px solid #6B5310;
-    color: #F5E6B8;
-    font-size: 13px;
-    line-height: 1.5;
+    gap: var(--s-4) var(--s-5);
+    padding: var(--s-5) var(--s-7);
+    background: var(--notice-bg);
+    border-bottom: 1px solid var(--notice-border);
+    color: var(--notice-text);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-snug);
     position: relative;
     z-index: 900;
 }
@@ -2307,21 +2456,34 @@ body::before {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #E0B341;
+    background: var(--notice-accent);
     flex: none;
     align-self: center;
 }
 #demo-banner .demo-text { flex: 1 1 460px; }
-#demo-banner strong { color: #FFF3D0; font-weight: 600; }
+#demo-banner strong { color: var(--notice-strong); font-weight: 600; }
 #demo-banner .demo-link {
-    color: #FFD766;
+    color: var(--notice-link);
     text-decoration: none;
     border-bottom: 1px solid rgba(255, 215, 102, 0.45);
     white-space: nowrap;
     flex: none;
+    transition: border-color var(--t-fast) var(--ease);
 }
-#demo-banner .demo-link:hover { border-bottom-color: #FFD766; }
+#demo-banner .demo-link:hover { border-bottom-color: var(--notice-link); }
 
+/* On a phone the full notice ran to seven lines and filled the whole first
+   screen, so the product's actual first impression was a block of amber prose.
+   Clamped to three lines, which still carries the two things that matter --
+   that this is a snapshot, and its date, both in the first sentence -- with
+   the full account one tap away on the link, which stays outside the clamp. */
 @media (max-width: 640px) {
-    #demo-banner { padding: 9px 12px; font-size: 12px; }
+    #demo-banner { padding: var(--s-4) var(--s-5); font-size: var(--fs-xs); gap: var(--s-3) var(--s-4); }
+    #demo-banner .demo-text {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 }

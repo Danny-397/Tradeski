@@ -13,6 +13,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Shared design tokens. Must load before any page styles. -->
+    <link rel="stylesheet" href="tokens.css">
     <link rel="stylesheet" href="styles.css">
     <script defer src="/_vercel/insights/script.js"></script>
     <!-- Pinned, not "plotly-latest": that alias has been frozen at v1.58.5 since
@@ -47,8 +49,32 @@
         </div>
 
         <div class="header-right">
-<button class="screener-btn" id="open-heatmap-btn" title="Correlation Heatmap">⊞ <span class="btn-text">HEATMAP</span></button>
-            <button class="screener-btn" id="open-screener-btn" title="Stock Screener">⊞ <span class="btn-text">SCREENER</span></button>
+            <!-- Both buttons used to render the same literal glyph (U+229E). The
+                 label is hidden below 640px, so on a phone the header showed two
+                 identical marks and nothing said which was which. These are two
+                 distinct icons: a filled cell grid for the correlation heatmap,
+                 a funnel for the screener. aria-label carries the name when the
+                 text is hidden. -->
+            <button class="screener-btn" id="open-heatmap-btn"
+                    title="Correlation Heatmap" aria-label="Correlation heatmap">
+                <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <rect x="1.5" y="1.5" width="4" height="4" rx="1" fill="currentColor" opacity=".95"/>
+                    <rect x="6.5" y="1.5" width="4" height="4" rx="1" fill="currentColor" opacity=".45"/>
+                    <rect x="11.5" y="1.5" width="3" height="4" rx="1" fill="currentColor" opacity=".7"/>
+                    <rect x="1.5" y="6.5" width="4" height="4" rx="1" fill="currentColor" opacity=".45"/>
+                    <rect x="6.5" y="6.5" width="4" height="4" rx="1" fill="currentColor" opacity=".8"/>
+                    <rect x="11.5" y="6.5" width="3" height="4" rx="1" fill="currentColor" opacity=".3"/>
+                    <rect x="1.5" y="11.5" width="4" height="3" rx="1" fill="currentColor" opacity=".7"/>
+                    <rect x="6.5" y="11.5" width="4" height="3" rx="1" fill="currentColor" opacity=".3"/>
+                    <rect x="11.5" y="11.5" width="3" height="3" rx="1" fill="currentColor" opacity=".9"/>
+                </svg><span class="btn-text">HEATMAP</span></button>
+            <button class="screener-btn" id="open-screener-btn"
+                    title="Stock Screener" aria-label="Stock screener">
+                <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"
+                     fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1.8 2.6h12.4L9.4 8.2v4.6l-2.8 1.6V8.2z"/>
+                </svg><span class="btn-text">SCREENER</span></button>
             <div class="auth-area" id="auth-area">
                 <button class="screener-btn auth-signin-btn" id="signin-btn" title="Sign in to save your portfolio">SIGN IN</button>
                 <div class="auth-user" id="auth-user" style="display:none">

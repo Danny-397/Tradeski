@@ -24,26 +24,31 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script defer src="/_vercel/insights/script.js"></script>
+    <link rel="stylesheet" href="tokens.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+        /* This page's short local names, now aliased to the shared tokens in
+           tokens.css rather than holding their own copies of the palette.
+           That is what keeps the landing page and the dashboard the same
+           product: the contrast fixes live in one file and reach both.
+
+           --green, --red, --border, --mono and --sans are deliberately absent
+           -- they are spelled identically in tokens.css, so they cascade in on
+           their own. Re-declaring them here as var(--green) would be a cycle. */
         :root {
-            --bg:     #07090D;
-            --bg2:    #0C0F16;
-            --blue:   #3B82F6;
-            /* Same hue, darkened until white label text clears 4.5:1 (it was
-               3.68:1 on --blue). Used only behind white text. */
-            --blue-btn: #1E6FF5;
-            --blue-d: rgba(59,130,246,0.14);
-            --blue-f: rgba(59,130,246,0.06);
-            --green:  #16A34A;
-            --red:    #DC2626;
-            --text:   #D1D5DB;
-            --muted:  #747D8C;
-            --faint:  #374151;
-            --border: rgba(255,255,255,0.07);
-            --mono:   'JetBrains Mono', monospace;
-            --sans:   'Space Grotesk', sans-serif;
+            --bg:       var(--bg-primary);
+            --bg2:      var(--bg-secondary);
+            --blue:     var(--accent);
+            /* Was a local #1E6FF5: the same hue darkened until white label
+               text clears AA. That idea was right and is now the shared
+               --accent-strong, so every filled control on every page gets it. */
+            --blue-btn: var(--accent-strong);
+            --blue-d:   var(--accent-dim);
+            --blue-f:   var(--accent-faint);
+            --text:     var(--text-primary);
+            --muted:    var(--text-secondary);
+            --faint:    var(--text-muted);
         }
 
         html, body { height: 100%; }

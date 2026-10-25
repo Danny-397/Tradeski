@@ -10,14 +10,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tokens.css">
     <style>
+        /* Local names aliased to the shared tokens in tokens.css. This page had
+           drifted furthest: a different accent blue (#60A5FA against the brand
+           #3B82F6), a 0.08 border where the rest of the product uses 0.07, and
+           a --muted at 3.96:1. --border and --accent are spelled the same as
+           the shared tokens, so they cascade in and are not redeclared. */
         :root {
-            --bg:      #07090D;
-            --card:    #0C0F16;
-            --border:  rgba(255, 255, 255, 0.08);
-            --text:    #D1D5DB;
-            --muted:   #6B7280;
-            --accent:  #60A5FA;
+            --bg:      var(--bg-primary);
+            --card:    var(--bg-secondary);
+            --text:    var(--text-primary);
+            --muted:   var(--text-secondary);
         }
         * { box-sizing: border-box; }
         body {

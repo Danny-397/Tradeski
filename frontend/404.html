@@ -7,12 +7,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script defer src="/_vercel/insights/script.js"></script>
+    <link rel="stylesheet" href="tokens.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Space Grotesk', sans-serif;
-            background: #07090D;
-            color: #D1D5DB;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -33,7 +34,7 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 80px;
             font-weight: 600;
-            color: #3B82F6;
+            color: var(--accent);
             line-height: 1;
             margin-bottom: 8px;
             letter-spacing: -2px;
@@ -41,9 +42,9 @@
         .terminal {
             font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
-            color: #6B7280;
-            background: #0C0F16;
-            border: 1px solid rgba(255,255,255,0.07);
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 4px;
             padding: 16px 20px;
             text-align: left;
@@ -51,14 +52,14 @@
             letter-spacing: 0.3px;
             line-height: 1.7;
         }
-        .prompt { color: #3B82F6; }
-        .error  { color: #DC2626; }
-        .ok     { color: #16A34A; }
-        h1 { font-size: 22px; font-weight: 600; color: #F1F5F9; margin-bottom: 8px; }
-        p  { font-size: 14px; color: #6B7280; line-height: 1.6; margin-bottom: 28px; }
+        .prompt { color: var(--accent); }
+        .error  { color: var(--red); }
+        .ok     { color: var(--green); }
+        h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+        p  { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 28px; }
         .links { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
         .btn-primary {
-            background: #3B82F6;
+            background: var(--accent-strong);
             color: #fff;
             border: none;
             padding: 10px 26px;
@@ -74,17 +75,17 @@
         }
         .btn-primary:hover { opacity: 0.85; }
         .btn-secondary {
-            color: #6B7280;
+            color: var(--text-secondary);
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             letter-spacing: 1px;
             text-decoration: none;
-            border: 1px solid rgba(255,255,255,0.07);
+            border: 1px solid var(--border);
             padding: 10px 20px;
             border-radius: 2px;
             transition: border-color 0.15s, color 0.15s;
         }
-        .btn-secondary:hover { border-color: rgba(59,130,246,0.4); color: #D1D5DB; }
+        .btn-secondary:hover { border-color: var(--border-hover); color: var(--text-primary); }
     </style>
 </head>
 <body>
