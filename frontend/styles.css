@@ -777,6 +777,7 @@ select.form-input {
 .modal-wide { width: min(92vw, 980px); max-width: none; max-height: 85vh; display: flex; flex-direction: column; }
 
 .auth-intro { color: var(--text-secondary); font-size: var(--fs-sm); line-height: var(--lh-base); }
+.auth-form  { display: flex; flex-direction: column; gap: var(--s-6); }
 .auth-error {
     background: var(--red-dim);
     color: #FCA5A5;

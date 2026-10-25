@@ -156,7 +156,7 @@
                 <div class="panel-footer" id="pf-footer">
                     <div class="portfolio-form">
                         <div class="portfolio-form-row">
-                            <input type="text"   id="pf-symbol"   class="form-input pf-input" placeholder="Symbol" maxlength="10" />
+                            <input type="text"   id="pf-symbol"   name="holding-symbol" class="form-input pf-input" placeholder="Symbol" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" />
                             <input type="number" id="pf-shares"   class="form-input pf-input" placeholder="Shares" min="0.0001" step="any" />
                         </div>
                         <div class="portfolio-form-row">
@@ -176,9 +176,10 @@
                 <!-- Row 1: symbol / chart type / timeframes -->
                 <div class="toolbar-row-main">
                     <div class="symbol-search-wrap">
-                        <input id="symbol-input" type="text" class="symbol-input"
-                               placeholder="Ticker" autocomplete="off"
-                               spellcheck="false" maxlength="10" />
+                        <input id="symbol-input" name="ticker" type="text" class="symbol-input"
+                               placeholder="Ticker" value="AAPL" autocomplete="off"
+                               autocapitalize="characters" spellcheck="false" maxlength="10"
+                               aria-label="Ticker symbol" />
                         <button id="symbol-go-btn" class="symbol-go-btn">Go</button>
                     </div>
 
@@ -190,7 +191,7 @@
 
                     <div class="compare-controls" id="compare-controls" style="display:none">
                         <button id="compare-exit-btn" class="tf-btn compare-exit-btn" title="Exit compare mode">← Back</button>
-                        <input type="text" id="compare-input" class="symbol-input compare-input"
+                        <input type="text" id="compare-input" name="compare-symbol" class="symbol-input compare-input"
                                placeholder="Add symbol…" maxlength="10" autocomplete="off" spellcheck="false" />
                         <button id="compare-add-btn" class="symbol-go-btn" aria-label="Add symbol to comparison">Add</button>
                         <div id="compare-chips" class="compare-chips"></div>
@@ -275,7 +276,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Symbol</label>
-                    <input type="text" id="alert-symbol" class="form-input"
+                    <input type="text" id="alert-symbol" name="alert-symbol" class="form-input"
                            placeholder="e.g. AAPL" maxlength="10"
                            autocomplete="off" spellcheck="false" />
                 </div>
@@ -308,19 +309,21 @@
             </div>
             <div class="modal-body">
                 <p class="auth-intro" id="auth-intro">Sign in to save your portfolio, alerts, and watchlist across devices.</p>
+                <form id="auth-form" class="auth-form" novalidate onsubmit="return false">
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" id="auth-email-input" class="form-input"
-                           placeholder="you@example.com" autocomplete="email"
+                    <input type="email" id="auth-email-input" name="email" class="form-input"
+                           placeholder="you@example.com" autocomplete="username"
                            spellcheck="false" />
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" id="auth-password-input" class="form-input"
+                    <input type="password" id="auth-password-input" name="password" class="form-input"
                            placeholder="At least 8 characters" autocomplete="current-password" />
                 </div>
                 <div class="auth-error" id="auth-error" style="display:none"></div>
-                <button class="btn-primary full-width" id="auth-submit-btn">Sign in</button>
+                <button type="button" class="btn-primary full-width" id="auth-submit-btn">Sign in</button>
+                </form>
                 <p class="auth-toggle">
                     <span id="auth-toggle-text">New to Tradeski?</span>
                     <button type="button" class="auth-toggle-btn" id="auth-toggle-btn">Create an account</button>
