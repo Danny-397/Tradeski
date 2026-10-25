@@ -2184,16 +2184,28 @@ async function renderCompareChart() {
     const allSyms = [state.symbol, ...compareState.symbols];
     showChartLoading(true);
 
-    const fetched = await Promise.all(allSyms.map(async (sym) => {
+    // The market-data provider occasionally returns nothing for one of several
+    // parallel requests (the backend answers 404), and that symbol used to drop
+    // off the chart without a word. Retry once, then say which ones are missing.
+    const fetchSeries = async (sym, retries = 1) => {
         try {
             const res = await fetch(`${CFG.API}/price_history?symbol=${sym}&tf=1M`);
-            if (!res.ok) return null;
-            const d   = await res.json();
-            return { sym, timestamps: d.timestamps, close: d.close };
-        } catch { return null; }
-    }));
+            if (res.ok) {
+                const d = await res.json();
+                return { sym, timestamps: d.timestamps, close: d.close };
+            }
+        } catch { /* network error: fall through to the retry */ }
+        if (retries > 0) {
+            await new Promise(r => setTimeout(r, 800));
+            return fetchSeries(sym, retries - 1);
+        }
+        return null;
+    };
+    const fetched = await Promise.all(allSyms.map(sym => fetchSeries(sym)));
 
     showChartLoading(false);
+    const missing = allSyms.filter((s, i) => !fetched[i]);
+    if (missing.length) setStatus(`Couldn't load ${missing.join(", ")} for comparison. Try adding it again.`);
     const valid = fetched.filter(Boolean);
     if (!valid.length) return;
 
