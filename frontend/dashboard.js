@@ -341,17 +341,32 @@ function initSymbolSelect() {
     const input = document.getElementById("symbol-input");
     const btn   = document.getElementById("symbol-go-btn");
 
+    // The box always shows the symbol on screen (AAPL on first load), so an
+    // empty box is never left for the browser's autofill to claim. Focusing
+    // selects it, so typing a new ticker replaces it in one motion.
+    input.value = state.symbol;
+
     function go() {
         const sym = input.value.trim().toUpperCase();
-        if (sym) { input.value = ""; switchSymbol(sym); }
+        if (!sym) { input.value = state.symbol; return; }
+        input.blur();
+        if (sym !== state.symbol) switchSymbol(sym);
+        else input.value = sym;
     }
 
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    input.addEventListener("focus", () => input.select());
+    input.addEventListener("blur", () => { if (!input.value.trim()) input.value = state.symbol; });
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") go();
+        if (e.key === "Escape") { input.value = state.symbol; input.blur(); }
+    });
     btn.addEventListener("click", go);
 }
 
 function switchSymbol(sym) {
     state.symbol = sym;
+    const symInput = document.getElementById("symbol-input");
+    if (symInput && document.activeElement !== symInput) symInput.value = sym;
     const badge = document.getElementById("current-symbol-badge");
     if (badge) badge.textContent = sym;
     loadDashboard(sym);
