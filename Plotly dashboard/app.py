@@ -54,6 +54,21 @@ socketio = SocketIO(
     async_mode="gevent",
 )
 
+
+def _client_ip() -> str:
+    """The visitor's address, for rate limiting.
+
+    On Render every request reaches Flask from Render's proxy, so
+    request.remote_addr is the same for every visitor and they would all share
+    one bucket: one person retrying a login could lock everyone out, and Ask
+    Ski's hourly quota would be the whole site's. Render serves through
+    Cloudflare, which sets CF-Connecting-IP and overwrites any value a client
+    sends, so it can't be spoofed there. Run locally, the header is absent and
+    this falls back to the socket address, as before.
+    """
+    return request.headers.get("CF-Connecting-IP") or get_remote_address()
+
+
 # The default guards the cheap, cached read endpoints only -- /auth/register
 # and /auth/login carry their own, much tighter limits and are untouched by it.
 #
@@ -65,7 +80,7 @@ socketio = SocketIO(
 # responses are cached (see _CHART_TTL and friends), so repeat traffic is served
 # from memory rather than hitting the upstream providers.
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=_client_ip,
     app=app,
     default_limits=["180 per minute"],
     storage_uri="memory://",
@@ -427,17 +442,29 @@ def get_alerts() -> tuple:
     return jsonify(database.get_alerts(g.user_id))
 
 
+# The options the alert form offers; anything else is rejected rather than stored.
+_ALERT_TYPES = {"price_above", "price_below", "rsi_overbought", "rsi_oversold",
+                "volume_spike", "volatility_spike"}
+
+
 @app.route("/alerts", methods=["POST"])
 @require_auth
 def create_alert() -> tuple:
     """Create a new alert owned by the signed-in user."""
     data = request.json or {}
 
-    symbol = data.get("symbol")
+    symbol = re.sub(r"[^A-Z0-9.]", "", (data.get("symbol") or "").upper())[:10]
     alert_type = data.get("alert_type")
-    threshold = data.get("threshold")
-    multiplier = data.get("multiplier")
-    zscore_val = data.get("zscore")
+    if not symbol:
+        return jsonify({"error": "symbol is required"}), 400
+    if alert_type not in _ALERT_TYPES:
+        return jsonify({"error": "unknown alert type"}), 400
+    try:
+        threshold, multiplier, zscore_val = (
+            None if data.get(k) is None else float(data[k])
+            for k in ("threshold", "multiplier", "zscore"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "threshold, multiplier and zscore must be numbers"}), 400
 
     alert_id = database.create_alert(
         symbol,
@@ -556,7 +583,7 @@ def get_portfolio_route() -> tuple:
 def add_holding_route() -> tuple:
     """Add or update one of the signed-in user's holdings."""
     data = request.json or {}
-    symbol = (data.get("symbol") or "").strip().upper()
+    symbol = re.sub(r"[^A-Z0-9.]", "", (data.get("symbol") or "").upper())[:10]
     shares = data.get("shares")
     avg_cost = data.get("avg_cost")
 
@@ -1077,8 +1104,9 @@ def chat() -> tuple:
         if exc.status_code == 529:
             return jsonify({"error": "Anthropic API is overloaded right now. Try again in 30 seconds."}), 503
         return jsonify({"error": f"AI service error ({exc.status_code})"}), 502
-    except Exception as exc:
-        return jsonify({"error": f"AI service error: {exc}"}), 502
+    except Exception:
+        app.logger.exception("AI request failed")
+        return jsonify({"error": "AI service error. Try again in a moment."}), 502
 
 
 _SKI_BRIEFING_PROMPT = """You are Ski, the financial-intelligence assistant built into Tradeski. \
@@ -1169,8 +1197,9 @@ def briefing() -> tuple:
         if exc.status_code == 529:
             return jsonify({"error": "Anthropic API is overloaded right now."}), 503
         return jsonify({"error": f"AI service error ({exc.status_code})"}), 502
-    except Exception as exc:
-        return jsonify({"error": f"AI service error: {exc}"}), 502
+    except Exception:
+        app.logger.exception("AI request failed")
+        return jsonify({"error": "AI service error. Try again in a moment."}), 502
 
 
 # ─────────────────────────────────────────────────────────────
