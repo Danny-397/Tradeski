@@ -898,6 +898,15 @@ def portfolio_risk_endpoint() -> tuple:
     return jsonify(result)
 
 
+# Claude Haiku 5.5: a tenth of Haiku 4.5's price for prompts under 100K tokens.
+# It thinks before answering by default, and that thinking counts against
+# max_tokens -- so effort is "low" (quick chat, little thinking) and the caps leave
+# room for it, or a long thought could crowd out the reply entirely.
+SKI_MODEL = "claude-haiku-5-5"
+SKI_EFFORT = {"effort": "low"}
+SKI_REFUSAL = ("I can't help with that one. Try asking about your holdings, "
+               "the market, or the macro data on your dashboard.")
+
 _SKI_SYSTEM_PROMPT = """You are Ski, a financial Q&A assistant built into the Tradeski real-time market analytics platform. \
 You are sharp, concise, and authoritative — like a seasoned Wall Street analyst who can explain complex concepts clearly \
 to retail traders.
@@ -1043,8 +1052,9 @@ def chat() -> tuple:
 
         def _ask(use_web_search: bool):
             kwargs = dict(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=1024,
+                model=SKI_MODEL,
+                max_tokens=4096,
+                output_config=SKI_EFFORT,
                 system=system_prompt,
                 messages=messages,
             )
@@ -1063,6 +1073,10 @@ def chat() -> tuple:
         except (anthropic.BadRequestError, anthropic.PermissionDeniedError):
             # Web search not enabled for this account/model — answer without it.
             response = _ask(False)
+
+        # A safety classifier can decline a request: HTTP 200 with no answer text.
+        if response.stop_reason == "refusal":
+            return jsonify({"reply": SKI_REFUSAL})
 
         # With web search the response holds several blocks (search calls +
         # results + answer); the reply is the concatenation of the text blocks.
@@ -1150,11 +1164,14 @@ def briefing() -> tuple:
     try:
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=512,
+            model=SKI_MODEL,
+            max_tokens=2048,
+            output_config=SKI_EFFORT,
             system=system_prompt,
             messages=messages,
         )
+        if response.stop_reason == "refusal":
+            return jsonify({"briefing": None, "reason": "refusal"})
         reply = "".join(
             getattr(b, "text", "") for b in response.content
             if getattr(b, "type", None) == "text"
