@@ -214,7 +214,46 @@ function onSignedOut() {
     renderSignedOutAlerts();
 }
 
+// A signed-out visitor can try the portfolio features on this example
+// instead of creating an account first. It is priced live from /stats, is
+// never saved, and is sent to Ski so its answers are about these holdings.
+const SAMPLE_PORTFOLIO = [
+    { symbol: "AAPL", shares: 12,  avg_cost: 185 },
+    { symbol: "NVDA", shares: 30,  avg_cost: 95 },
+    { symbol: "MSFT", shares: 6,   avg_cost: 410 },
+    { symbol: "SPY",  shares: 10,  avg_cost: 560 },
+    { symbol: "SOFI", shares: 150, avg_cost: 9.5 },
+];
+let sampleActive = false;
+
+async function loadSamplePortfolio() {
+    sampleActive = true;
+    const priced = await Promise.all(SAMPLE_PORTFOLIO.map(async (h) => {
+        let price = null;
+        try {
+            const res = await fetch(`${CFG.API}/stats?symbol=${h.symbol}`);
+            if (res.ok) price = (await res.json()).close ?? null;
+        } catch { /* leave this row unpriced */ }
+        return {
+            ...h,
+            current_price: price,
+            market_value: price != null ? +(price * h.shares).toFixed(2) : null,
+            pnl_pct: price != null ? +((price - h.avg_cost) / h.avg_cost * 100).toFixed(2) : null,
+        };
+    }));
+    if (getToken() || !sampleActive) return;   // signed in or closed the sample meanwhile
+    const valued = priced.filter(h => h.market_value != null);
+    const total = valued.reduce((a, h) => a + h.market_value, 0);
+    const cost = valued.reduce((a, h) => a + h.shares * h.avg_cost, 0);
+    renderPortfolio({
+        holdings: priced,
+        total_value: total,
+        total_pnl_pct: cost ? +((total - cost) / cost * 100).toFixed(2) : null,
+    }, true);
+}
+
 function renderSignedOutPortfolio() {
+    sampleActive = false;
     const list = document.getElementById("portfolio-list");
     const badge = document.getElementById("portfolio-total-badge");
     const footer = document.getElementById("pf-footer");
@@ -225,7 +264,8 @@ function renderSignedOutPortfolio() {
     if (list) {
         list.innerHTML =
             '<div class="feed-empty signed-out-prompt">Sign in to track your portfolio & P&amp;L'
-            + '<button class="btn-secondary signed-out-cta" onclick="openAuthModal(\'login\')">Sign in</button></div>';
+            + '<button class="btn-secondary signed-out-cta" onclick="openAuthModal(\'login\')">Sign in</button>'
+            + '<button class="text-btn sample-cta" onclick="loadSamplePortfolio()">Try a sample portfolio</button></div>';
     }
     showSkiStarters(false);
 }
@@ -1416,7 +1456,8 @@ function initPortfolio() {
 }
 
 async function loadPortfolio() {
-    if (!getToken()) { renderSignedOutPortfolio(); return; }
+    if (!getToken()) { sampleActive ? loadSamplePortfolio() : renderSignedOutPortfolio(); return; }
+    sampleActive = false;
     try {
         const res  = await fetch(`${CFG.API}/portfolio`);
         if (res.status === 401) { clearSession(); renderSignedOutPortfolio(); return; }
@@ -1427,11 +1468,11 @@ async function loadPortfolio() {
     }
 }
 
-function renderPortfolio(data) {
+function renderPortfolio(data, sample = false) {
     const list  = document.getElementById("portfolio-list");
     const badge = document.getElementById("portfolio-total-badge");
     const footer = document.getElementById("pf-footer");
-    if (footer) footer.style.display = "";
+    if (footer) footer.style.display = sample ? "none" : "";
 
     const holdings = data.holdings || [];
     const total    = data.total_value || 0;
@@ -1457,10 +1498,18 @@ function renderPortfolio(data) {
     }
 
     showSkiStarters(true);
-    loadPortfolioRisk();
-    loadSkiBriefing();
+    if (sample) {
+        document.getElementById("pf-risk").style.display = "none";
+    } else {
+        loadPortfolioRisk();
+        loadSkiBriefing();
+    }
 
-    list.innerHTML = "";
+    list.innerHTML = sample
+        ? '<div class="sample-note">Sample portfolio, not saved. Ask Ski about it, or '
+          + '<button class="text-btn" onclick="openAuthModal(\'register\')">sign up</button> to track your own. '
+          + '<button class="text-btn" onclick="renderSignedOutPortfolio()">Close</button></div>'
+        : "";
     for (const h of holdings) {
         const item = document.createElement("div");
         item.className = "portfolio-item";
@@ -1480,7 +1529,7 @@ function renderPortfolio(data) {
         del.addEventListener("click", () => deleteHolding(h.id, h.symbol));
 
         row1.appendChild(sym);
-        row1.appendChild(del);
+        if (!sample) row1.appendChild(del);
 
         // Row 2: shares · value · P&L
         const row2 = document.createElement("div");
@@ -1729,6 +1778,7 @@ async function skiSend() {
                 history: skiState.history.slice(0, -1),
                 symbol: state.symbol,
                 chart_context: buildChartContext(),
+                sample_portfolio: sampleActive && !getToken() ? SAMPLE_PORTFOLIO : undefined,
             }),
         });
         if (res.status === 429) {

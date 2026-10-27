@@ -358,6 +358,22 @@ body {
     line-height: var(--lh-snug);
 }
 .signed-out-cta { width: auto; padding: 0 var(--s-7); }
+.text-btn {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; color: var(--accent); font-weight: 500;
+}
+.text-btn:hover { color: var(--accent-hover); }
+.sample-cta { margin-top: var(--s-2); font-size: var(--fs-sm); }
+.sample-note {
+    margin-bottom: var(--s-4);
+    padding: var(--s-4) var(--s-5);
+    background: var(--accent-faint);
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    line-height: var(--lh-snug);
+}
 
 /* ===== CHART AREA ===== */
 .chart-area {

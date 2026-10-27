@@ -615,17 +615,50 @@ def delete_holding_route(holding_id: int) -> tuple:
     return jsonify({"status": "deleted"})
 
 
-def _get_portfolio_context(user_id: Optional[int]) -> str:
+_SAMPLE_MAX_HOLDINGS = 10
+
+
+def _parse_sample_portfolio(raw) -> list:
+    """Validate the example portfolio a signed-out visitor is trying.
+
+    It comes from the browser, so it is treated as untrusted: real-looking
+    symbols, positive share counts and a hard cap on size. Anything else is
+    dropped rather than rejected, so a bad row never blocks the chat.
+    """
+    if not isinstance(raw, list):
+        return []
+    out = []
+    for row in raw[:_SAMPLE_MAX_HOLDINGS]:
+        if not isinstance(row, dict):
+            continue
+        symbol = re.sub(r"[^A-Z0-9.-]", "", str(row.get("symbol") or "").upper())[:10]
+        try:
+            shares = float(row.get("shares"))
+            avg_cost = float(row["avg_cost"]) if row.get("avg_cost") is not None else None
+        except (TypeError, ValueError):
+            continue
+        if not symbol or not 0 < shares < 1e7 or (avg_cost is not None and not 0 < avg_cost < 1e7):
+            continue
+        out.append({"symbol": symbol, "shares": shares, "avg_cost": avg_cost})
+    return out
+
+
+def _get_portfolio_context(user_id: Optional[int], sample: Optional[list] = None) -> str:
     """Format a user's portfolio for injection into Ski's context.
 
     Beyond raw holdings, this surfaces each position's weight (concentration),
     the portfolio's computed risk metrics (Sharpe, beta, volatility), and the
     user's watchlist — so Ski can reason about diversification and risk, not
     just list positions.
+
+    A signed-out visitor can instead pass ``sample``, the example portfolio
+    the dashboard offers; it is labelled as such and has no risk metrics or
+    watchlist.
     """
-    if user_id is None:
+    if user_id is None and not sample:
         return ""
-    holdings = [_enrich_holding(h) for h in database.get_portfolio(user_id)]
+    raw = database.get_portfolio(user_id) if user_id is not None else sample
+    holdings = [_enrich_holding(h) for h in raw]
     if not holdings:
         return ""
 
@@ -634,7 +667,12 @@ def _get_portfolio_context(user_id: Optional[int]) -> str:
         h["shares"] * h["avg_cost"] for h in holdings if h.get("avg_cost")
     )
 
-    lines = [f"USER'S PORTFOLIO — {datetime.date.today()}:"]
+    if user_id is None:
+        lines = [f"SAMPLE PORTFOLIO — {datetime.date.today()} (the user is not signed in and is "
+                 "trying Tradeski with this example portfolio; treat it as theirs for the "
+                 "conversation, and mention it is a sample if they ask about saving it):"]
+    else:
+        lines = [f"USER'S PORTFOLIO — {datetime.date.today()}:"]
 
     # Largest positions first so Ski leads with what matters most.
     ordered = sorted(
@@ -677,6 +715,9 @@ def _get_portfolio_context(user_id: Optional[int]) -> str:
                 f"  CONCENTRATION: {top['symbol']} is {top_wt:.0f}% of the portfolio "
                 f"— flag single-name concentration risk when relevant."
             )
+
+    if user_id is None:
+        return "\n".join(lines)
 
     risk = _portfolio_risk_cached(user_id)
     if risk:
@@ -1046,7 +1087,9 @@ def chat() -> tuple:
     macro_ctx = _get_macro_context()
     if macro_ctx:
         system_parts.append(macro_ctx)
-    portfolio_ctx = _get_portfolio_context(g.get("user_id"))
+    user_id = g.get("user_id")
+    sample = _parse_sample_portfolio(data.get("sample_portfolio")) if user_id is None else None
+    portfolio_ctx = _get_portfolio_context(user_id, sample)
     if portfolio_ctx:
         system_parts.append(portfolio_ctx)
     news_ctx = _get_news_context(symbol)
