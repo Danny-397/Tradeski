@@ -337,6 +337,107 @@ function onAlertTriggered(alert) {
 // SYMBOL SELECT
 // ============================================================
 
+// Suggestions under a ticker box, searching symbols and company names from
+// symbols.js. It only ever rewrites input.value: on Enter its capture-phase
+// listener runs before the box's own handler, so "apple" + Enter reaches that
+// handler as "AAPL". Any ticker not in the list still goes through as typed.
+// Ties go to the names people look up most, so "micro" lists Microsoft first.
+const POPULAR_SYMS = new Set([...TICKER_SYMS, "AMD", "NFLX", "JPM", "V", "MA", "BRK-B", "COIN",
+    "PLTR", "DIS", "KO", "WMT", "COST", "BA", "INTC", "UBER", "HOOD", "AVGO", "ORCL", "CRM"]);
+
+function searchSymbols(query, limit = 8) {
+    const list = window.TRADESKI_SYMBOLS || [];
+    const q = query.trim().toUpperCase();
+    if (!q) return [];
+    const scored = [];
+    for (const [sym, name] of list) {
+        const n = name.toUpperCase();
+        let score = -1;
+        if (sym === q) score = 0;
+        else if (sym.startsWith(q)) score = 1;
+        else if (n.startsWith(q)) score = 2;
+        else if (n.includes(" " + q)) score = 3;
+        else if (q.length >= 3 && n.includes(q)) score = 4;
+        if (score >= 0) scored.push([score, POPULAR_SYMS.has(sym) ? 0 : 1, sym.length, sym, name]);
+    }
+    scored.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || a[3].localeCompare(b[3]));
+    return scored.slice(0, limit).map(([score, , , sym, name]) => ({ score, sym, name }));
+}
+
+function attachSymbolSuggest(input, onPick) {
+    // Anchor the list to the input itself, whatever row it sits in.
+    const wrap = document.createElement("span");
+    wrap.className = "suggest-anchor";
+    input.parentElement.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const box = document.createElement("ul");
+    box.className = "symbol-suggest";
+    box.id = input.id + "-suggest";
+    box.setAttribute("role", "listbox");
+    box.hidden = true;
+    wrap.appendChild(box);
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-controls", box.id);
+    input.setAttribute("aria-expanded", "false");
+
+    let items = [];
+    let active = -1;
+
+    function close() {
+        box.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
+        active = -1;
+    }
+
+    function highlight(i) {
+        active = i;
+        [...box.children].forEach((li, j) => li.classList.toggle("active", j === i));
+        if (i >= 0) input.setAttribute("aria-activedescendant", `${box.id}-${i}`);
+        else input.removeAttribute("aria-activedescendant");
+    }
+
+    function render() {
+        items = searchSymbols(input.value);
+        if (!items.length) { close(); return; }
+        box.innerHTML = items.map((it, i) => `
+            <li id="${box.id}-${i}" role="option" data-i="${i}">
+                <span class="ss-sym">${it.sym}</span><span class="ss-name">${escapeHtml(it.name)}</span>
+            </li>`).join("");
+        box.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        // Pre-select the top hit when it is an exact symbol, or when the text
+        // only matched company names ("apple"). A bare prefix like "AM" is
+        // left alone so Enter can still send a ticker that isn't in the list.
+        const top = items[0];
+        highlight(top.score === 0 || top.score >= 2 ? 0 : -1);
+    }
+
+    function choose(i) {
+        input.value = items[i].sym;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("blur", () => setTimeout(close, 120));
+    input.addEventListener("keydown", (e) => {
+        if (box.hidden) return;
+        if (e.key === "ArrowDown") { e.preventDefault(); highlight((active + 1) % items.length); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); highlight(active <= 0 ? items.length - 1 : active - 1); }
+        else if (e.key === "Enter" && active >= 0) choose(active);
+        else if (e.key === "Escape") { close(); e.stopImmediatePropagation(); }
+    }, true);
+    // mousedown, not click: it fires before the input's blur closes the list.
+    box.addEventListener("mousedown", (e) => {
+        const li = e.target.closest("li[data-i]");
+        if (!li) return;
+        e.preventDefault();
+        choose(+li.dataset.i);
+        onPick();
+    });
+}
+
 function initSymbolSelect() {
     const input = document.getElementById("symbol-input");
     const btn   = document.getElementById("symbol-go-btn");
@@ -354,6 +455,7 @@ function initSymbolSelect() {
         else input.value = sym;
     }
 
+    attachSymbolSuggest(input, go);
     input.addEventListener("focus", () => input.select());
     input.addEventListener("blur", () => { if (!input.value.trim()) input.value = state.symbol; });
     input.addEventListener("keydown", (e) => {
@@ -2124,6 +2226,7 @@ function initCompareMode() {
     document.getElementById("compare-btn").addEventListener("click", toggleCompareMode);
     document.getElementById("compare-exit-btn").addEventListener("click", toggleCompareMode);
     document.getElementById("compare-add-btn").addEventListener("click", addCompareSymbol);
+    attachSymbolSuggest(document.getElementById("compare-input"), addCompareSymbol);
     document.getElementById("compare-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") addCompareSymbol();
     });

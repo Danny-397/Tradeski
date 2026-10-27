@@ -177,8 +177,8 @@
                 <div class="toolbar-row-main">
                     <div class="symbol-search-wrap">
                         <input id="symbol-input" name="ticker" type="text" class="symbol-input"
-                               placeholder="Ticker" value="AAPL" autocomplete="off"
-                               autocapitalize="characters" spellcheck="false" maxlength="10"
+                               placeholder="Ticker or company" value="AAPL" autocomplete="off"
+                               autocapitalize="characters" spellcheck="false" maxlength="30"
                                aria-label="Ticker symbol" />
                         <button id="symbol-go-btn" class="symbol-go-btn">Go</button>
                     </div>
@@ -192,7 +192,7 @@
                     <div class="compare-controls" id="compare-controls" style="display:none">
                         <button id="compare-exit-btn" class="tf-btn compare-exit-btn" title="Exit compare mode">← Back</button>
                         <input type="text" id="compare-input" name="compare-symbol" class="symbol-input compare-input"
-                               placeholder="Add symbol…" maxlength="10" autocomplete="off" spellcheck="false" />
+                               placeholder="Add symbol…" maxlength="30" autocomplete="off" spellcheck="false" />
                         <button id="compare-add-btn" class="symbol-go-btn" aria-label="Add symbol to comparison">Add</button>
                         <div id="compare-chips" class="compare-chips"></div>
                     </div>
@@ -475,6 +475,7 @@
     <!-- Must precede dashboard.js: installs the API fetch wrapper that falls
          back to a recorded data snapshot when the backend is unreachable. -->
     <script src="demo-mode.js"></script>
+    <script src="symbols.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

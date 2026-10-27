@@ -397,6 +397,35 @@ body {
     transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
 }
 .symbol-input::placeholder { color: var(--text-muted); font-weight: 400; text-transform: none; }
+
+/* Ticker suggestions (attachSymbolSuggest in dashboard.js) */
+.suggest-anchor { position: relative; display: inline-flex; }
+.symbol-suggest {
+    position: absolute;
+    top: calc(100% + var(--s-3));
+    left: 0;
+    z-index: 950;
+    width: max(100%, 300px);
+    max-width: calc(100vw - 2 * var(--s-6));
+    margin: 0;
+    padding: var(--s-2);
+    list-style: none;
+    background: #1C1F26;
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+}
+.symbol-suggest li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-5);
+    padding: var(--s-4) var(--s-5);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+.symbol-suggest li.active, .symbol-suggest li:hover { background: var(--accent-dim); }
+.symbol-suggest .ss-sym { flex: none; min-width: 52px; color: var(--text-strong); font-size: var(--fs-sm); font-weight: 600; }
+.symbol-suggest .ss-name { color: var(--text-secondary); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .symbol-input:hover { border-color: var(--border-hover); }
 .symbol-input:focus { outline: none; border-color: rgba(59, 130, 246, 0.7); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
 .symbol-go-btn {
@@ -1254,6 +1283,8 @@ select.form-input {
     .toolbar-row-main { gap: var(--s-4); }
     .symbol-search-wrap { flex: 1 1 100%; }
     .symbol-input { flex: 1; width: auto; height: 40px; }
+    .symbol-search-wrap .suggest-anchor { flex: 1; }
+    .symbol-search-wrap .suggest-anchor .symbol-input { width: 100%; }
     .symbol-go-btn { height: 40px; }
     .chart-type-group, .timeframe-group { margin-left: 0; }
     .timeframe-group { flex: 1 1 100%; }
