@@ -214,7 +214,46 @@ function onSignedOut() {
     renderSignedOutAlerts();
 }
 
+// A signed-out visitor can try the portfolio features on this example
+// instead of creating an account first. It is priced live from /stats, is
+// never saved, and is sent to Ski so its answers are about these holdings.
+const SAMPLE_PORTFOLIO = [
+    { symbol: "AAPL", shares: 12,  avg_cost: 185 },
+    { symbol: "NVDA", shares: 30,  avg_cost: 95 },
+    { symbol: "MSFT", shares: 6,   avg_cost: 410 },
+    { symbol: "SPY",  shares: 10,  avg_cost: 560 },
+    { symbol: "SOFI", shares: 150, avg_cost: 9.5 },
+];
+let sampleActive = false;
+
+async function loadSamplePortfolio() {
+    sampleActive = true;
+    const priced = await Promise.all(SAMPLE_PORTFOLIO.map(async (h) => {
+        let price = null;
+        try {
+            const res = await fetch(`${CFG.API}/stats?symbol=${h.symbol}`);
+            if (res.ok) price = (await res.json()).close ?? null;
+        } catch { /* leave this row unpriced */ }
+        return {
+            ...h,
+            current_price: price,
+            market_value: price != null ? +(price * h.shares).toFixed(2) : null,
+            pnl_pct: price != null ? +((price - h.avg_cost) / h.avg_cost * 100).toFixed(2) : null,
+        };
+    }));
+    if (getToken() || !sampleActive) return;   // signed in or closed the sample meanwhile
+    const valued = priced.filter(h => h.market_value != null);
+    const total = valued.reduce((a, h) => a + h.market_value, 0);
+    const cost = valued.reduce((a, h) => a + h.shares * h.avg_cost, 0);
+    renderPortfolio({
+        holdings: priced,
+        total_value: total,
+        total_pnl_pct: cost ? +((total - cost) / cost * 100).toFixed(2) : null,
+    }, true);
+}
+
 function renderSignedOutPortfolio() {
+    sampleActive = false;
     const list = document.getElementById("portfolio-list");
     const badge = document.getElementById("portfolio-total-badge");
     const footer = document.getElementById("pf-footer");
@@ -225,7 +264,8 @@ function renderSignedOutPortfolio() {
     if (list) {
         list.innerHTML =
             '<div class="feed-empty signed-out-prompt">Sign in to track your portfolio & P&amp;L'
-            + '<button class="btn-secondary signed-out-cta" onclick="openAuthModal(\'login\')">Sign in</button></div>';
+            + '<button class="btn-secondary signed-out-cta" onclick="openAuthModal(\'login\')">Sign in</button>'
+            + '<button class="text-btn sample-cta" onclick="loadSamplePortfolio()">Try a sample portfolio</button></div>';
     }
     showSkiStarters(false);
 }
@@ -337,6 +377,107 @@ function onAlertTriggered(alert) {
 // SYMBOL SELECT
 // ============================================================
 
+// Suggestions under a ticker box, searching symbols and company names from
+// symbols.js. It only ever rewrites input.value: on Enter its capture-phase
+// listener runs before the box's own handler, so "apple" + Enter reaches that
+// handler as "AAPL". Any ticker not in the list still goes through as typed.
+// Ties go to the names people look up most, so "micro" lists Microsoft first.
+const POPULAR_SYMS = new Set([...TICKER_SYMS, "AMD", "NFLX", "JPM", "V", "MA", "BRK-B", "COIN",
+    "PLTR", "DIS", "KO", "WMT", "COST", "BA", "INTC", "UBER", "HOOD", "AVGO", "ORCL", "CRM"]);
+
+function searchSymbols(query, limit = 8) {
+    const list = window.TRADESKI_SYMBOLS || [];
+    const q = query.trim().toUpperCase();
+    if (!q) return [];
+    const scored = [];
+    for (const [sym, name] of list) {
+        const n = name.toUpperCase();
+        let score = -1;
+        if (sym === q) score = 0;
+        else if (sym.startsWith(q)) score = 1;
+        else if (n.startsWith(q)) score = 2;
+        else if (n.includes(" " + q)) score = 3;
+        else if (q.length >= 3 && n.includes(q)) score = 4;
+        if (score >= 0) scored.push([score, POPULAR_SYMS.has(sym) ? 0 : 1, sym.length, sym, name]);
+    }
+    scored.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || a[3].localeCompare(b[3]));
+    return scored.slice(0, limit).map(([score, , , sym, name]) => ({ score, sym, name }));
+}
+
+function attachSymbolSuggest(input, onPick) {
+    // Anchor the list to the input itself, whatever row it sits in.
+    const wrap = document.createElement("span");
+    wrap.className = "suggest-anchor";
+    input.parentElement.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const box = document.createElement("ul");
+    box.className = "symbol-suggest";
+    box.id = input.id + "-suggest";
+    box.setAttribute("role", "listbox");
+    box.hidden = true;
+    wrap.appendChild(box);
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-controls", box.id);
+    input.setAttribute("aria-expanded", "false");
+
+    let items = [];
+    let active = -1;
+
+    function close() {
+        box.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
+        active = -1;
+    }
+
+    function highlight(i) {
+        active = i;
+        [...box.children].forEach((li, j) => li.classList.toggle("active", j === i));
+        if (i >= 0) input.setAttribute("aria-activedescendant", `${box.id}-${i}`);
+        else input.removeAttribute("aria-activedescendant");
+    }
+
+    function render() {
+        items = searchSymbols(input.value);
+        if (!items.length) { close(); return; }
+        box.innerHTML = items.map((it, i) => `
+            <li id="${box.id}-${i}" role="option" data-i="${i}">
+                <span class="ss-sym">${it.sym}</span><span class="ss-name">${escapeHtml(it.name)}</span>
+            </li>`).join("");
+        box.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        // Pre-select the top hit when it is an exact symbol, or when the text
+        // only matched company names ("apple"). A bare prefix like "AM" is
+        // left alone so Enter can still send a ticker that isn't in the list.
+        const top = items[0];
+        highlight(top.score === 0 || top.score >= 2 ? 0 : -1);
+    }
+
+    function choose(i) {
+        input.value = items[i].sym;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("blur", () => setTimeout(close, 120));
+    input.addEventListener("keydown", (e) => {
+        if (box.hidden) return;
+        if (e.key === "ArrowDown") { e.preventDefault(); highlight((active + 1) % items.length); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); highlight(active <= 0 ? items.length - 1 : active - 1); }
+        else if (e.key === "Enter" && active >= 0) choose(active);
+        else if (e.key === "Escape") { close(); e.stopImmediatePropagation(); }
+    }, true);
+    // mousedown, not click: it fires before the input's blur closes the list.
+    box.addEventListener("mousedown", (e) => {
+        const li = e.target.closest("li[data-i]");
+        if (!li) return;
+        e.preventDefault();
+        choose(+li.dataset.i);
+        onPick();
+    });
+}
+
 function initSymbolSelect() {
     const input = document.getElementById("symbol-input");
     const btn   = document.getElementById("symbol-go-btn");
@@ -354,6 +495,7 @@ function initSymbolSelect() {
         else input.value = sym;
     }
 
+    attachSymbolSuggest(input, go);
     input.addEventListener("focus", () => input.select());
     input.addEventListener("blur", () => { if (!input.value.trim()) input.value = state.symbol; });
     input.addEventListener("keydown", (e) => {
@@ -1314,7 +1456,8 @@ function initPortfolio() {
 }
 
 async function loadPortfolio() {
-    if (!getToken()) { renderSignedOutPortfolio(); return; }
+    if (!getToken()) { sampleActive ? loadSamplePortfolio() : renderSignedOutPortfolio(); return; }
+    sampleActive = false;
     try {
         const res  = await fetch(`${CFG.API}/portfolio`);
         if (res.status === 401) { clearSession(); renderSignedOutPortfolio(); return; }
@@ -1325,11 +1468,11 @@ async function loadPortfolio() {
     }
 }
 
-function renderPortfolio(data) {
+function renderPortfolio(data, sample = false) {
     const list  = document.getElementById("portfolio-list");
     const badge = document.getElementById("portfolio-total-badge");
     const footer = document.getElementById("pf-footer");
-    if (footer) footer.style.display = "";
+    if (footer) footer.style.display = sample ? "none" : "";
 
     const holdings = data.holdings || [];
     const total    = data.total_value || 0;
@@ -1355,10 +1498,18 @@ function renderPortfolio(data) {
     }
 
     showSkiStarters(true);
-    loadPortfolioRisk();
-    loadSkiBriefing();
+    if (sample) {
+        document.getElementById("pf-risk").style.display = "none";
+    } else {
+        loadPortfolioRisk();
+        loadSkiBriefing();
+    }
 
-    list.innerHTML = "";
+    list.innerHTML = sample
+        ? '<div class="sample-note">Sample portfolio, not saved. Ask Ski about it, or '
+          + '<button class="text-btn" onclick="openAuthModal(\'register\')">sign up</button> to track your own. '
+          + '<button class="text-btn" onclick="renderSignedOutPortfolio()">Close</button></div>'
+        : "";
     for (const h of holdings) {
         const item = document.createElement("div");
         item.className = "portfolio-item";
@@ -1378,7 +1529,7 @@ function renderPortfolio(data) {
         del.addEventListener("click", () => deleteHolding(h.id, h.symbol));
 
         row1.appendChild(sym);
-        row1.appendChild(del);
+        if (!sample) row1.appendChild(del);
 
         // Row 2: shares · value · P&L
         const row2 = document.createElement("div");
@@ -1531,6 +1682,44 @@ function skiAppendMessage(role, content, isLoading = false) {
     return bubble;
 }
 
+// Render a Ski reply as a card: a "Bottom line:" first line becomes the
+// summary, "- " / "• " lines become a list, **text** is bold, signed
+// percentages are coloured, and a "Watch:" line (the briefing) is a callout.
+// Everything is escaped first, so the reply can never inject markup; the only
+// links kept are http(s) markdown links from web-search citations.
+function formatSkiText(text) {
+    const inline = (raw) => escapeHtml(raw)
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                 '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/(^|[\s(])([+−-]\d[\d,]*(?:\.\d+)?%)/g, (m, pre, pct) =>
+            `${pre}<span class="${/^\+/.test(pct) ? "ski-up" : "ski-down"}">${pct}</span>`);
+
+    const out = [];
+    let list = null;
+    const flush = () => { if (list) { out.push(`<ul class="ski-list">${list.join("")}</ul>`); list = null; } };
+
+    for (let line of String(text).split(/\r?\n/)) {
+        line = line.trim();
+        if (!line) { flush(); continue; }
+        line = line.replace(/^#{1,6}\s+/, "");
+        const bottom = line.match(/^\**bottom line:?\**:?\s*(.*)$/i);
+        const watch = line.match(/^watch:\s*(.*)$/i);
+        const bullet = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/);
+        if (bottom) { flush(); out.push(`<div class="ski-summary">${inline(bottom[1])}</div>`); }
+        else if (watch) { flush(); out.push(`<div class="ski-watch"><span>Watch</span>${inline(watch[1])}</div>`); }
+        else if (bullet) { (list ||= []).push(`<li>${inline(bullet[1])}</li>`); }
+        else { flush(); out.push(`<p>${inline(line)}</p>`); }
+    }
+    flush();
+    return out.join("");
+}
+
+function setSkiReply(el, text) {
+    el.innerHTML = formatSkiText(text);
+    el.classList.add("ski-rich");
+}
+
 function buildChartContext() {
     const d = state.chartData;
     if (!d) return null;
@@ -1586,7 +1775,7 @@ function renderSkiBriefing(text) {
     label.textContent = "Your briefing";
     const body = document.createElement("div");
     body.className = "ski-briefing-body";
-    body.textContent = text;
+    setSkiReply(body, text);
 
     bubble.appendChild(label);
     bubble.appendChild(body);
@@ -1627,6 +1816,7 @@ async function skiSend() {
                 history: skiState.history.slice(0, -1),
                 symbol: state.symbol,
                 chart_context: buildChartContext(),
+                sample_portfolio: sampleActive && !getToken() ? SAMPLE_PORTFOLIO : undefined,
             }),
         });
         if (res.status === 429) {
@@ -1643,7 +1833,8 @@ async function skiSend() {
         }
         const data = await res.json();
         const reply = data.reply || data.error || "No response.";
-        loadingBubble.textContent = reply;
+        if (data.reply) setSkiReply(loadingBubble, reply);
+        else loadingBubble.textContent = reply;
         loadingBubble.classList.remove("loading");
         skiState.history.push({ role: "assistant", content: reply });
         if (skiState.history.length > 20) skiState.history = skiState.history.slice(-20);
@@ -2124,6 +2315,7 @@ function initCompareMode() {
     document.getElementById("compare-btn").addEventListener("click", toggleCompareMode);
     document.getElementById("compare-exit-btn").addEventListener("click", toggleCompareMode);
     document.getElementById("compare-add-btn").addEventListener("click", addCompareSymbol);
+    attachSymbolSuggest(document.getElementById("compare-input"), addCompareSymbol);
     document.getElementById("compare-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") addCompareSymbol();
     });

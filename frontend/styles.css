@@ -358,6 +358,22 @@ body {
     line-height: var(--lh-snug);
 }
 .signed-out-cta { width: auto; padding: 0 var(--s-7); }
+.text-btn {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; color: var(--accent); font-weight: 500;
+}
+.text-btn:hover { color: var(--accent-hover); }
+.sample-cta { margin-top: var(--s-2); font-size: var(--fs-sm); }
+.sample-note {
+    margin-bottom: var(--s-4);
+    padding: var(--s-4) var(--s-5);
+    background: var(--accent-faint);
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    line-height: var(--lh-snug);
+}
 
 /* ===== CHART AREA ===== */
 .chart-area {
@@ -397,6 +413,35 @@ body {
     transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
 }
 .symbol-input::placeholder { color: var(--text-muted); font-weight: 400; text-transform: none; }
+
+/* Ticker suggestions (attachSymbolSuggest in dashboard.js) */
+.suggest-anchor { position: relative; display: inline-flex; }
+.symbol-suggest {
+    position: absolute;
+    top: calc(100% + var(--s-3));
+    left: 0;
+    z-index: 950;
+    width: max(100%, 300px);
+    max-width: calc(100vw - 2 * var(--s-6));
+    margin: 0;
+    padding: var(--s-2);
+    list-style: none;
+    background: #1C1F26;
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+}
+.symbol-suggest li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-5);
+    padding: var(--s-4) var(--s-5);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+.symbol-suggest li.active, .symbol-suggest li:hover { background: var(--accent-dim); }
+.symbol-suggest .ss-sym { flex: none; min-width: 52px; color: var(--text-strong); font-size: var(--fs-sm); font-weight: 600; }
+.symbol-suggest .ss-name { color: var(--text-secondary); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .symbol-input:hover { border-color: var(--border-hover); }
 .symbol-input:focus { outline: none; border-color: rgba(59, 130, 246, 0.7); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
 .symbol-go-btn {
@@ -1021,6 +1066,36 @@ select.form-input {
 .ski-briefing-label { font-size: var(--fs-micro); font-weight: 600; color: #8DB8FF; margin-bottom: var(--s-3); }
 .ski-briefing-body  { white-space: pre-wrap; }
 
+/* Formatted replies (formatSkiText in dashboard.js) */
+.ski-bubble.ski-rich, .ski-briefing-body.ski-rich { white-space: normal; }
+.ski-rich > * + * { margin-top: var(--s-4); }
+.ski-rich p { margin: 0; }
+.ski-rich strong { color: var(--text-strong); font-weight: 600; }
+.ski-rich a { color: #8DB8FF; text-decoration: underline; text-underline-offset: 2px; }
+.ski-summary {
+    color: var(--text-strong);
+    font-size: var(--fs-base);
+    font-weight: 600;
+    line-height: var(--lh-snug);
+}
+.ski-list { margin: 0; padding-left: 1.1em; }
+.ski-list li + li { margin-top: var(--s-2); }
+.ski-list li::marker { color: var(--accent); }
+.ski-watch {
+    padding: var(--s-4) var(--s-5);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-sm);
+}
+.ski-watch span {
+    display: block;
+    margin-bottom: var(--s-1);
+    color: var(--text-muted);
+    font-size: var(--fs-micro);
+    font-weight: 600;
+}
+.ski-up   { color: var(--green); font-variant-numeric: tabular-nums; }
+.ski-down { color: var(--red);   font-variant-numeric: tabular-nums; }
+
 .ski-typing { display: inline-flex; align-items: center; gap: 4px; padding: 3px 0; }
 .ski-typing span {
     width: 6px; height: 6px;
@@ -1121,6 +1196,46 @@ select.form-input {
 }
 #demo-banner .demo-link:hover { border-bottom-color: var(--notice-link); }
 
+/* ===== WAKING-SERVER TOAST (demo-mode.js) ===== */
+#wake-toast {
+    position: fixed;
+    left: 50%;
+    bottom: var(--s-8);
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(440px, calc(100vw - 2 * var(--s-6)));
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--s-5);
+    padding: var(--s-6) var(--s-7) calc(var(--s-6) + 3px);
+    background: #1C1F26;
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: fade-in var(--t-fast) var(--ease);
+}
+#wake-toast .wake-spinner {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-dim);
+    border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+}
+#wake-toast .wake-copy { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+#wake-toast .wake-copy strong { color: var(--text-strong); font-size: var(--fs-base); font-weight: 600; }
+#wake-toast .wake-copy span { color: var(--text-secondary); font-size: var(--fs-xs); line-height: var(--lh-snug); }
+#wake-toast .wake-time { color: var(--text-muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+#wake-toast .wake-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent-faint); }
+#wake-toast .wake-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.25s linear; }
+#wake-toast.is-ready .wake-spinner { animation: none; border-color: var(--green); background: var(--green); }
+#wake-toast.is-ready .wake-bar i { background: var(--green); }
+#wake-toast.is-ready .wake-time { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+    #wake-toast, #wake-toast .wake-spinner { animation: none; }
+}
+
 /* ===== KEYFRAMES ===== */
 @keyframes spin        { to { transform: rotate(360deg); } }
 @keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -1214,6 +1329,8 @@ select.form-input {
     .toolbar-row-main { gap: var(--s-4); }
     .symbol-search-wrap { flex: 1 1 100%; }
     .symbol-input { flex: 1; width: auto; height: 40px; }
+    .symbol-search-wrap .suggest-anchor { flex: 1; }
+    .symbol-search-wrap .suggest-anchor .symbol-input { width: 100%; }
     .symbol-go-btn { height: 40px; }
     .chart-type-group, .timeframe-group { margin-left: 0; }
     .timeframe-group { flex: 1 1 100%; }
