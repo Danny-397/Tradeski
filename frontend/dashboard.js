@@ -1181,7 +1181,7 @@ function renderAlertList() {
     el.innerHTML = state.alerts.map(([id, sym, type, thresh]) => `
         <div class="alert-row">
             <div class="alert-row-left">
-                <span class="alert-sym-type">${sym} · ${fmtAlertType(type)}</span>
+                <span class="alert-sym-type">${escapeHtml(String(sym))} · ${escapeHtml(fmtAlertType(type))}</span>
                 ${thresh != null ? `<span class="alert-thresh">@ $${fmt(thresh)}</span>` : ""}
             </div>
             <button class="del-btn" onclick="deleteAlert(${id})" title="Delete alert">✕</button>
@@ -1774,7 +1774,7 @@ async function loadNews(sym) {
                 <div class="news-item-header">
                     <span class="news-sentiment ${lbl}">${lbl.charAt(0).toUpperCase() + lbl.slice(1)} ${score}</span>
                 </div>
-                <a class="news-title" href="${escapeHtml(a.url || "#")}" target="_blank" rel="noopener">
+                <a class="news-title" href="${escapeHtml(/^https?:\/\//i.test(a.url || "") ? a.url : "#")}" target="_blank" rel="noopener">
                     ${escapeHtml(a.title || "")}
                 </a>
                 <div class="news-meta">
