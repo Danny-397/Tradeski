@@ -106,9 +106,75 @@
         document.body.classList.add("demo-mode");
     }
 
+    /* ---- the "waking up" toast --------------------------------------------
+       The free Render host sleeps when idle and takes ~30s to answer the first
+       request. Without this the dashboard just sits on skeletons. If an API
+       call is still pending after WAKE_DELAY_MS and nothing has answered yet,
+       say what is happening; the first real answer (or demo mode) clears it. */
+    var WAKE_DELAY_MS = 2500;
+    var WAKE_EXPECT_S = 40;
+    var gotAnswer = false;
+    var wakeTimer = null;
+    var wakeTick  = null;
+
+    function showWake() {
+        if (gotAnswer || demoActive || document.getElementById("wake-toast")) return;
+        var t = document.createElement("div");
+        t.id = "wake-toast";
+        t.setAttribute("role", "status");
+        t.innerHTML =
+            '<span class="wake-spinner" aria-hidden="true"></span>' +
+            '<span class="wake-copy">' +
+              '<strong>Waking up the server&hellip;</strong>' +
+              '<span>Free hosting sleeps when idle. This usually takes 20&ndash;40 seconds.</span>' +
+            '</span>' +
+            '<span class="wake-time" aria-hidden="true">0s</span>' +
+            '<span class="wake-bar" aria-hidden="true"><i></i></span>';
+        document.body.appendChild(t);
+        var started = Date.now();
+        var fill = t.querySelector(".wake-bar i");
+        var time = t.querySelector(".wake-time");
+        wakeTick = setInterval(function () {
+            var s = (Date.now() - started) / 1000;
+            time.textContent = Math.round(s) + "s";
+            /* Eases toward 95% so it never claims to be done before it is. */
+            fill.style.width = (95 * (1 - Math.exp(-s / (WAKE_EXPECT_S / 2.5)))).toFixed(1) + "%";
+        }, 250);
+    }
+
+    function hideWake(ready) {
+        clearTimeout(wakeTimer); wakeTimer = null;
+        clearInterval(wakeTick); wakeTick = null;
+        var t = document.getElementById("wake-toast");
+        if (!t) return;
+        if (ready) {
+            t.classList.add("is-ready");
+            t.querySelector(".wake-copy").innerHTML = "<strong>Connected.</strong><span>Live data is loading.</span>";
+            t.querySelector(".wake-bar i").style.width = "100%";
+            setTimeout(function () { t.remove(); }, 1400);
+        } else {
+            t.remove();
+        }
+    }
+
+    function noteRequestStart() {
+        if (gotAnswer || wakeTimer) return;
+        wakeTimer = setTimeout(function () {
+            wakeTimer = null;
+            if (document.body) showWake();
+        }, WAKE_DELAY_MS);
+    }
+
+    function noteAnswer() {
+        if (gotAnswer) return;
+        gotAnswer = true;
+        hideWake(true);
+    }
+
     function enterDemoMode(snap) {
         if (demoActive) return;
         demoActive = true;
+        hideWake(false);
         window.TRADESKI_DEMO_MODE = true;
         if (document.body) showBanner(snap);
         else document.addEventListener("DOMContentLoaded", function () { showBanner(snap); });
@@ -127,9 +193,10 @@
                       (input && input.method) || "GET").toUpperCase();
         var path = url.slice(API_ORIGIN.length) || "/";
 
+        noteRequestStart();
         return nativeFetch(input, init).then(function (res) {
             /* Any real answer wins — including 401/404/429, which are real state. */
-            if (res.status < 500) return res;
+            if (res.status < 500) { noteAnswer(); return res; }
 
             /* A 5xx is ambiguous: it can be this app reporting a problem it
                knows about (missing FRED key -> 503 {"error": ...}), or the host
@@ -140,7 +207,7 @@
             return res.clone().text().then(function (body) {
                 try {
                     var j = JSON.parse(body);
-                    if (j && typeof j === "object" && "error" in j) return res;
+                    if (j && typeof j === "object" && "error" in j) { noteAnswer(); return res; }
                 } catch (e) { /* not our JSON -> treat as host-level failure */ }
                 throw new Error("HTTP " + res.status);
             });

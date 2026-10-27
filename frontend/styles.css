@@ -1121,6 +1121,46 @@ select.form-input {
 }
 #demo-banner .demo-link:hover { border-bottom-color: var(--notice-link); }
 
+/* ===== WAKING-SERVER TOAST (demo-mode.js) ===== */
+#wake-toast {
+    position: fixed;
+    left: 50%;
+    bottom: var(--s-8);
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(440px, calc(100vw - 2 * var(--s-6)));
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--s-5);
+    padding: var(--s-6) var(--s-7) calc(var(--s-6) + 3px);
+    background: #1C1F26;
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: fade-in var(--t-fast) var(--ease);
+}
+#wake-toast .wake-spinner {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-dim);
+    border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+}
+#wake-toast .wake-copy { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+#wake-toast .wake-copy strong { color: var(--text-strong); font-size: var(--fs-base); font-weight: 600; }
+#wake-toast .wake-copy span { color: var(--text-secondary); font-size: var(--fs-xs); line-height: var(--lh-snug); }
+#wake-toast .wake-time { color: var(--text-muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+#wake-toast .wake-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent-faint); }
+#wake-toast .wake-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.25s linear; }
+#wake-toast.is-ready .wake-spinner { animation: none; border-color: var(--green); background: var(--green); }
+#wake-toast.is-ready .wake-bar i { background: var(--green); }
+#wake-toast.is-ready .wake-time { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+    #wake-toast, #wake-toast .wake-spinner { animation: none; }
+}
+
 /* ===== KEYFRAMES ===== */
 @keyframes spin        { to { transform: rotate(360deg); } }
 @keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
