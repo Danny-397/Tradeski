@@ -1066,6 +1066,36 @@ select.form-input {
 .ski-briefing-label { font-size: var(--fs-micro); font-weight: 600; color: #8DB8FF; margin-bottom: var(--s-3); }
 .ski-briefing-body  { white-space: pre-wrap; }
 
+/* Formatted replies (formatSkiText in dashboard.js) */
+.ski-bubble.ski-rich, .ski-briefing-body.ski-rich { white-space: normal; }
+.ski-rich > * + * { margin-top: var(--s-4); }
+.ski-rich p { margin: 0; }
+.ski-rich strong { color: var(--text-strong); font-weight: 600; }
+.ski-rich a { color: #8DB8FF; text-decoration: underline; text-underline-offset: 2px; }
+.ski-summary {
+    color: var(--text-strong);
+    font-size: var(--fs-base);
+    font-weight: 600;
+    line-height: var(--lh-snug);
+}
+.ski-list { margin: 0; padding-left: 1.1em; }
+.ski-list li + li { margin-top: var(--s-2); }
+.ski-list li::marker { color: var(--accent); }
+.ski-watch {
+    padding: var(--s-4) var(--s-5);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-sm);
+}
+.ski-watch span {
+    display: block;
+    margin-bottom: var(--s-1);
+    color: var(--text-muted);
+    font-size: var(--fs-micro);
+    font-weight: 600;
+}
+.ski-up   { color: var(--green); font-variant-numeric: tabular-nums; }
+.ski-down { color: var(--red);   font-variant-numeric: tabular-nums; }
+
 .ski-typing { display: inline-flex; align-items: center; gap: 4px; padding: 3px 0; }
 .ski-typing span {
     width: 6px; height: 6px;

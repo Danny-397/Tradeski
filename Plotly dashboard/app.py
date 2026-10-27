@@ -1050,7 +1050,13 @@ Interpretation guide: beta > 1 means more volatile than the market (amplified mo
 risk-adjusted return; a single position above ~40% of the book is concentrated. Explain these in plain language.
 
 Keep answers focused and actionable. Use specific examples. If you don't know something, say so. Never give personalized \
-investment advice — always clarify you're providing educational information, not a recommendation to buy or sell."""
+investment advice — always clarify you're providing educational information, not a recommendation to buy or sell.
+
+ANSWER FORMAT (the chat panel renders this as a card):
+- First line: "Bottom line: " followed by a one-sentence answer to the question.
+- Then the detail as 2 to 5 short bullets, each starting with "- ", or one or two short paragraphs for conceptual questions.
+- Wrap the key figures in **double asterisks**, sparingly. No headings, no tables.
+- Keep the whole answer under about 150 words unless the user asks for more."""
 
 
 @app.route("/chat", methods=["POST"])

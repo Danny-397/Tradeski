@@ -1682,6 +1682,44 @@ function skiAppendMessage(role, content, isLoading = false) {
     return bubble;
 }
 
+// Render a Ski reply as a card: a "Bottom line:" first line becomes the
+// summary, "- " / "• " lines become a list, **text** is bold, signed
+// percentages are coloured, and a "Watch:" line (the briefing) is a callout.
+// Everything is escaped first, so the reply can never inject markup; the only
+// links kept are http(s) markdown links from web-search citations.
+function formatSkiText(text) {
+    const inline = (raw) => escapeHtml(raw)
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                 '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/(^|[\s(])([+−-]\d[\d,]*(?:\.\d+)?%)/g, (m, pre, pct) =>
+            `${pre}<span class="${/^\+/.test(pct) ? "ski-up" : "ski-down"}">${pct}</span>`);
+
+    const out = [];
+    let list = null;
+    const flush = () => { if (list) { out.push(`<ul class="ski-list">${list.join("")}</ul>`); list = null; } };
+
+    for (let line of String(text).split(/\r?\n/)) {
+        line = line.trim();
+        if (!line) { flush(); continue; }
+        line = line.replace(/^#{1,6}\s+/, "");
+        const bottom = line.match(/^\**bottom line:?\**:?\s*(.*)$/i);
+        const watch = line.match(/^watch:\s*(.*)$/i);
+        const bullet = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/);
+        if (bottom) { flush(); out.push(`<div class="ski-summary">${inline(bottom[1])}</div>`); }
+        else if (watch) { flush(); out.push(`<div class="ski-watch"><span>Watch</span>${inline(watch[1])}</div>`); }
+        else if (bullet) { (list ||= []).push(`<li>${inline(bullet[1])}</li>`); }
+        else { flush(); out.push(`<p>${inline(line)}</p>`); }
+    }
+    flush();
+    return out.join("");
+}
+
+function setSkiReply(el, text) {
+    el.innerHTML = formatSkiText(text);
+    el.classList.add("ski-rich");
+}
+
 function buildChartContext() {
     const d = state.chartData;
     if (!d) return null;
@@ -1737,7 +1775,7 @@ function renderSkiBriefing(text) {
     label.textContent = "Your briefing";
     const body = document.createElement("div");
     body.className = "ski-briefing-body";
-    body.textContent = text;
+    setSkiReply(body, text);
 
     bubble.appendChild(label);
     bubble.appendChild(body);
@@ -1795,7 +1833,8 @@ async function skiSend() {
         }
         const data = await res.json();
         const reply = data.reply || data.error || "No response.";
-        loadingBubble.textContent = reply;
+        if (data.reply) setSkiReply(loadingBubble, reply);
+        else loadingBubble.textContent = reply;
         loadingBubble.classList.remove("loading");
         skiState.history.push({ role: "assistant", content: reply });
         if (skiState.history.length > 20) skiState.history = skiState.history.slice(-20);
