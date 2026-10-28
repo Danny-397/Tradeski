@@ -194,7 +194,7 @@ allocation. The model is doing language work; the application is doing the retri
 
 ## 8. Testing
 
-112 tests across 14 files run on every push through GitHub Actions, alongside flake8 linting.
+120 tests across 16 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
