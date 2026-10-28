@@ -127,3 +127,14 @@ test("reply text cannot inject markup; only http(s) links survive", () => {
     assert.match(html, /<a href="https:\/\/example\.com"/);
     assert.doesNotMatch(html, /href="javascript:/);
 });
+
+// ---- idle detection ---------------------------------------------------------
+
+test("the page counts as idle when hidden or after 15 minutes untouched", () => {
+    const { isIdle, IDLE_AFTER_MS } = load(["const IDLE_AFTER_MS =", "function isIdle("]);
+    const now = 1_000_000_000;
+    assert.equal(isIdle(false, now, now), false);
+    assert.equal(isIdle(true, now, now), true);
+    assert.equal(isIdle(false, now - IDLE_AFTER_MS + 1, now), false);
+    assert.equal(isIdle(false, now - IDLE_AFTER_MS, now), true);
+});
