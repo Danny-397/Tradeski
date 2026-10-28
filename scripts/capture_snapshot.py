@@ -14,7 +14,7 @@ import os
 import sys
 import urllib.request
 
-BACKEND = "http://127.0.0.1:8811"
+BACKEND = os.environ.get("TRADESKI_BACKEND", "http://127.0.0.1:8811")
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "demo-snapshot.js")
 
 TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
@@ -139,6 +139,13 @@ def main():
     # feed as "No news available", which is a clean state rather than an error.
     for s in TICKER_SYMS:
         endpoints["/news?symbol=%s" % s] = {"articles": [], "aggregate": {"label": "neutral", "score": 0}}
+
+    # A wrong port or a dead backend fails every market call; writing then would
+    # replace a good snapshot with one that only has the macro strip.
+    missing = [s for s in TICKER_SYMS if "/stats?symbol=%s" % s not in endpoints]
+    if missing:
+        print("\nnot writing: no stats for %s (is the backend at %s?)" % (", ".join(missing), BACKEND))
+        return 1
 
     payload = {
         "capturedAt": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
