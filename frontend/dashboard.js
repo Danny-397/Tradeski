@@ -299,10 +299,58 @@ document.addEventListener("DOMContentLoaded", () => {
     initSidebarTabs();
     loadDashboard(state.symbol);
     buildTickerTape();
-    setInterval(buildTickerTape, CFG.TICKER_REFRESH_MS);
+    setInterval(() => { if (!pageIdle()) buildTickerTape(); }, CFG.TICKER_REFRESH_MS);
     initPortfolio();
 initMobileDrawer();
+    initIdleWatch();
 });
+
+// ============================================================
+// IDLE: stop talking to the server when nobody is looking
+// ============================================================
+
+// The backend runs on Render's free tier, which counts every hour it is awake
+// against 750 hours a month shared by all five projects; when they run out,
+// Render suspends every backend until the month ends (it happened 2026-10-28).
+// The open WebSocket and the 30-60 s polls keep it awake for as long as a tab
+// is open, even a forgotten background tab, which alone could use ~720 h a
+// month. So while the tab is hidden, or nobody has touched it for 15 minutes,
+// the page drops the socket and skips its polls, and picks both back up the
+// moment the reader returns.
+const IDLE_AFTER_MS = 15 * 60_000;
+let lastInputAt = Date.now();
+let idleAsleep = false;
+
+function isIdle(hidden, lastInput, now) {
+    return hidden || now - lastInput >= IDLE_AFTER_MS;
+}
+
+function pageIdle() {
+    return isIdle(document.hidden, lastInputAt, Date.now());
+}
+
+function initIdleWatch() {
+    const sleep = () => {
+        if (idleAsleep) return;
+        idleAsleep = true;
+        state.socket?.disconnect();
+    };
+    const wake = () => {
+        lastInputAt = Date.now();
+        if (!idleAsleep || document.hidden) return;
+        idleAsleep = false;
+        state.socket?.connect();
+        buildTickerTape();
+        loadPortfolio();
+    };
+    for (const ev of ["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll"]) {
+        window.addEventListener(ev, wake, { passive: true });
+    }
+    // A quick tab switch should not drop the socket, so going hidden is left to
+    // the minute check below; coming back reconnects at once.
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) wake(); });
+    setInterval(() => { if (pageIdle()) sleep(); }, 60_000);
+}
 
 // ============================================================
 // MARKET STATUS
@@ -1240,6 +1288,7 @@ async function buildTickerTape() {
     const results = [];
 
     for (const sym of TICKER_SYMS) {
+        if (idleAsleep) return;   // the page went idle mid-run (see initIdleWatch)
         try {
             const res = await fetch(`${CFG.API}/stats?symbol=${sym}`);
             if (!res.ok) continue;
@@ -1458,7 +1507,7 @@ function initPortfolio() {
         importFile.value = "";   // so choosing the same file again still fires
     });
     loadPortfolio();
-    setInterval(loadPortfolio, CFG.PORTFOLIO_REFRESH_MS);
+    setInterval(() => { if (!pageIdle()) loadPortfolio(); }, CFG.PORTFOLIO_REFRESH_MS);
 }
 
 async function loadPortfolio() {
@@ -2006,7 +2055,7 @@ async function loadMacroRibbon() {
 
 document.addEventListener("DOMContentLoaded", () => {
     loadMacroRibbon();
-    setInterval(loadMacroRibbon, 3_600_000); // refresh every hour
+    setInterval(() => { if (!pageIdle()) loadMacroRibbon(); }, 3_600_000); // refresh every hour
     initScreener();
 });
 
