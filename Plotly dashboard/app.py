@@ -670,7 +670,9 @@ def _get_portfolio_context(user_id: Optional[int], sample: Optional[list] = None
     if user_id is None:
         lines = [f"SAMPLE PORTFOLIO — {datetime.date.today()} (the user is not signed in and is "
                  "trying Tradeski with this example portfolio; treat it as theirs for the "
-                 "conversation, and mention it is a sample if they ask about saving it):"]
+                 "conversation, and mention it is a sample if they ask about saving it. Risk "
+                 "metrics are not computed for the sample, so do not mention them or "
+                 "point to a risk panel):"]
     else:
         lines = [f"USER'S PORTFOLIO — {datetime.date.today()}:"]
 
