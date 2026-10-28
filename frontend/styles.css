@@ -364,6 +364,9 @@ body {
 }
 .text-btn:hover { color: var(--accent-hover); }
 .sample-cta { margin-top: var(--s-2); font-size: var(--fs-sm); }
+.pf-import { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); margin-top: var(--s-4); font-size: var(--fs-xs); }
+.pf-import-msg { color: var(--text-secondary); line-height: var(--lh-snug); }
+.pf-import-msg:empty { display: none; }
 .sample-note {
     margin-bottom: var(--s-4);
     padding: var(--s-4) var(--s-5);
