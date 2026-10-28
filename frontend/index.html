@@ -163,6 +163,11 @@
                             <input type="number" id="pf-avgcost"  class="form-input pf-input" placeholder="Avg cost (optional)" min="0" step="any" />
                             <button class="btn-primary pf-add-btn" id="pf-add-btn">Add</button>
                         </div>
+                        <div class="pf-import">
+                            <button class="text-btn" id="pf-import-btn" type="button">Import from CSV</button>
+                            <input type="file" id="pf-import-file" accept=".csv,text/csv" hidden />
+                            <span class="pf-import-msg" id="pf-import-msg" role="status"></span>
+                        </div>
                     </div>
                 </div>
             </div>

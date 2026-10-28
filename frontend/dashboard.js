@@ -1451,6 +1451,12 @@ function initPortfolio() {
     document.getElementById("pf-avgcost").addEventListener("keydown", (e) => {
         if (e.key === "Enter") submitHolding();
     });
+    const importFile = document.getElementById("pf-import-file");
+    document.getElementById("pf-import-btn").addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", () => {
+        if (importFile.files[0]) importHoldingsCsv(importFile.files[0]);
+        importFile.value = "";   // so choosing the same file again still fires
+    });
     loadPortfolio();
     setInterval(loadPortfolio, CFG.PORTFOLIO_REFRESH_MS);
 }
@@ -1566,6 +1572,99 @@ function renderPortfolio(data, sample = false) {
         item.appendChild(row2);
         list.appendChild(item);
     }
+}
+
+// ---- CSV import -------------------------------------------------------------
+// Adding holdings one at a time is the main chore for a new account. This reads
+// a broker export or a hand-made sheet in the browser, maps the usual header
+// names, and adds each row through the normal /portfolio endpoint (which
+// upserts, so re-importing the same file updates rather than duplicates).
+const CSV_IMPORT_MAX = 100;
+const CSV_COLS = {
+    symbol: ["symbol", "ticker", "security", "instrument"],
+    shares: ["shares", "quantity", "qty", "units", "position"],
+    avg:    ["average cost basis", "avg cost basis", "average cost", "avg cost", "cost per share",
+             "avg price", "average price", "purchase price", "price paid", "avg_cost", "cost basis per share"],
+    total:  ["cost basis total", "total cost basis", "cost basis", "total cost"],
+};
+
+function parseCsvLine(line) {
+    const out = []; let cur = "", q = false;
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (q) {
+            if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (c === '"') q = false;
+            else cur += c;
+        } else if (c === '"') q = true;
+        else if (c === ",") { out.push(cur); cur = ""; }
+        else cur += c;
+    }
+    out.push(cur);
+    return out.map(x => x.trim());
+}
+
+function csvNumber(v) {
+    if (v == null) return NaN;
+    const s = String(v).replace(/[$,\s]/g, "").replace(/^\((.*)\)$/, "-$1");
+    return s === "" || s === "--" ? NaN : Number(s);
+}
+
+function parseHoldingsCsv(text) {
+    const lines = text.replace(/^﻿/, "").split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return { rows: [], skipped: [], error: "The file is empty." };
+    const head = parseCsvLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, " ").trim());
+    const find = names => head.findIndex(h => names.includes(h));
+    const ci = { symbol: find(CSV_COLS.symbol), shares: find(CSV_COLS.shares),
+                 avg: find(CSV_COLS.avg), total: find(CSV_COLS.total) };
+    if (ci.symbol < 0 || ci.shares < 0) {
+        return { rows: [], skipped: [], error: "Need a header row with Symbol and Shares (or Quantity) columns." };
+    }
+    const rows = [], skipped = [];
+    for (let i = 1; i < lines.length; i++) {
+        const cells = parseCsvLine(lines[i]);
+        // Brokers write class shares as BRK.B or BRK/B; the price API wants BRK-B.
+        const symbol = (cells[ci.symbol] || "").toUpperCase().replace(/[./]/g, "-").replace(/[^A-Z0-9-]/g, "").slice(0, 10);
+        const shares = csvNumber(cells[ci.shares]);
+        if (!symbol) { skipped.push({ line: i + 1, reason: "no symbol" }); continue; }
+        if (!(shares > 0)) { skipped.push({ line: i + 1, reason: `${symbol}: no positive share count` }); continue; }
+        let avg = ci.avg >= 0 ? csvNumber(cells[ci.avg]) : NaN;
+        if (!(avg >= 0) && ci.total >= 0) avg = csvNumber(cells[ci.total]) / shares;
+        rows.push({ symbol, shares, avg_cost: avg >= 0 && isFinite(avg) ? +avg.toFixed(4) : null });
+    }
+    if (rows.length > CSV_IMPORT_MAX) {
+        return { rows: [], skipped, error: `That is ${rows.length} rows; import up to ${CSV_IMPORT_MAX} at a time.` };
+    }
+    return { rows, skipped, error: null };
+}
+
+async function importHoldingsCsv(file) {
+    const msg = document.getElementById("pf-import-msg");
+    const btn = document.getElementById("pf-import-btn");
+    if (!getToken()) { openAuthModal("login"); return; }
+    const { rows, skipped, error } = parseHoldingsCsv(await file.text());
+    if (error) { msg.textContent = error; return; }
+    if (!rows.length) { msg.textContent = "No holdings found in that file."; return; }
+    btn.disabled = true;
+    let ok = 0;
+    const failed = [];
+    for (const [n, r] of rows.entries()) {
+        msg.textContent = `Importing ${n + 1} of ${rows.length}…`;
+        try {
+            const res = await fetch(`${CFG.API}/portfolio`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(r),
+            });
+            if (res.ok) ok += 1; else failed.push(r.symbol);
+        } catch { failed.push(r.symbol); }
+    }
+    btn.disabled = false;
+    const parts = [`Imported ${ok} holding${ok === 1 ? "" : "s"}.`];
+    if (skipped.length) parts.push(`Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"} (${skipped.slice(0, 3).map(s => s.reason).join("; ")}${skipped.length > 3 ? "; …" : ""}).`);
+    if (failed.length) parts.push(`Could not add ${failed.slice(0, 5).join(", ")}.`);
+    msg.textContent = parts.join(" ");
+    await loadPortfolio();
 }
 
 async function submitHolding() {
