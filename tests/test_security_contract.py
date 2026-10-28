@@ -47,4 +47,13 @@ def test_limiter_is_keyed_on_the_client_ip():
 def test_alert_creation_validates_type_and_symbol():
     body = ast.get_source_segment(SOURCE, _function("create_alert"))
     assert "_ALERT_TYPES" in body, "alert_type is stored without checking it"
-    assert 're.sub(r"[^A-Z0-9.]"' in body, "symbol is stored without sanitizing it"
+    assert "_clean_symbol(" in body, "symbol is stored without sanitizing it"
+
+
+def test_symbol_sanitizer_only_keeps_ticker_characters():
+    """Every stored symbol goes through _clean_symbol, which must allow nothing
+    beyond letters, digits, '.' and '-' (the hyphen is for BRK-B)."""
+    body = ast.get_source_segment(SOURCE, _function("_clean_symbol"))
+    assert 're.sub(r"[^A-Z0-9.\\-]", ""' in body
+    for route in ("add_holding_route", "create_alert", "chat"):
+        assert "_clean_symbol(" in ast.get_source_segment(SOURCE, _function(route)), route

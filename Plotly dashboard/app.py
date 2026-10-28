@@ -395,12 +395,22 @@ def get_saved_watchlist() -> tuple:
     return jsonify({"symbols": database.get_watchlist(g.user_id)})
 
 
+def _clean_symbol(raw) -> str:
+    """Normalise a user-supplied ticker before it is stored or looked up.
+
+    Keeps letters, digits, '.' and '-': class shares are spelled BRK-B by the
+    price API, and stripping the hyphen stored an unpriceable BRKB. Anything else
+    is dropped, so the value is safe to render back into the dashboard.
+    """
+    return re.sub(r"[^A-Z0-9.\-]", "", str(raw or "").upper())[:10]
+
+
 @app.route("/watchlist/saved", methods=["POST"])
 @require_auth
 def add_saved_watchlist() -> tuple:
     """Add a symbol to the signed-in user's persistent watchlist."""
     data = request.json or {}
-    symbol = re.sub(r"[^A-Z0-9.]", "", (data.get("symbol") or "").upper())[:10]
+    symbol = _clean_symbol(data.get("symbol"))
     if not symbol:
         return jsonify({"error": "symbol is required"}), 400
     database.add_to_watchlist(g.user_id, symbol)
@@ -411,7 +421,7 @@ def add_saved_watchlist() -> tuple:
 @require_auth
 def delete_saved_watchlist(symbol: str) -> tuple:
     """Remove a symbol from the signed-in user's persistent watchlist."""
-    clean = re.sub(r"[^A-Z0-9.]", "", (symbol or "").upper())[:10]
+    clean = _clean_symbol(symbol)
     database.remove_from_watchlist(g.user_id, clean)
     return jsonify({"status": "deleted", "symbols": database.get_watchlist(g.user_id)})
 
@@ -453,7 +463,7 @@ def create_alert() -> tuple:
     """Create a new alert owned by the signed-in user."""
     data = request.json or {}
 
-    symbol = re.sub(r"[^A-Z0-9.]", "", (data.get("symbol") or "").upper())[:10]
+    symbol = _clean_symbol(data.get("symbol"))
     alert_type = data.get("alert_type")
     if not symbol:
         return jsonify({"error": "symbol is required"}), 400
@@ -583,7 +593,7 @@ def get_portfolio_route() -> tuple:
 def add_holding_route() -> tuple:
     """Add or update one of the signed-in user's holdings."""
     data = request.json or {}
-    symbol = re.sub(r"[^A-Z0-9.]", "", (data.get("symbol") or "").upper())[:10]
+    symbol = _clean_symbol(data.get("symbol"))
     shares = data.get("shares")
     avg_cost = data.get("avg_cost")
 
@@ -1070,7 +1080,7 @@ def chat() -> tuple:
     raw_msg = (data.get("message") or "")
     message = re.sub(r'<[^>]+>', '', raw_msg).strip()[:500]
     history = data.get("history") or []
-    symbol  = re.sub(r'[^A-Z0-9.]', '', (data.get("symbol") or "").upper())[:10]
+    symbol  = _clean_symbol(data.get("symbol"))
     chart_context = data.get("chart_context") or {}
 
     if not message:
