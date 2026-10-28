@@ -1,0 +1,63 @@
+name: Refresh demo snapshot
+
+# WHY THIS EXISTS
+# When the Render backend is asleep or suspended, the dashboard replays
+# frontend/demo-snapshot.js and its banner dates the data. Captured by hand, the
+# snapshot was six weeks old by the time anyone saw it. This recaptures it every
+# weekday after the US close, so the offline demo is never more than a day behind.
+#
+# It runs the backend here on the runner, not on Render, so it costs none of the
+# free instance-hours the Render services share. If the capture fails (Yahoo
+# rate-limits, a provider is down) the script refuses to write and the previous
+# snapshot stays. The commit redeploys the frontend through Vercel's GitHub app.
+
+on:
+  schedule:
+    - cron: "37 21 * * 1-5"   # 21:37 UTC: after the 16:00 ET close in both EDT and EST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start the backend locally
+        run: |
+          nohup gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
+            -w 1 --bind 127.0.0.1:8811 wsgi:app > backend.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8811/health && exit 0
+            sleep 2
+          done
+          cat backend.log
+          exit 1
+
+      - name: Capture
+        run: python scripts/capture_snapshot.py
+
+      - name: Commit if the data changed
+        run: |
+          git diff --quiet -- frontend/demo-snapshot.js && { echo "No change."; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/demo-snapshot.js
+          git commit -m "Refresh demo snapshot ($(date -u +%Y-%m-%d))"
+          git push
