@@ -31,6 +31,7 @@
 
     <!-- ===== HEADER ===== -->
     <header class="app-header">
+        <h1 class="sr-only">Tradeski market dashboard</h1>
         <div class="header-left">
             <div class="logo">
                 <svg class="logo-icon" viewBox="0 0 32 32" aria-hidden="true">
@@ -91,7 +92,7 @@
     <div class="mobile-overlay" id="mobile-overlay" style="display:none"></div>
 
     <!-- ===== TICKER TAPE ===== -->
-    <div class="ticker-wrap">
+    <div class="ticker-wrap" role="region" aria-label="Live prices">
         <div class="ticker-inner">
             <div class="ticker-tape" id="ticker-tape">
                 <span class="ticker-item">
@@ -102,7 +103,7 @@
     </div>
 
     <!-- ===== MACRO RIBBON ===== -->
-    <div class="macro-ribbon" id="macro-ribbon">
+    <div class="macro-ribbon" id="macro-ribbon" role="region" aria-label="Federal Reserve data">
         <div class="macro-ribbon-inner" id="macro-inner">
             <div class="macro-item macro-loading">
                 <span class="macro-label">Loading Federal Reserve data…</span>
@@ -114,7 +115,7 @@
     <div class="app-body">
 
         <!-- LEFT SIDEBAR -->
-        <aside class="sidebar-left">
+        <aside class="sidebar-left" aria-label="Alerts and portfolio">
             <button class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">✕</button>
 
             <div class="panel panel-alerts">
@@ -236,14 +237,14 @@
                 </div>
             </div>
 
-            <div id="market-data-strip" class="market-data-strip">
+            <div id="market-data-strip" class="market-data-strip" tabindex="0" role="region" aria-label="Market data for the selected symbol">
                 <div class="md-item"><span class="md-label">Loading market data…</span></div>
             </div>
 
         </main>
 
         <!-- RIGHT SIDEBAR -->
-        <aside class="sidebar-right">
+        <aside class="sidebar-right" aria-label="Indicators and news">
 
             <div class="panel panel-grow">
                 <div class="sidebar-tabs">

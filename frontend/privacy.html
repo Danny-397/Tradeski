@@ -58,10 +58,12 @@
         }
         .callout strong { color: var(--text); }
         footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+        /* Links inside sentences are underlined so they don't rely on colour alone. */
+        p a, footer a { text-decoration: underline; text-underline-offset: 2px; }
     </style>
 </head>
 <body>
-    <div class="wrap">
+    <main class="wrap">
         <a class="brand" href="/">
             <svg viewBox="0 0 32 32" aria-hidden="true">
                 <defs><linearGradient id="tk" x1="0" y1="1" x2="0" y2="0">
@@ -186,6 +188,6 @@
         <footer>
             <a href="/">← Back to Tradeski</a> · Tradeski is an educational tool, not investment advice.
         </footer>
-    </div>
+    </main>
 </body>
 </html>
