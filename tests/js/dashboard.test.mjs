@@ -5,7 +5,7 @@
 // functions it needs straight out of the shipped file into a sandbox. That
 // way the tests always exercise the code that is deployed, not a copy.
 //
-//   node --test tests/js
+//   node --test tests/js/*.test.mjs
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

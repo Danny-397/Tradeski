@@ -41,4 +41,4 @@ jobs:
         node-version: '22'
 
     - name: Run frontend tests
-      run: node --test tests/js
+      run: node --test tests/js/*.test.mjs
