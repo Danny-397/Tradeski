@@ -667,7 +667,8 @@ body {
     flex-shrink: 0;
 }
 .signal-chip.buy     { color: var(--green); background: var(--green-dim); }
-.signal-chip.sell    { color: var(--red);   background: var(--red-dim); }
+/* #F87171, not --red: on the chip's dark red wash --red is 4.2:1, under 4.5:1. */
+.signal-chip.sell    { color: #F87171;      background: var(--red-dim); }
 .signal-chip.neutral { color: var(--text-secondary); background: rgba(255, 255, 255, 0.06); }
 
 .gauge-track {
@@ -1394,4 +1395,10 @@ select.form-input {
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
+}
+
+/* Visible only to screen readers (the page's level-one heading). */
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
