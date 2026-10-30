@@ -180,6 +180,17 @@
         else document.addEventListener("DOMContentLoaded", function () { showBanner(snap); });
     }
 
+    /* ---- crawlers and automated browsers --------------------------------
+       Each request that reaches the free Render backend wakes it for at least
+       15 of the 750 instance-hours a month that every project backend shares,
+       and running out suspends all of them (it happened 2026-10-28). A crawler
+       rendering this page should not spend them, so automated visitors get the
+       snapshot directly. TRADESKI_OFFLINE also stops dashboard.js opening its
+       socket. ?live=1 opts back in, for testing with a headless browser. */
+    var AUTOMATED = !/[?&]live=1\b/.test(location.search) && (navigator.webdriver ||
+        /bot|crawl|spider|slurp|facebookexternalhit|preview|lighthouse|headless/i.test(navigator.userAgent));
+    if (AUTOMATED) window.TRADESKI_OFFLINE = true;
+
     /* ---- fetch wrapper --------------------------------------------------- */
     var nativeFetch = window.fetch.bind(window);
 
@@ -194,7 +205,10 @@
         var path = url.slice(API_ORIGIN.length) || "/";
 
         noteRequestStart();
-        return nativeFetch(input, init).then(function (res) {
+        var request = AUTOMATED
+            ? Promise.reject(new Error("automated visitor: serving the snapshot"))
+            : nativeFetch(input, init);
+        return request.then(function (res) {
             /* Any real answer wins — including 401/404/429, which are real state. */
             if (res.status < 500) { noteAnswer(); return res; }
 

@@ -391,6 +391,7 @@ function updateMarketStatus() {
 // ============================================================
 
 function initWebSocket() {
+    if (window.TRADESKI_OFFLINE) return;   // crawler: no socket, see demo-mode.js
     try {
         state.socket = io(CFG.WS, { transports: ["websocket", "polling"], reconnection: true });
         state.socket.on("connect",    () => setWs(true));
