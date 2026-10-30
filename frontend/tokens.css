@@ -1,3 +1,15 @@
+/* Inter arrives late (display=swap). Until it does, text set in plain Arial
+   wraps differently and the page jumps when Inter lands. Arial scaled to
+   Inter's metrics keeps the line breaks put. */
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  size-adjust: 107.12%;
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+}
+
 /* ============================================================
    TRADESKI — DESIGN TOKENS
    ============================================================
@@ -161,8 +173,8 @@
        use the same face with tabular figures (--data) rather than a separate
        monospace, so a price and its label read as one line of type.
        --mono remains for genuine code only. */
-    --display:         -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
-    --sans:            -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --display:         -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Inter Fallback', 'Segoe UI', system-ui, sans-serif;
+    --sans:            -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Inter Fallback', 'Segoe UI', system-ui, sans-serif;
     --data:            var(--sans);
     --mono:            'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
 

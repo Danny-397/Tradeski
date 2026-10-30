@@ -331,6 +331,8 @@
             <div class="ps-item"><span class="ps-sym">TSLA</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
             <div class="ps-item"><span class="ps-sym">SPY</span><span class="ps-price">—</span><span class="ps-chg">—</span></div>
         </div>
+        <!-- Space for the snapshot note is reserved up front so the page does not jump when it appears. -->
+        <p class="ps-note" id="ps-note" role="status" style="margin:10px 0 0;min-height:1.5em;text-align:center;font-size:12px;opacity:.6"></p>
     </div>
 </header>
 
@@ -515,13 +517,7 @@
             document.head.appendChild(s);
         }).then(snap => {
             if (!snap || liveShown) return null;
-            if (!note) {
-                note = document.createElement("p");
-                note.className = "ps-note";
-                note.setAttribute("role", "status");
-                note.style.cssText = "margin:10px 0 0;text-align:center;font-size:12px;opacity:.6";
-                document.getElementById("price-strip").after(note);
-            }
+            if (!note) note = document.getElementById("ps-note");
             note.textContent = "Snapshot from " + new Date(snap.capturedAt).toLocaleDateString(undefined,
                 { year: "numeric", month: "long", day: "numeric" }) + " · " + reason;
             return SYMS.map(s => snap.endpoints[`/stats?symbol=${s}`] || null);
@@ -542,7 +538,7 @@
                 return fromSnapshot("the live data backend is unavailable").then(r => r && render(r));
             }
             liveShown = true;
-            if (note) note.remove();
+            if (note) note.textContent = "";
             render(results);
         });
     }
@@ -584,5 +580,6 @@
     }
 </script>
 
+<script src="scroll-focus.js" defer></script>
 </body>
 </html>
