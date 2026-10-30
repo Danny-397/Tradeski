@@ -528,22 +528,46 @@
         });
     }
 
-    const live = Promise.all(SYMS.map(s =>
-        fetch(`${API}/stats?symbol=${s}`).then(r => r.ok ? r.json() : null).catch(() => null)
-    ));
-    const slow = setTimeout(() => {
-        fromSnapshot("waking the live data server…").then(r => r && render(r));
-    }, SNAPSHOT_AFTER_MS);
+    function goLive() {
+        const live = Promise.all(SYMS.map(s =>
+            fetch(`${API}/stats?symbol=${s}`).then(r => r.ok ? r.json() : null).catch(() => null)
+        ));
+        const slow = setTimeout(() => {
+            fromSnapshot("waking the live data server…").then(r => r && render(r));
+        }, SNAPSHOT_AFTER_MS);
 
-    live.then(results => {
-        clearTimeout(slow);
-        if (results.every(d => !d || d.error)) {
-            return fromSnapshot("the live data backend is unavailable").then(r => r && render(r));
-        }
-        liveShown = true;
-        if (note) note.remove();
-        render(results);
-    });
+        live.then(results => {
+            clearTimeout(slow);
+            if (results.every(d => !d || d.error)) {
+                return fromSnapshot("the live data backend is unavailable").then(r => r && render(r));
+            }
+            liveShown = true;
+            if (note) note.remove();
+            render(results);
+        });
+    }
+
+    // Every fetch above wakes the free Render backend for at least 15 of the
+    // 750 instance-hours a month that all the project backends share, and
+    // running out suspends every one of them (2026-10-28). So only a person
+    // looking at the page pays for live prices: crawlers and automated browsers
+    // get the recorded snapshot, and a tab opened in the background or
+    // prerendered waits until it is actually shown.
+    // Same test as demo-mode.js; ?live=1 opts a headless browser back in.
+    const automated = !/[?&]live=1\b/.test(location.search) && (navigator.webdriver ||
+        /bot|crawl|spider|slurp|facebookexternalhit|preview|lighthouse|headless/i.test(navigator.userAgent));
+    if (automated) {
+        fromSnapshot("live prices load in a browser").then(r => r && render(r));
+    } else if (document.visibilityState === "visible" && !document.prerendering) {
+        goLive();
+    } else {
+        const onShow = () => {
+            if (document.visibilityState !== "visible") return;
+            document.removeEventListener("visibilitychange", onShow);
+            goLive();
+        };
+        document.addEventListener("visibilitychange", onShow);
+    }
 
     function render(results) {
         results.forEach((d, i) => {
