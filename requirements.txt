@@ -1,6 +1,6 @@
 # Pinned to exact versions (2026-10-30) so every deploy installs the same
-# packages CI tested. Dependabot security updates open a PR when one of
-# these has a known vulnerability; bump deliberately otherwise.
+# packages CI tested. Bump deliberately; with Dependabot security updates
+# on (Settings > Code security), a known vulnerability in a pin opens a PR.
 yfinance==1.7.0
 requests==2.34.2
 python-dotenv==1.2.4
