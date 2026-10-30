@@ -167,6 +167,9 @@ body {
 
 /* ===== MACRO RIBBON ===== */
 .macro-ribbon {
+    /* Reserve the populated height: it grew 34 -> 55-57px when the macro data
+       arrived and pushed the whole dashboard down (CLS 0.12 on phones). */
+    min-height: 57px;
     flex-shrink: 0;
     background: var(--bg-primary);
     border-bottom: 1px solid var(--border);

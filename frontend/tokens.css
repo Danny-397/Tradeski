@@ -249,3 +249,9 @@ td, th, input[type="number"] { font-variant-numeric: tabular-nums; }
     .hero-ticker, .marquee { animation: none !important; transform: none !important; }
     .flash-up, .flash-down { animation: none !important; }
 }
+
+/* Skip link: hidden until a keyboard user tabs to it, then the first stop on the page. */
+.skip-link { position: absolute; left: 12px; top: -64px; z-index: 1000; padding: 10px 14px;
+  border-radius: 8px; background: var(--accent-strong); color: #fff; font-weight: 600; text-decoration: none; }
+.skip-link:focus { top: 12px; }
+main:focus { outline: none; }

@@ -1,16 +1,19 @@
-yfinance
-requests
-python-dotenv
-flask
-flask-cors
-flask-socketio
-gevent>=23.9.0
-gevent-websocket
-gunicorn
+# Pinned to exact versions (2026-10-30) so every deploy installs the same
+# packages CI tested. Dependabot security updates open a PR when one of
+# these has a known vulnerability; bump deliberately otherwise.
+yfinance==1.7.0
+requests==2.34.2
+python-dotenv==1.2.4
+flask==3.1.3
+flask-cors==6.0.5
+flask-socketio==5.7.0
+gevent==26.9.0
+gevent-websocket==0.10.1
+gunicorn==26.2.0
 numpy==1.26.4
-apscheduler
-pytest
-anthropic>=0.115.0  # output_config (effort) on messages.create
-flask-limiter>=3.5.0
-vaderSentiment
-psycopg2-binary>=2.9.0
+apscheduler==3.11.3
+pytest==9.2.0
+anthropic==2.3.0  # output_config (effort) on messages.create
+flask-limiter==4.1.1
+vaderSentiment==3.3.2
+psycopg2-binary==2.9.13

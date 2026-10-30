@@ -10,9 +10,9 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tradeski.dev">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fonts are self-hosted: the Google Fonts stylesheet blocked first paint for ~0.9 s on a mobile connection (Lighthouse, 2026-10-30). -->
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <style>@font-face{font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;src:url(/fonts/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}@font-face{font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;src:url(/fonts/inter-greek.woff2) format('woff2');unicode-range:U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF}</style>
     <meta name="theme-color" content="#0A0B0D">
     <!-- Shared design tokens. Must load before any page styles. -->
     <link rel="stylesheet" href="tokens.css">
@@ -23,11 +23,17 @@
          was running on a five-year-old build. v3 renders this dashboard
          identically -- same six traces, same overlays -- and Plotly.Fx.hover /
          unhover, used for the two-finger compare gesture, still exist. -->
-    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" defer></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+    <!-- The libraries above are deferred: loaded in <head> they blocked first paint. demo-mode.js
+         stays synchronous so its fetch wrapper is in place before dashboard.js (also deferred) runs. -->
+    <script src="demo-mode.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
+<!-- When offline mode is already known, draw the banner in the first paint instead of pushing the page down later. -->
+<script>window.TRADESKI_EARLY_BANNER && window.TRADESKI_EARLY_BANNER();</script>
 
     <!-- ===== HEADER ===== -->
     <header class="app-header">
@@ -176,7 +182,7 @@
         </aside>
 
         <!-- MAIN CHART AREA -->
-        <main class="chart-area">
+        <main class="chart-area" id="main" tabindex="-1">
 
             <div class="chart-toolbar">
                 <!-- Row 1: symbol / chart type / timeframes -->
@@ -478,11 +484,10 @@
         </div>
     </div>
 
-    <!-- Must precede dashboard.js: installs the API fetch wrapper that falls
-         back to a recorded data snapshot when the backend is unreachable. -->
-    <script src="demo-mode.js"></script>
-    <script src="symbols.js"></script>
-    <script src="dashboard.js"></script>
+    <!-- demo-mode.js (in <head>) installs the API fetch wrapper that falls back to a
+         recorded data snapshot when the backend is unreachable; it must run before these. -->
+    <script src="symbols.js" defer></script>
+    <script src="dashboard.js" defer></script>
 <script src="scroll-focus.js" defer></script>
 </body>
 </html>
