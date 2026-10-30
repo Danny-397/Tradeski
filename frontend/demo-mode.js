@@ -79,19 +79,26 @@
     }
 
     /* ---- the banner ------------------------------------------------------ */
+    // Called again once the snapshot has loaded, to fill in its date: the banner
+    // may already be up from TRADESKI_EARLY_BANNER, so update it in place.
     function showBanner(snap) {
-        if (document.getElementById("demo-banner")) return;
-
-        var when = "a recent session";
-        try {
-            when = new Date(snap.capturedAt).toLocaleDateString(undefined, {
+        var when = "a recent trading day";
+        if (snap && snap.capturedAt) {
+            var d = new Date(snap.capturedAt);
+            if (!isNaN(d)) when = d.toLocaleDateString(undefined, {
                 year: "numeric", month: "long", day: "numeric"
             });
-        } catch (e) { /* keep the fallback wording */ }
+        }
 
-        var bar = document.createElement("div");
-        bar.id = "demo-banner";
-        bar.setAttribute("role", "status");
+        var bar = document.getElementById("demo-banner");
+        if (!bar) {
+            bar = document.createElement("div");
+            bar.id = "demo-banner";
+            bar.setAttribute("role", "status");
+            // After the skip link, so that stays the first thing a keyboard user reaches.
+            var skip = document.querySelector(".skip-link");
+            document.body.insertBefore(bar, skip ? skip.nextSibling : document.body.firstChild);
+        }
         bar.innerHTML =
             '<span class="demo-dot" aria-hidden="true"></span>' +
             '<span class="demo-text">' +
@@ -102,9 +109,31 @@
             '</span>' +
             '<a class="demo-link" href="https://github.com/Danny-397/Tradeski" ' +
                'target="_blank" rel="noopener">Source &amp; technical report &nearr;</a>';
-        document.body.insertBefore(bar, document.body.firstChild);
         document.body.classList.add("demo-mode");
     }
+
+    /* ---- the banner in the first paint -------------------------------------
+       Inserted after the page has painted, the banner pushed the whole dashboard
+       down (CLS ~0.24). When offline mode is already known before the page
+       renders -- an automated visitor, or a session whose landing page or an
+       earlier dashboard load found the backend down -- index.html calls this
+       right after <body> opens, so the banner is part of the first paint. If a
+       live answer arrives after all, noteAnswer() takes it down again. */
+    var OFFLINE_KEY = "tradeski-offline";
+    var earlyBanner = false;
+    function rememberOffline(snap) {
+        try { sessionStorage.setItem(OFFLINE_KEY, (snap && snap.capturedAt) || "1"); } catch (e) { /* storage blocked */ }
+    }
+    function forgetOffline() {
+        try { sessionStorage.removeItem(OFFLINE_KEY); } catch (e) { /* storage blocked */ }
+    }
+    window.TRADESKI_EARLY_BANNER = function () {
+        var known = null;
+        try { known = sessionStorage.getItem(OFFLINE_KEY); } catch (e) { /* storage blocked */ }
+        if (!AUTOMATED && !known) return;
+        earlyBanner = true;
+        showBanner({ capturedAt: known && known !== "1" ? known : null });
+    };
 
     /* ---- the "waking up" toast --------------------------------------------
        The free Render host sleeps when idle and takes ~30s to answer the first
@@ -169,9 +198,17 @@
         if (gotAnswer) return;
         gotAnswer = true;
         hideWake(true);
+        forgetOffline();
+        // The backend is back: take down a banner drawn early on stale knowledge.
+        if (earlyBanner && !demoActive) {
+            var bar = document.getElementById("demo-banner");
+            if (bar) bar.remove();
+            document.body.classList.remove("demo-mode");
+        }
     }
 
     function enterDemoMode(snap) {
+        rememberOffline(snap);
         if (demoActive) return;
         demoActive = true;
         hideWake(false);
