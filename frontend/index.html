@@ -23,10 +23,10 @@
          was running on a five-year-old build. v3 renders this dashboard
          identically -- same six traces, same overlays -- and Plotly.Fx.hover /
          unhover, used for the two-finger compare gesture, still exist. -->
-    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" defer></script>
+    <!-- plotly.js 3.0.1 with only the traces the dashboard draws (tools/plotly-bundle): 1.1 MB instead of 4.7 MB. -->
+    <script src="vendor/plotly-tradeski.min.js" defer></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
-    <!-- The libraries above are deferred: loaded in <head> they blocked first paint. demo-mode.js
+    <!-- The scripts above are deferred: loaded in <head> they blocked first paint. demo-mode.js
          stays synchronous so its fetch wrapper is in place before dashboard.js (also deferred) runs. -->
     <script src="demo-mode.js"></script>
 </head>
