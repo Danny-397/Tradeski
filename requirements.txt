@@ -10,7 +10,7 @@ flask-socketio==5.7.0
 gevent==26.9.0
 gevent-websocket==0.10.1
 gunicorn==26.2.0
-numpy==1.26.4
+numpy==2.5.4
 apscheduler==3.11.3
 pytest==9.2.0
 anthropic==2.3.0  # output_config (effort) on messages.create
