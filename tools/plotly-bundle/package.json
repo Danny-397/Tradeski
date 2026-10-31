@@ -1,0 +1,13 @@
+{
+  "name": "tradeski-plotly-bundle",
+  "private": true,
+  "description": "Builds frontend/vendor/plotly-tradeski.min.js: plotly.js core plus the trace types the dashboard draws.",
+  "scripts": { "build": "node build.js ../../frontend/vendor/plotly-tradeski.min.js" },
+  "devDependencies": {
+    "plotly.js": "3.0.1",
+    "esbuild": "0.23.1",
+    "esbuild-style-plugin": "1.6.3",
+    "esbuild-plugin-environment": "0.4.0",
+    "stream-browserify": "3.0.0"
+  }
+}
