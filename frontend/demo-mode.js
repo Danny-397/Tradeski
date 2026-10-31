@@ -91,19 +91,24 @@
         }
 
         var bar = document.getElementById("demo-banner");
-        if (!bar) {
-            bar = document.createElement("div");
-            bar.id = "demo-banner";
-            bar.setAttribute("role", "status");
-            // After the skip link, so that stays the first thing a keyboard user reaches.
-            var skip = document.querySelector(".skip-link");
-            document.body.insertBefore(bar, skip ? skip.nextSibling : document.body.firstChild);
+        if (bar) {
+            // Already drawn early: change only the date. Rebuilding the banner's
+            // HTML made it count as new content and pushed LCP out to ~4 s.
+            var w = bar.querySelector(".demo-when");
+            if (w && w.textContent !== when) w.textContent = when;
+            return;
         }
+        bar = document.createElement("div");
+        bar.id = "demo-banner";
+        bar.setAttribute("role", "status");
+        // After the skip link, so that stays the first thing a keyboard user reaches.
+        var skip = document.querySelector(".skip-link");
+        document.body.insertBefore(bar, skip ? skip.nextSibling : document.body.firstChild);
         bar.innerHTML =
             '<span class="demo-dot" aria-hidden="true"></span>' +
             '<span class="demo-text">' +
               '<strong>Offline demo.</strong> The live data backend is paused, so this dashboard is ' +
-              'replaying a snapshot of <strong>real market data captured ' + when + '</strong>. ' +
+              'replaying a snapshot of <strong>real market data captured <span class="demo-when">' + when + '</span></strong>. ' +
               'Charts, indicators, the screener and the macro strip are genuine values from that moment. ' +
               'Live streaming, news and account features need the backend.' +
             '</span>' +
