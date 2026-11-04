@@ -19,9 +19,9 @@ This report describes the architecture as built, the decisions worth defending, 
 | | |
 |---|---|
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 25 HTTP endpoints |
-| Frontend | Static HTML/CSS/JS, 2,299 lines, Plotly.js, no framework and no build step |
+| Frontend | Static HTML/CSS/JS, ~6,100 lines (`dashboard.js` alone is 2,687), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 75, across 11 files, run in GitHub Actions with flake8 |
+| Tests | 121, across 16 files, run in GitHub Actions with flake8 |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
 ---
