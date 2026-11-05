@@ -33,6 +33,29 @@ _DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
 _LENGTH_WORDS = re.compile(r"^\s*-?\s?(?:day|week|month|year|period|bar)s?\b", re.IGNORECASE)
 
 
+# Textbook reference levels: "overbought above 70" is a rule of thumb, not a
+# market figure, so it is not looked for in the data. A figure is skipped
+# only when it equals one of these levels exactly AND the indicator is named
+# close by, so a real reading ("RSI 70.2") or an unrelated "up 30%" is still
+# checked. The cost: an invented reading that happens to equal a level
+# ("RSI is 70") passes.
+_REFERENCE_LEVELS = [
+    (re.compile(r"\brsi\b|overbought|oversold|relative strength", re.I), {20, 30, 50, 70, 80}),
+    (re.compile(r"stochastic|%k\b", re.I), {20, 50, 80}),
+    (re.compile(r"\bvix\b|volatility index", re.I), {20, 30, 40}),
+    (re.compile(r"\bbeta\b", re.I), {1}),
+    (re.compile(r"\bsharpe\b", re.I), {0, 1, 2}),
+    (re.compile(r"bollinger|standard deviations?", re.I), {2}),
+    (re.compile(r"\bz-?score\b", re.I), {1, 2, 3}),
+    (re.compile(r"\bmacd\b|histogram|signal line|zero line", re.I), {0}),
+]
+
+
+def _is_reference_level(text: str, start: int, end: int, value: float) -> bool:
+    window = text[max(0, start - 60):end + 30]
+    return any(value in levels and pattern.search(window) for pattern, levels in _REFERENCE_LEVELS)
+
+
 def _figures(text: str, *, for_reply: bool) -> list[tuple[float, float, str]]:
     """Return (absolute value, rounding tolerance, raw text) for each figure.
 
@@ -54,6 +77,8 @@ def _figures(text: str, *, for_reply: bool) -> list[tuple[float, float, str]]:
                 continue  # counts, list sizes, days, years
             if _LENGTH_WORDS.match(after) or after.startswith("-"):
                 continue  # "14-day", "50 day", "52-week", "10-year"
+            if _is_reference_level(text, m.start(), m.end(), value):
+                continue  # "RSI above 70", "beta of 1", "VIX over 30"
         decimals = len(frac) - 1 if frac else 0
         out.append((abs(value), 0.5 * 10 ** -decimals * scale + 1e-9, raw))
     return out

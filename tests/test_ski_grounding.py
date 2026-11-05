@@ -133,3 +133,20 @@ def test_fixture_bars_tell_the_story_the_cases_assume():
     closes = {s: [b["close"] for b in run_eval.fixture_bars(s)] for s in ("NVDA", "TSLA")}
     assert closes["NVDA"][-1] > closes["NVDA"][0] and closes["TSLA"][-1] < closes["TSLA"][0]
     assert run_eval.fixture_bars("ZZZQX") == []
+
+
+# ── textbook reference levels ───────────────────────────────
+
+def test_textbook_levels_next_to_their_indicator_are_not_flagged():
+    # From a live reply (2026-11-04): "70" is the overbought rule of thumb, not data.
+    reply = ("Bottom line: up.\n- **RSI:** Climbed from **56.1** to **64.3** over five days, moving toward "
+             "the overbought zone (typically 70+). It is not yet overbought.")
+    r = check(reply, ["RSI now 64.3, 5 days ago 56.1"], [])
+    assert r["grounded"], r["ungrounded"]
+
+
+def test_a_real_reading_or_an_unrelated_figure_is_still_checked():
+    assert check("Bottom line: RSI is 70.2.", [], [])["ungrounded"] == ["70.2"]
+    assert check("Bottom line: NVDA rallied 70% this year.", [], [])["ungrounded"] == ["70%"]
+    assert check("Bottom line: a beta of 1.4.", [], [])["ungrounded"] == ["1.4"]
+    assert check("Bottom line: a beta of 1.0 means it moves with the market.", [], [])["grounded"]

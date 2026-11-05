@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 162 tests across 16 files — CI on every push |
+| **Tests** | 164 tests across 16 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -161,7 +161,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │
-├── tests/                     # pytest suite — 162 tests across 16 files
+├── tests/                     # pytest suite — 164 tests across 16 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -244,7 +244,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (162 tests) |
+| Testing | pytest (164 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -298,7 +298,7 @@ Ski is powered by **Anthropic Claude Haiku 5.5**. It starts every request with l
 
 Ski can answer "Is now a good time to add to my NVDA position?" with awareness of the user's actual cost basis, NVDA's own price trend, the current macro environment and recent news, not boilerplate. Its prompt says what data it doesn't have (options flow, VIX, short interest), and tells it to say so instead of inventing a value.
 
-**Grounding check** ([`tracker/ski_grounding.py`](tracker/ski_grounding.py)). After every answer, the server pulls the figures out of the reply and checks each one, at the reply's own rounding, against the data Ski was given: its context, its tool results and any cited search text. Counts, years, dates and indicator lengths ("14-day") are skipped. A figure that matches nothing is either invented or something Ski calculated itself. Either way it's logged, and the response carries `grounded` and `ungrounded_figures`. For now this only logs; it doesn't block anything.
+**Grounding check** ([`tracker/ski_grounding.py`](tracker/ski_grounding.py)). After every answer, the server pulls the figures out of the reply and checks each one, at the reply's own rounding, against the data Ski was given: its context, its tool results and any cited search text. Counts, years, dates, indicator lengths ("14-day") and textbook levels named next to their indicator ("RSI above 70") are skipped. A figure that matches nothing is either invented or something Ski calculated itself. Either way it's logged, and the response carries `grounded` and `ungrounded_figures`. For now this only logs; it doesn't block anything.
 
 **Eval set** ([`tests/ski_eval/`](tests/ski_eval)). 19 questions asked through the real `/chat` endpoint against fixed fixture data, so a score change comes from Ski, not the market. They fall into three groups:
 - lookups: another ticker's trend, P/E, news, macro trends
@@ -560,7 +560,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-162 tests across 16 files:
+164 tests across 16 files:
 
 | File | What it covers |
 |:---|:---|
