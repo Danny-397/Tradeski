@@ -852,7 +852,10 @@ def _finite(value) -> Optional[float]:
     """Return value as a finite float, or None (bools, strings, NaN and inf included)."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    value = float(value)
+    try:
+        value = float(value)
+    except OverflowError:  # a JSON integer too large for a float, e.g. 10**400
+        return None
     return value if np.isfinite(value) else None
 
 

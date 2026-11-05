@@ -50,11 +50,11 @@ def test_malformed_browser_values_are_dropped_not_fatal():
     text = fmt({
         "symbol": "<b>aapl</b>", "timeframe": "1D<script>",
         "close": "190", "rsi": float("nan"), "sma20": True, "zscore": [1],
-        "macd": "x", "macd_signal": 1.0,
+        "macd": "x", "macd_signal": 1.0, "ema20": 10 ** 400,
     })
     assert "AAPL" in text and "<" not in text
     assert "close" not in text.lower()
-    assert "RSI" not in text and "SMA" not in text and "Z-Score" not in text
+    assert "RSI" not in text and "SMA" not in text and "EMA" not in text and "Z-Score" not in text
     assert fmt("not a dict") == ""
 
 
