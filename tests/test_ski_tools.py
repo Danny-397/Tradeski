@@ -92,7 +92,8 @@ def test_every_tool_definition_is_strict_and_closed():
 
 
 def test_what_if_reports_before_and_after():
-    data = fake_data(holdings=[{"symbol": "AAPL", "shares": 10, "avg_cost": 1}, {"symbol": "TSLA", "shares": 10, "avg_cost": 1}])
+    data = fake_data(holdings=[{"symbol": "AAPL", "shares": 10, "avg_cost": 1},
+                               {"symbol": "TSLA", "shares": 10, "avg_cost": 1}])
     out = st.run_tool("portfolio_what_if", {"changes": [{"symbol": "TSLA", "shares_change": -10}]}, data)
     assert set(out["before"]["weights_pct"]) == {"AAPL", "TSLA"}
     assert out["after"]["weights_pct"] == {"AAPL": 100.0}
