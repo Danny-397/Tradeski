@@ -1023,6 +1023,7 @@ def portfolio_risk_endpoint() -> tuple:
 # room for it, or a long thought could crowd out the reply entirely.
 SKI_MODEL = "claude-haiku-5-5"
 SKI_EFFORT = {"effort": "low"}
+SKI_EMPTY = "Sorry, I couldn't generate a response just now — try again."
 SKI_REFUSAL = ("I can't help with that one. Try asking about your holdings, "
                "the market, or the macro data on your dashboard.")
 
@@ -1186,10 +1187,27 @@ def _reply_text(response) -> str:
     ).strip()
 
 
-def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData) -> dict:
+def _system_blocks(system) -> list:
+    """System prompt as content blocks, with a cache breakpoint after the fixed part.
+
+    ``system`` is a string, or a sequence whose first item is the fixed prompt
+    (the same for every user) and the rest is per-request context. Tools come
+    before the system prompt in the cached prefix, so tools plus the fixed
+    prompt are cached across all users and requests.
+    """
+    if isinstance(system, str):
+        return [{"type": "text", "text": system}]
+    fixed, *rest = system
+    blocks = [{"type": "text", "text": fixed, "cache_control": {"type": "ephemeral"}}]
+    if any(rest):
+        blocks.append({"type": "text", "text": "\n\n".join(r for r in rest if r)})
+    return blocks
+
+
+def _run_ski(client, system, messages: list, data: ski_tools.SkiData, web_search: bool = True) -> dict:
     """Ask Ski, running its tool calls until it answers (at most SKI_MAX_TOOL_ROUNDS rounds).
 
-    Returns {"reply", "tools_used", "tool_outputs", "search_texts"}; the last
+    ``system`` is as for _system_blocks. Returns {"reply", "tools_used", "tool_outputs", "search_texts"}; the last
     two are the evidence the reply's numbers are checked against.
     """
     messages = list(messages)
@@ -1197,6 +1215,9 @@ def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData
     # If the account or model rejects a tool feature, fall back step by step
     # (drop web search, then all tools) rather than failing the chat outright.
     tool_sets = [[_SKI_WEB_SEARCH, *ski_tools.TOOLS], list(ski_tools.TOOLS), []]
+    if not web_search:
+        tool_sets.pop(0)
+    system_blocks = _system_blocks(system)
     tools_used: list = []
     outputs: list = []
     search_texts: list = []
@@ -1207,8 +1228,10 @@ def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData
 
     for round_no in range(SKI_MAX_TOOL_ROUNDS + 1):
         while True:
+            # Top-level cache_control also caches the conversation so far, so
+            # each tool round re-reads the previous rounds from cache.
             kwargs = dict(model=SKI_MODEL, max_tokens=4096, output_config=SKI_EFFORT,
-                          system=system_prompt, messages=messages)
+                          system=system_blocks, messages=messages, cache_control={"type": "ephemeral"})
             if tool_sets[0]:
                 kwargs["tools"] = tool_sets[0]
                 if round_no == SKI_MAX_TOOL_ROUNDS:
@@ -1251,7 +1274,7 @@ def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData
         tools_used += [b.name for b in calls]
         outputs += [out for _, out in results if out is not None]
 
-    return done(_reply_text(response) or "Sorry, I couldn't generate a response just now — try again.")
+    return done(_reply_text(response) or SKI_EMPTY)
 
 
 @app.route("/chat", methods=["POST"])
@@ -1320,7 +1343,7 @@ def chat() -> tuple:
     try:
         client = anthropic.Anthropic(api_key=api_key)
         system_prompt = "\n\n".join(system_parts)
-        result = _run_ski(client, system_prompt, messages, _ski_data(user_id, sample))
+        result = _run_ski(client, system_parts, messages, _ski_data(user_id, sample))
         # Log-only for now: are the reply's numbers in the data Ski was given?
         # The history is evidence too, since Ski may repeat its earlier figures.
         grounding = ski_grounding.check(
@@ -1349,8 +1372,11 @@ def chat() -> tuple:
 
 
 _SKI_BRIEFING_PROMPT = """You are Ski, the financial-intelligence assistant built into Tradeski. \
-Generate a short, PROACTIVE briefing on THIS user's portfolio using ONLY the context provided below \
-(their real holdings, position weights, P&L, risk metrics, live macro data, and recent news).
+Generate a short, PROACTIVE briefing on THIS user's portfolio from the context provided below \
+(their real holdings, position weights, P&L, risk metrics, live macro data, and recent news). \
+You may call tools for facts the context lacks: get_price_summary for how their largest positions have moved \
+recently, get_correlation for how related their holdings are. Keep it to one or two rounds of tool calls. \
+Every number you cite must come from the context or a tool result.
 
 Format rules — follow them exactly:
 - Output 3 to 4 bullets, each starting with "• " and each a single sentence.
@@ -1411,26 +1437,21 @@ def briefing() -> tuple:
     if news_ctx:
         system_parts.append(news_ctx)
 
-    system_prompt = "\n\n".join(system_parts)
     messages = [{"role": "user", "content": "Give me today's briefing on my portfolio."}]
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model=SKI_MODEL,
-            max_tokens=2048,
-            output_config=SKI_EFFORT,
-            system=system_prompt,
-            messages=messages,
-        )
-        if response.stop_reason == "refusal":
+        # Same tool loop as chat, minus web search: the briefing loads with the
+        # dashboard, so it should stay quick and cheap.
+        result = _run_ski(client, system_parts, messages, _ski_data(user_id, None), web_search=False)
+        reply = result["reply"]
+        if reply == SKI_REFUSAL:
             return jsonify({"briefing": None, "reason": "refusal"})
-        reply = "".join(
-            getattr(b, "text", "") for b in response.content
-            if getattr(b, "type", None) == "text"
-        ).strip()
-        if not reply:
+        if reply == SKI_EMPTY:
             return jsonify({"briefing": None, "reason": "empty"})
+        grounding = ski_grounding.check(reply, ["\n\n".join(system_parts)], result["tool_outputs"])
+        if not grounding["grounded"]:
+            app.logger.warning("Ski briefing has figures not found in its data: %s", grounding["ungrounded"])
         _cache.set(cache_key, reply, ttl=900)
         return jsonify({"briefing": reply, "cached": False})
     except anthropic.RateLimitError:
