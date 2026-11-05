@@ -1,0 +1,37 @@
+name: Ski eval
+
+# Manual only: every run calls the real Claude API (a few cents on Haiku 5.5).
+# Needs a repository secret ANTHROPIC_API_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      repeat:
+        description: "Runs per case (answers vary run to run)"
+        default: "1"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version-file: .python-version
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run the eval
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        REPEAT: ${{ inputs.repeat }}
+      run: python tests/ski_eval/run_eval.py --repeat "$REPEAT" | tee eval.txt
+    - name: Summary
+      if: always()
+      run: |
+        { echo '```'; cat eval.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ski-eval-results
+        path: tests/ski_eval/results/
