@@ -76,3 +76,6 @@ instance/
 # pytest
 # -------------------------
 .pytest_cache/
+
+# Ski eval outputs (tests/ski_eval/run_eval.py)
+tests/ski_eval/results/

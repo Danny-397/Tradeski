@@ -29,7 +29,7 @@ from tracker import database
 from tracker import auth
 from tracker.fred import get_macro_snapshot, format_macro_context
 from tracker.fred import _fetch_observations as fetch_fred_observations
-from tracker import ski_tools
+from tracker import ski_tools, ski_grounding
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
 from tracker.analyzer import (
@@ -1189,8 +1189,8 @@ def _reply_text(response) -> str:
 def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData) -> dict:
     """Ask Ski, running its tool calls until it answers (at most SKI_MAX_TOOL_ROUNDS rounds).
 
-    Returns {"reply", "tools_used", "tool_outputs"}; tool_outputs are kept for
-    checking the reply's numbers against what the tools actually returned.
+    Returns {"reply", "tools_used", "tool_outputs", "search_texts"}; the last
+    two are the evidence the reply's numbers are checked against.
     """
     messages = list(messages)
     first_turn = len(messages)
@@ -1199,7 +1199,11 @@ def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData
     tool_sets = [[_SKI_WEB_SEARCH, *ski_tools.TOOLS], list(ski_tools.TOOLS), []]
     tools_used: list = []
     outputs: list = []
+    search_texts: list = []
     response = None
+
+    def done(reply: str) -> dict:
+        return {"reply": reply, "tools_used": tools_used, "tool_outputs": outputs, "search_texts": search_texts}
 
     for round_no in range(SKI_MAX_TOOL_ROUNDS + 1):
         while True:
@@ -1221,7 +1225,13 @@ def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData
 
         # A safety classifier can decline a request: HTTP 200 with no answer text.
         if response.stop_reason == "refusal":
-            return {"reply": SKI_REFUSAL, "tools_used": tools_used, "tool_outputs": outputs}
+            return done(SKI_REFUSAL)
+
+        # Server-side searches run inside the response; record them and keep
+        # what they showed the model as evidence.
+        tools_used += [getattr(b, "name", "web_search") for b in response.content
+                       if getattr(b, "type", None) == "server_tool_use"]
+        search_texts += ski_grounding.evidence_from_response_blocks(response.content)
 
         if response.stop_reason == "pause_turn":
             # A long server-side web search paused; send it back to resume.
@@ -1241,8 +1251,7 @@ def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData
         tools_used += [b.name for b in calls]
         outputs += [out for _, out in results if out is not None]
 
-    reply = _reply_text(response) or "Sorry, I couldn't generate a response just now — try again."
-    return {"reply": reply, "tools_used": tools_used, "tool_outputs": outputs}
+    return done(_reply_text(response) or "Sorry, I couldn't generate a response just now — try again.")
 
 
 @app.route("/chat", methods=["POST"])
@@ -1312,7 +1321,22 @@ def chat() -> tuple:
         client = anthropic.Anthropic(api_key=api_key)
         system_prompt = "\n\n".join(system_parts)
         result = _run_ski(client, system_prompt, messages, _ski_data(user_id, sample))
-        return jsonify({"reply": result["reply"], "tools_used": result["tools_used"]})
+        # Log-only for now: are the reply's numbers in the data Ski was given?
+        # The history is evidence too, since Ski may repeat its earlier figures.
+        grounding = ski_grounding.check(
+            result["reply"],
+            [system_prompt, *result["search_texts"], *(m["content"] for m in messages if isinstance(m["content"], str))],
+            result["tool_outputs"],
+        )
+        if not grounding["grounded"] and result["reply"] != SKI_REFUSAL:
+            app.logger.warning("Ski reply has figures not found in its data: %s (tools: %s)",
+                               grounding["ungrounded"], result["tools_used"])
+        return jsonify({
+            "reply": result["reply"],
+            "tools_used": result["tools_used"],
+            "grounded": grounding["grounded"],
+            "ungrounded_figures": grounding["ungrounded"],
+        })
     except anthropic.RateLimitError:
         return jsonify({"error": "Ski is at capacity — I've hit my hourly AI quota. Try again in a few minutes."}), 429
     except anthropic.APIStatusError as exc:
