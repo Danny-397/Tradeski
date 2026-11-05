@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 127 tests across 16 files — CI on every push |
+| **Tests** | 143 tests across 16 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -138,6 +138,7 @@ Tradeski/
 │   ├── price_fetcher.py       # yfinance: live prices, OHLC history, screener data
 │   ├── fred.py                # FRED API client — 7 macro series with trend detection
 │   ├── news.py                # NewsAPI + VADER sentiment with financial lexicon
+│   ├── ski_tools.py           # Ski's tools: price summary, fundamentals, news, correlation, what-if, macro
 │   ├── alerts.py              # Rule-based alert evaluation engine
 │   ├── notifier.py            # Pushover push notification handler
 │   ├── scheduler.py           # APScheduler background job manager
@@ -160,7 +161,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │
-├── tests/                     # pytest suite — 127 tests across 16 files
+├── tests/                     # pytest suite — 143 tests across 16 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -190,7 +191,7 @@ Tradeski/
          │          │            │                  │
          ▼          ▼            ▼                  ▼
    price_fetcher  fred.py     news.py          /chat endpoint
-         │          │            │             (Haiku 4.5)
+         │          │            │             (Haiku 5.5)
          ▼          │            │                  │
    database.py      │            │                  │
    (SQLite)         │            │                  │
@@ -234,7 +235,7 @@ Tradeski/
 | Market Data | yfinance (Yahoo Finance) |
 | Macro Data | FRED API (St. Louis Federal Reserve) |
 | News & Sentiment | NewsAPI + VADER with financial lexicon |
-| AI Assistant | Anthropic Claude Haiku 4.5 |
+| AI Assistant | Anthropic Claude Haiku 5.5 |
 | Parallel Fetching | `concurrent.futures.ThreadPoolExecutor` |
 | Scheduler | APScheduler |
 | Notifications | Pushover API (optional) |
@@ -243,7 +244,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (127 tests) |
+| Testing | pytest (143 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -274,7 +275,7 @@ All ten indicators live in [`tracker/analyzer.py`](tracker/analyzer.py) and are 
 
 ## Ski — AI Financial Assistant
 
-Ski is powered by **Anthropic Claude Haiku 4.5** and grounded in three live data sources injected on every request. Most AI financial tools answer questions in a vacuum — Ski answers questions about your situation.
+Ski is powered by **Anthropic Claude Haiku 5.5**. It starts every request with live context about your situation, and can call Tradeski's own tools to look up anything else. The rule is that code computes every number and the model only chooses what to look up and explains it. Most AI financial tools answer questions in a vacuum; Ski answers questions about your situation.
 
 | Context block | Source | Content |
 |:---|:---|:---|
@@ -283,7 +284,19 @@ Ski is powered by **Anthropic Claude Haiku 4.5** and grounded in three live data
 | Portfolio context | Postgres/SQLite (live) | Per-holding weight, live P&L, portfolio risk (Sharpe/beta/vol), concentration flag, watchlist |
 | News context | NewsAPI + VADER (cached 30m) | Recent headlines for the viewed symbol with sentiment scores |
 
-Ski can answer "Is now a good time to add to my NVDA position?" with awareness of the user's actual cost basis, the current macro environment, and recent news sentiment — not boilerplate.
+**Tools** ([`tracker/ski_tools.py`](tracker/ski_tools.py)). Ski calls these (several at once if it needs to, at most 4 rounds per question) instead of guessing:
+
+| Tool | What it returns |
+|:---|:---|
+| `get_price_summary` | For any ticker: 1-week to 1-year returns, distance from the 52-week high/low, realised volatility, and RSI / MACD / moving averages / Bollinger / ATR / stochastic, several given now and 5 days ago |
+| `get_fundamentals` | Sector, P/E, market cap, 52-week range |
+| `get_news` | Recent headlines with source and date |
+| `get_correlation` | Daily-return correlation between 2 to 10 tickers, aligned on common trading days |
+| `portfolio_what_if` | Your weights and risk (Sharpe, beta, volatility) before and after hypothetical trades |
+| `get_macro_history` | Recent readings of a FRED series, to show its trend |
+| `web_search` | Events, earnings dates, people in office: anything the tools above don't cover |
+
+Ski can answer "Is now a good time to add to my NVDA position?" with awareness of the user's actual cost basis, NVDA's own price trend, the current macro environment and recent news, not boilerplate. Its prompt says what data it doesn't have (options flow, VIX, short interest), and tells it to say so instead of inventing a value.
 
 **Proactive briefing.** Ski doesn't wait to be asked. The moment a signed-in user's holdings load, the dashboard calls `POST /briefing`, which assembles the same live context (macro snapshot + the user's positions, weights, and risk metrics + news for their largest holding) and asks Claude to surface what matters *right now* — 3–4 number-backed bullets plus a "Watch:" line flagging the next thing to keep an eye on (e.g. *"NVDA is 55% of your book with beta 1.4 — concentration risk"*). The result is cached per user for 15 minutes so dashboard loads stay cheap. This turns the assistant from a reactive chat box into the product's spine: portfolio-aware intelligence that meets the user at the door.
 
@@ -534,7 +547,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-127 tests across 16 files:
+143 tests across 16 files:
 
 | File | What it covers |
 |:---|:---|
