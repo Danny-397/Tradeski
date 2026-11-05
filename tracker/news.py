@@ -134,24 +134,23 @@ def format_news_context(symbol: str, articles: list, agg: Optional[dict] = None)
     if agg is None:
         agg = aggregate_sentiment(articles)
 
-    label_map = {"bullish": "BULLISH", "bearish": "BEARISH", "neutral": "NEUTRAL"}
-    sign      = "+" if agg["score"] >= 0 else ""
-
-    lines = [
-        f"RECENT NEWS SENTIMENT for {symbol} — {datetime.date.today()}:",
-        f"  Aggregate: {label_map[agg['label']]} "
-        f"(score: {sign}{agg['score']:.3f}, n={agg['count']})",
-        f"  {agg['bullish_count']} bullish / "
-        f"{agg['neutral_count']} neutral / "
-        f"{agg['bearish_count']} bearish",
-        "  Top headlines:",
-    ]
-
-    arrow = {"bullish": "↑", "bearish": "↓", "neutral": "→"}
+    # Headlines first: the model reads a headline better than a word-list
+    # score can, so the VADER numbers come last, labelled as a rough hint, and
+    # can no longer anchor the answer.
+    lines = [f"RECENT NEWS for {symbol} (as of {datetime.date.today()}), newest first:"]
     for a in articles[:6]:
-        s = a["sentiment"]
-        lines.append(
-            f"    [{arrow[a['sentiment_label']]} {s:+.2f}] {a['title']}"
+        meta = ", ".join(
+            x for x in (a.get("source"), (a.get("published_at") or "")[:10]) if x
         )
+        lines.append(f"  - {a['title']}" + (f" ({meta})" if meta else ""))
+
+    sign = "+" if agg["score"] >= 0 else ""
+    lines.append(
+        "  Automated headline sentiment (VADER word-list score; a rough hint only, "
+        f"judge the headlines yourself): Aggregate {agg['label']} "
+        f"({sign}{agg['score']:.3f}, n={agg['count']}; "
+        f"{agg['bullish_count']} bullish / {agg['neutral_count']} neutral / "
+        f"{agg['bearish_count']} bearish)"
+    )
 
     return "\n".join(lines)

@@ -1873,6 +1873,8 @@ function buildChartContext() {
     const d = state.chartData;
     if (!d) return null;
     const last = arr => Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null;
+    // The bar before the last: a MACD crossover is a change of histogram sign.
+    const prev = arr => Array.isArray(arr) && arr.length > 1 ? arr[arr.length - 2] : null;
     return {
         symbol:          state.symbol,
         timeframe:       state.timeframe,
@@ -1881,6 +1883,7 @@ function buildChartContext() {
         macd:            last(d.macd),
         macd_signal:     last(d.signal),
         macd_histogram:  last(d.histogram),
+        macd_histogram_prev: prev(d.histogram),
         sma20:           last(d.sma20),
         sma50:           last(d.sma50),
         ema20:           last(d.ema20),

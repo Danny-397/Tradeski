@@ -795,8 +795,16 @@ def _get_news_context(symbol: str) -> str:
 
 def _format_chart_context(ctx: dict) -> str:
     """Format the user's current chart indicator snapshot for Ski."""
-    symbol = ctx.get("symbol", "")
-    tf = ctx.get("timeframe", "")
+    if not isinstance(ctx, dict):
+        return ""
+    # The snapshot comes from the browser: keep only finite numbers, so a
+    # malformed value is dropped instead of crashing the format strings below.
+    ctx = {
+        k: (_finite(v) if k not in ("symbol", "timeframe") else v)
+        for k, v in ctx.items()
+    }
+    symbol = _clean_symbol(ctx.get("symbol")) or ""
+    tf = re.sub(r"[^A-Za-z0-9]", "", str(ctx.get("timeframe") or ""))[:4]
     lines = [f"CURRENT CHART — {symbol} ({tf} timeframe):"]
 
     close = ctx.get("close")
@@ -812,8 +820,7 @@ def _format_chart_context(ctx: dict) -> str:
     signal = ctx.get("macd_signal")
     hist = ctx.get("macd_histogram")
     if macd is not None and signal is not None:
-        direction = "bullish crossover" if hist and hist > 0 else "bearish crossover"
-        lines.append(f"  MACD: {macd:.3f}, Signal: {signal:.3f}, Histogram: {hist:+.3f} ({direction})")
+        lines.append(f"  MACD: {macd:.3f}, Signal: {signal:.3f} ({_macd_state(macd, signal, hist, ctx.get('macd_histogram_prev'))})")
 
     sma20 = ctx.get("sma20")
     sma50 = ctx.get("sma50")
@@ -834,7 +841,37 @@ def _format_chart_context(ctx: dict) -> str:
     if zscore is not None:
         lines.append(f"  Z-Score: {zscore:.2f}")
 
+    vol = ctx.get("volatility")
+    if vol is not None:
+        lines.append(f"  Volatility (standard deviation of the last 20 closes, in dollars): ${vol:.2f}")
+
     return "\n".join(lines)
+
+
+def _finite(value) -> Optional[float]:
+    """Return value as a finite float, or None (bools, strings, NaN and inf included)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        value = float(value)
+    except OverflowError:  # a JSON integer too large for a float, e.g. 10**400
+        return None
+    return value if np.isfinite(value) else None
+
+
+def _macd_state(macd: float, signal: float, hist, hist_prev) -> str:
+    """Describe MACD vs its signal line without calling every bar a crossover.
+
+    A crossover is the bar where the histogram changes sign. Otherwise MACD is
+    simply above or below its signal line, which is a weaker statement.
+    """
+    if hist is None:
+        hist = macd - signal
+    side = "above" if hist > 0 else "below" if hist < 0 else "on"
+    text = f"histogram {hist:+.3f}; MACD {side} its signal line"
+    if hist_prev is not None and hist != 0 and (hist > 0) != (hist_prev > 0):
+        text += ", bullish crossover on the latest bar" if hist > 0 else ", bearish crossover on the latest bar"
+    return text
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1035,7 +1072,8 @@ SECTOR ROTATION AND MICROECONOMIC TRENDS
 - Industrials: PMI, capex cycles, reshoring trends, defense budgets
 - Semiconductors: PC/smartphone/server demand cycles; AI capex buildout (NVDA, AMD, TSM)
 
-MARKET INDICATORS TO WATCH
+MARKET INDICATORS TO WATCH (background knowledge only: Tradeski does NOT feed you any of these readings, \
+so never quote a current value for them unless a web search just returned it)
 - VIX (volatility index): spike above 20 = fear; above 30 = panic; mean-reversion after spikes
 - Put/call ratio: elevated = bearish sentiment / potential contrarian buy
 - Credit spreads (HY, IG): widening = risk-off; compressing = risk-on
@@ -1043,10 +1081,15 @@ MARKET INDICATORS TO WATCH
 - Options flow: unusual call sweeps = institutional bullish positioning
 - Short interest: high short interest + positive catalyst = potential short squeeze
 
-TRADESKI PLATFORM
-- You have access to real-time price data, technical indicators (RSI, MACD, Bollinger Bands, SMA, EMA, ATR, Z-Score, \
-Stochastic, Linear Regression), and alert functionality
-- When relevant, suggest which indicators on the Tradeski dashboard are most useful for the user's question
+WHAT DATA YOU ACTUALLY HAVE
+Only what appears in the sections below this prompt: the macro snapshot (FRED), the user's portfolio, recent \
+headlines for the symbol on their chart, and the latest values of that chart's indicators (close, RSI, MACD, \
+SMA 20/50, EMA 20, Bollinger Bands, Z-Score, volatility). Any section can be missing. Plus web search.
+- Quote a number only if it appears in that data or in a search result you just ran. Never estimate or recall \
+a price, ratio or indicator reading from memory.
+- If the question needs data you don't have (another ticker's chart, options data, VIX, short interest, \
+earnings dates), say so plainly, then use web search or answer conceptually.
+- When relevant, suggest which indicators on the Tradeski dashboard are most useful for the user's question.
 
 PORTFOLIO-AWARE BEHAVIOR
 You have access to the user's actual portfolio — holdings with cost basis and live P&L, each position's WEIGHT (percent \
