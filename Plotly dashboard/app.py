@@ -28,6 +28,8 @@ from cache import SimpleCache
 from tracker import database
 from tracker import auth
 from tracker.fred import get_macro_snapshot, format_macro_context
+from tracker.fred import _fetch_observations as fetch_fred_observations
+from tracker import ski_tools
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
 from tracker.analyzer import (
@@ -1084,11 +1086,21 @@ so never quote a current value for them unless a web search just returned it)
 WHAT DATA YOU ACTUALLY HAVE
 Only what appears in the sections below this prompt: the macro snapshot (FRED), the user's portfolio, recent \
 headlines for the symbol on their chart, and the latest values of that chart's indicators (close, RSI, MACD, \
-SMA 20/50, EMA 20, Bollinger Bands, Z-Score, volatility). Any section can be missing. Plus web search.
-- Quote a number only if it appears in that data or in a search result you just ran. Never estimate or recall \
-a price, ratio or indicator reading from memory.
-- If the question needs data you don't have (another ticker's chart, options data, VIX, short interest, \
-earnings dates), say so plainly, then use web search or answer conceptually.
+SMA 20/50, EMA 20, Bollinger Bands, Z-Score, volatility). Any section can be missing.
+You also have TOOLS. Use them instead of guessing, and call several at once when a question needs several:
+- get_price_summary: returns, 52-week range, volatility and indicator trends for ANY ticker, not only the charted one.
+- get_fundamentals: sector, P/E, market cap for a ticker.
+- get_news: recent headlines for any ticker.
+- get_correlation: how closely tickers move together (diversification questions).
+- portfolio_what_if: the user's weights and risk before and after hypothetical trades ("what if I sold half my TSLA").
+- get_macro_history: the trend of a macro series, not just its latest reading.
+- web_search: for events, earnings dates, people in office, and anything else the tools above don't cover.
+Rules:
+- Quote a number only if it appears in the data below, in a tool result, or in a search result you just ran. Never \
+estimate or recall a price, ratio or indicator reading from memory.
+- Tradeski's tools are the source for prices, indicators and portfolio maths; prefer them to web search for those.
+- If no tool or search can supply what was asked (options flow, VIX, short interest), say so plainly and answer \
+conceptually.
 - When relevant, suggest which indicators on the Tradeski dashboard are most useful for the user's question.
 
 PORTFOLIO-AWARE BEHAVIOR
@@ -1112,6 +1124,125 @@ ANSWER FORMAT (the chat panel renders this as a card):
 - Then the detail as 2 to 5 short bullets, each starting with "- ", or one or two short paragraphs for conceptual questions.
 - Wrap the key figures in **double asterisks**, sparingly. No headings, no tables.
 - Keep the whole answer under about 150 words unless the user asks for more."""
+
+
+# Ski's tools. Code computes every number; the model picks what to look up.
+SKI_MAX_TOOL_ROUNDS = 4
+# Haiku 5.5 takes the basic web search variant (the _20260209 one with
+# dynamic filtering is for Opus/Sonnet).
+_SKI_WEB_SEARCH = {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
+
+
+def _cached_bars(symbol: str, period: str) -> list:
+    """Daily bars for a Ski tool, cached like the chart endpoints."""
+    key = f"ski_bars:{symbol}:{period}"
+    bars = _cache.get(key)
+    if bars is None:
+        bars = get_ohlc_history(symbol, period, "1d")
+        if bars:
+            _cache.set(key, bars, ttl=_CHART_TTL)
+    return bars or []
+
+
+def _cached_macro_history(series_id: str, count: int) -> list:
+    fred_key = os.environ.get("FRED_API_KEY", "")
+    if not fred_key:
+        return []
+    key = f"ski_fred:{series_id}:{count}"
+    obs = _cache.get(key)
+    if obs is None:
+        obs = fetch_fred_observations(series_id, fred_key, limit=count)
+        if obs:
+            _cache.set(key, obs, ttl=_FRED_TTL)
+    return obs or []
+
+
+def _ski_data(user_id: Optional[int], sample: Optional[list]) -> ski_tools.SkiData:
+    """The data Ski's tools read, scoped to this user (or the signed-out sample)."""
+    def holdings() -> list:
+        if user_id is not None:
+            return database.get_portfolio(user_id)
+        return list(sample or [])
+
+    def risk(raw: list) -> tuple:
+        return _compute_portfolio_risk([_enrich_holding(h) for h in raw])
+
+    return ski_tools.SkiData(
+        bars=_cached_bars,
+        fundamentals=_fetch_screener_row,
+        news=_fetch_cached_news,
+        macro_history=_cached_macro_history,
+        holdings=holdings,
+        risk=risk,
+    )
+
+
+def _reply_text(response) -> str:
+    # With tools the response holds several blocks (thinking, searches,
+    # results, answer); the reply is the concatenation of the text blocks.
+    return "".join(
+        getattr(b, "text", "") for b in response.content
+        if getattr(b, "type", None) == "text"
+    ).strip()
+
+
+def _run_ski(client, system_prompt: str, messages: list, data: ski_tools.SkiData) -> dict:
+    """Ask Ski, running its tool calls until it answers (at most SKI_MAX_TOOL_ROUNDS rounds).
+
+    Returns {"reply", "tools_used", "tool_outputs"}; tool_outputs are kept for
+    checking the reply's numbers against what the tools actually returned.
+    """
+    messages = list(messages)
+    first_turn = len(messages)
+    # If the account or model rejects a tool feature, fall back step by step
+    # (drop web search, then all tools) rather than failing the chat outright.
+    tool_sets = [[_SKI_WEB_SEARCH, *ski_tools.TOOLS], list(ski_tools.TOOLS), []]
+    tools_used: list = []
+    outputs: list = []
+    response = None
+
+    for round_no in range(SKI_MAX_TOOL_ROUNDS + 1):
+        while True:
+            kwargs = dict(model=SKI_MODEL, max_tokens=4096, output_config=SKI_EFFORT,
+                          system=system_prompt, messages=messages)
+            if tool_sets[0]:
+                kwargs["tools"] = tool_sets[0]
+                if round_no == SKI_MAX_TOOL_ROUNDS:
+                    kwargs["tool_choice"] = {"type": "none"}  # out of rounds: answer now
+            try:
+                response = client.messages.create(**kwargs)
+                break
+            except (anthropic.BadRequestError, anthropic.PermissionDeniedError):
+                if len(messages) != first_turn or len(tool_sets) == 1:
+                    raise
+                app.logger.warning("Ski request rejected with tools %s; retrying with fewer",
+                                   [t["name"] for t in tool_sets[0]])
+                tool_sets.pop(0)
+
+        # A safety classifier can decline a request: HTTP 200 with no answer text.
+        if response.stop_reason == "refusal":
+            return {"reply": SKI_REFUSAL, "tools_used": tools_used, "tool_outputs": outputs}
+
+        if response.stop_reason == "pause_turn":
+            # A long server-side web search paused; send it back to resume.
+            messages.append({"role": "assistant", "content": response.content})
+            continue
+
+        calls = [b for b in response.content if getattr(b, "type", None) == "tool_use"]
+        if response.stop_reason != "tool_use" or not calls:
+            break
+
+        messages.append({"role": "assistant", "content": response.content})
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(
+                lambda b: ski_tools.tool_result_block(b.id, b.name, b.input, data), calls))
+        # Every result goes back in one user message, as the API expects.
+        messages.append({"role": "user", "content": [block for block, _ in results]})
+        tools_used += [b.name for b in calls]
+        outputs += [out for _, out in results if out is not None]
+
+    reply = _reply_text(response) or "Sorry, I couldn't generate a response just now — try again."
+    return {"reply": reply, "tools_used": tools_used, "tool_outputs": outputs}
 
 
 @app.route("/chat", methods=["POST"])
@@ -1180,42 +1311,8 @@ def chat() -> tuple:
     try:
         client = anthropic.Anthropic(api_key=api_key)
         system_prompt = "\n\n".join(system_parts)
-
-        def _ask(use_web_search: bool):
-            kwargs = dict(
-                model=SKI_MODEL,
-                max_tokens=4096,
-                output_config=SKI_EFFORT,
-                system=system_prompt,
-                messages=messages,
-            )
-            if use_web_search:
-                # Server-side web search so Ski can pull current facts
-                # (Fed chair, latest data, news) instead of stale memory.
-                kwargs["tools"] = [{
-                    "type": "web_search_20250305",
-                    "name": "web_search",
-                    "max_uses": 5,
-                }]
-            return client.messages.create(**kwargs)
-
-        try:
-            response = _ask(True)
-        except (anthropic.BadRequestError, anthropic.PermissionDeniedError):
-            # Web search not enabled for this account/model — answer without it.
-            response = _ask(False)
-
-        # A safety classifier can decline a request: HTTP 200 with no answer text.
-        if response.stop_reason == "refusal":
-            return jsonify({"reply": SKI_REFUSAL})
-
-        # With web search the response holds several blocks (search calls +
-        # results + answer); the reply is the concatenation of the text blocks.
-        reply = "".join(
-            getattr(b, "text", "") for b in response.content
-            if getattr(b, "type", None) == "text"
-        ).strip() or "Sorry, I couldn't generate a response just now — try again."
-        return jsonify({"reply": reply})
+        result = _run_ski(client, system_prompt, messages, _ski_data(user_id, sample))
+        return jsonify({"reply": result["reply"], "tools_used": result["tools_used"]})
     except anthropic.RateLimitError:
         return jsonify({"error": "Ski is at capacity — I've hit my hourly AI quota. Try again in a few minutes."}), 429
     except anthropic.APIStatusError as exc:
