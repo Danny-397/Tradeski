@@ -19,9 +19,10 @@ This report describes the architecture as built, the decisions worth defending, 
 | | |
 |---|---|
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 25 HTTP endpoints |
-| Frontend | Static HTML/CSS/JS, ~6,100 lines (`dashboard.js` alone is 2,687), Plotly.js, no framework and no build step |
+| Frontend | Static HTML/CSS/JS, ~6,100 lines (`dashboard.js` alone is 2,690), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 121, across 16 files, run in GitHub Actions with flake8 |
+| Tests | 164, across 20 files, run in GitHub Actions with flake8 |
+| Assistant | Claude Haiku 5.5 with 6 Tradeski tools + web search, a figure-grounding check, and a 19-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
 ---
@@ -162,6 +163,11 @@ not fitted values, and there is no labeled financial-headline set here measuring
 the extended lexicon actually beats the default. It plainly fixes the specific failures
 above; the general claim is untested, and §9 says so.
 
+That is also why the assistant (§7) no longer leads with the score. It is shown each headline
+with its source and date, and the VADER aggregate comes last, labelled as a rough hint: a
+language model reading "Tesla deliveries fall short of estimates" judges it better than a
+word list does, and putting the score first anchored its answers to the score.
+
 ---
 
 ## 6. Security
@@ -177,24 +183,57 @@ explicit origin allowlist from the environment rather than a wildcard.
 
 ## 7. The assistant, and what "grounded" means
 
-The dashboard includes Ski, a Q&A assistant backed by Claude. The engineering that makes it
-useful is not the prompt; it is what goes into the context window before the prompt.
+The dashboard includes Ski, a Q&A assistant backed by Claude Haiku 5.5. The engineering that
+makes it useful is not the prompt. It is what the model is given, what it can look up, and
+whether anyone checks what it says.
 
 A general financial chatbot can explain what a P/E ratio is. That is worth very little
 inside a dashboard, because the user is looking at their own screen and their question is
-about *their* position. So each request assembles a context block first: the user's current
-holdings with market values, the live macro snapshot from FRED, and the scored news
-headlines for the relevant symbols — each formatted by a dedicated `format_*_context`
-function. Only then is the model called.
+about *their* position. So each request starts with a context block: the user's holdings with
+weights, P&L and risk metrics, the live FRED snapshot, recent headlines for the charted
+symbol, and the chart's latest indicator values.
 
-The result is that "am I overexposed to tech?" is answered against the user's actual
-allocation. The model is doing language work; the application is doing the retrieval.
+**The first version stopped there, and that made it a wrapper.** Everything Ski knew was one
+paste of text. Asked about NVDA while viewing AAPL, it had no NVDA data at all. It saw
+"RSI 64" with no way to tell whether that was rising or falling. Worse, the prompt claimed
+data it never received (ATR, stochastic, alerts) and taught it to read VIX and options flow
+that were never supplied, which invites invented numbers. It also called MACD a "bullish
+crossover" whenever MACD sat above its signal line, which is wrong: a crossover is the bar
+where the histogram changes sign.
+
+**Now the model decides what to look up, and code computes every number**
+([`ski_tools.py`](../tracker/ski_tools.py)). Ski has six tools built on the same cached
+fetchers and hand-written indicators as the dashboard:
+- a price summary for any ticker (returns, distance from the 52-week range, realised
+  volatility, and indicators now and five days ago)
+- fundamentals and headlines for any ticker
+- return correlation aligned on common trading days
+- a what-if that recomputes weights, Sharpe, beta and volatility after hypothetical trades
+- the recent history of a FRED series
+
+Web search covers what the tools don't. The loop allows at most four rounds of tool calls,
+then requires an answer. If the API rejects a tool feature, the loop drops web search, then
+all tools, rather than failing the chat.
+
+**Grounding is checked, not assumed** ([`ski_grounding.py`](../tracker/ski_grounding.py)).
+After each answer, every figure in the reply is matched, at the reply's own rounding, against
+the numbers Ski was actually shown. A figure that matches nothing is either invented or
+calculated by the model itself, and is logged. This is a heuristic. It skips counts, dates
+and indicator lengths, and it needed a rule for textbook levels: the first live answer was
+flagged for "70" in "approaching overbought (typically 70+)", which is a rule of thumb, not
+data. For now it only logs.
+
+**Quality is meant to be measured, not asserted.** `tests/ski_eval/` asks 19 questions
+through the real endpoint against fixed fixture data, in three groups: lookups, portfolio
+risk, and honesty traps (put/call ratio, short interest, tomorrow's close). Grading is
+deterministic, with no model judging. As of this writing the eval has not been run against
+the live model, so there is no score to report; §9 says so.
 
 ---
 
 ## 8. Testing
 
-164 tests across 16 files run on every push through GitHub Actions, alongside flake8 linting.
+164 tests across 20 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -238,6 +277,12 @@ direction that changes with the rate environment.
 **Sentiment is unvalidated.** See §5. The lexicon extension is a fix for named failures,
 not a measured improvement.
 
+**The assistant's quality is unmeasured.** The eval in §7 exists and its harness is tested
+end to end with a scripted model, but it has not yet been run against the real one. Until it
+is, "Ski answers better with tools" is a design argument, not a result. The grounding check
+is a heuristic too: an invented figure that happens to equal a number in the data, or a
+textbook level, gets through it.
+
 **There is no backtesting and no strategy evaluation.** Tradeski shows you the present. The
 question of whether any indicator on the screen predicts anything is deliberately out of
 scope here — that question is the entire subject of
@@ -264,3 +309,7 @@ risk-free rate from FRED. Delete `tracker/main.py`. Either validate the sentimen
 against a labeled set or relabel the panel as a heuristic. And either give the regression
 forecast an honest error estimate or remove it — of everything on the dashboard it is the
 element that most looks like a claim and least is one.
+
+For the assistant, I would have written the eval before the first prompt rather than after
+the feature shipped. Until then, Ski was judged by reading answers and deciding they looked
+right, and that is how a prompt claiming data it never received went unnoticed.
