@@ -10,6 +10,10 @@ name: Refresh demo snapshot
 # free instance-hours the Render services share. If the capture fails (Yahoo
 # rate-limits, a provider is down) the script refuses to write and the previous
 # snapshot stays. The commit redeploys the frontend through Vercel's GitHub app.
+#
+# The same run records each ticker's at-the-money implied volatility in
+# frontend/data/iv_history.json, because no free source has IV history; the
+# Options window ranks today's IV against it.
 
 on:
   schedule:
@@ -56,9 +60,10 @@ jobs:
 
       - name: Commit if the data changed
         run: |
-          git diff --quiet -- frontend/demo-snapshot.js && { echo "No change."; exit 0; }
+          git add frontend/demo-snapshot.js
+          [ -f frontend/data/iv_history.json ] && git add frontend/data/iv_history.json
+          git diff --cached --quiet && { echo "No change."; exit 0; }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/demo-snapshot.js
           git commit -m "Refresh demo snapshot ($(date -u +%Y-%m-%d))"
           git push

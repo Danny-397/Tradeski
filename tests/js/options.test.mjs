@@ -28,8 +28,8 @@ function load(names) {
 }
 
 const plain = (v) => JSON.parse(JSON.stringify(v));
-const { optChainRows, optPasses, optMoney, optPct, optLegText, optNum } =
-    load(["optNum", "optPasses", "optChainRows", "optMoney", "optPct", "optLegText"]);
+const { optChainRows, optPasses, optMoney, optPct, optLegText, optNum, optIvRank } =
+    load(["optNum", "optPasses", "optChainRows", "optMoney", "optPct", "optLegText", "optIvRank"]);
 
 const NO_FILTERS = { windowPct: null, side: "both", deltaMin: null, deltaMax: null,
                      minOi: null, minVol: null, maxSpread: null };
@@ -85,6 +85,26 @@ test("money and percent formatting", () => {
     assert.equal(optMoney(null), "—");
     assert.equal(optPct(0.2646), "26.5%");
     assert.equal(optPct(0.71, 0), "71%");
+});
+
+test("IV percentile ranks today against earlier readings only", () => {
+    const rows = [];
+    for (let i = 0; i < 25; i++) rows.push([`2026-10-${String(i + 1).padStart(2, "0")}`, 0.20 + i * 0.01, 30]);
+    rows.push(["2026-11-06", 0.99, 30]);                         // today's own reading: ignored
+    const r = optIvRank(rows, 0.30, "2026-11-06", 20);
+    assert.equal(r.n, 25);
+    assert.equal(r.since, "2026-10-01");
+    assert.equal(r.pct, 40);                                      // 0.20 .. 0.29 are below 0.30
+    assert.equal(r.low, 0.2);
+    assert.ok(Math.abs(r.high - 0.44) < 1e-9);
+});
+
+test("IV percentile waits for enough history", () => {
+    const r = optIvRank([["2026-11-03", 0.25, 30], ["2026-11-04", 0.27, 30]], 0.3, "2026-11-06", 20);
+    assert.equal(r.n, 2);
+    assert.equal(r.pct, null);
+    assert.equal(optIvRank(null, 0.3, "2026-11-06", 20).n, 0);
+    assert.equal(optIvRank([["2026-11-03", 0.25, 30]], undefined, "2026-11-06", 20).pct, null);
 });
 
 test("leg descriptions for Ski", () => {

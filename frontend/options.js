@@ -13,6 +13,8 @@ const OPT_PRESETS = [
 ];
 
 const OPT_SCAN_DEFAULT = "AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, JPM, SPY, QQQ";
+// Fewer daily readings than this and a percentile says more about the sample than the stock.
+const OPT_IV_MIN_DAYS = 20;
 
 const optState = {
     symbol: null,
@@ -27,6 +29,7 @@ const optState = {
     scan: null,
     scanSort: { col: "annualized_pct", dir: -1 },
     reqId: 0,
+    ivHistory: undefined,   // undefined = not loaded yet, null = unavailable
 };
 
 // ---------- pure helpers (unit-tested in tests/js/options.test.mjs) ----------
@@ -84,6 +87,21 @@ function optPct(v, digits) {
     return v === null || v === undefined ? "—" : `${(v * 100).toFixed(digits === undefined ? 1 : digits)}%`;
 }
 
+// Where today's ATM IV sits among the recorded daily readings (rows of
+// [date, iv, dte], from frontend/data/iv_history.json). Readings dated
+// ``today`` are left out so today isn't ranked against itself. pct is null
+// until there are OPT_IV_MIN_DAYS readings.
+function optIvRank(rows, current, today, minDays) {
+    const past = (rows || []).filter(r => r[0] !== today && Number.isFinite(r[1]));
+    const out = { n: past.length, since: past.length ? past[0][0] : null, pct: null, low: null, high: null };
+    if (!past.length || !Number.isFinite(current)) return out;
+    const ivs = past.map(r => r[1]);
+    out.low = Math.min(...ivs);
+    out.high = Math.max(...ivs);
+    if (past.length >= minDays) out.pct = Math.round(ivs.filter(v => v < current).length / ivs.length * 100);
+    return out;
+}
+
 // "Buy 1 AAPL 350 call" etc., for the Ski prompt and leg list.
 function optLegText(leg, symbol) {
     const n = Math.abs(leg.qty);
@@ -93,6 +111,11 @@ function optLegText(leg, symbol) {
 }
 
 // ---------- data ----------
+
+// True when demo-mode.js is replaying the offline snapshot.
+function optOffline() {
+    return !!(window.TRADESKI_DEMO_MODE || window.TRADESKI_OFFLINE);
+}
 
 async function optFetch(path, body) {
     const res = await fetch(`${CFG.API}${path}`, body ? {
@@ -278,10 +301,42 @@ async function optLoadChain(expiry) {
     }
 }
 
+// The recorded IV history is a static file deployed with the site, so reading
+// it costs the backend nothing.
+async function optLoadIvHistory() {
+    if (optState.ivHistory !== undefined) return;
+    try {
+        const res = await fetch("/data/iv_history.json", { cache: "no-cache" });
+        optState.ivHistory = res.ok ? await res.json() : null;
+    } catch (_) {
+        optState.ivHistory = null;
+    }
+    if (optState.chain) optRenderSummary();
+}
+
+function optIvRankStat(c) {
+    const h = optState.ivHistory;
+    const rows = h && h.symbols ? h.symbols[c.symbol || optState.symbol] : null;
+    if (!rows || !c.atm_iv) return "";
+    const today = new Date().toISOString().slice(0, 10);
+    const r = optIvRank(rows, c.atm_iv, today, OPT_IV_MIN_DAYS);
+    if (!r.n) return "";
+    const range = `between ${optPct(r.low)} and ${optPct(r.high)}`;
+    if (r.pct === null) {
+        return `<div class="opt-stat" title="Tradeski records the ATM IV after each close; a percentile needs ${OPT_IV_MIN_DAYS} days">
+            <span class="opt-stat-label">IV percentile</span>
+            <span class="opt-stat-val opt-dim">${r.n} of ${OPT_IV_MIN_DAYS} days recorded</span></div>`;
+    }
+    return `<div class="opt-stat" title="Share of the ${r.n} daily readings since ${r.since} below today's ATM IV (they ranged ${range}). A short history, not a full year.">
+        <span class="opt-stat-label">IV percentile (${r.n}d)</span>
+        <span class="opt-stat-val">${r.pct}th</span></div>`;
+}
+
 function optRenderSummary() {
     const c = optState.chain;
     const el = document.getElementById("opt-summary");
     if (!c) { el.innerHTML = ""; return; }
+    optLoadIvHistory();
     const movePct = c.expected_move ? (c.expected_move / c.spot * 100).toFixed(1) : null;
     const ivVsHv = c.atm_iv && c.realized_vol_30d
         ? (c.atm_iv > c.realized_vol_30d * 1.15 ? "above" : c.atm_iv < c.realized_vol_30d * 0.85 ? "below" : "close to")
@@ -300,6 +355,7 @@ function optRenderSummary() {
         <div class="opt-stat" title="Put volume ÷ call volume, and put open interest ÷ call open interest">
             <span class="opt-stat-label">Put/call (vol · OI)</span>
             <span class="opt-stat-val">${c.put_call_volume ?? "—"} · ${c.put_call_oi ?? "—"}</span></div>
+        ${optIvRankStat(c)}
         <p class="opt-note">${ivVsHv ? `Options are pricing volatility ${ivVsHv} what the stock has actually done lately. ` : ""}
             Quotes are delayed about 15 minutes${closed ? "; the market is closed, so these are the last session's" : ""}.
             IV and Greeks are computed from each bid/ask midpoint with Black-Scholes, at a ${optPct(c.rate, 2)}
@@ -425,7 +481,9 @@ async function optAnalyze(extra) {
         document.getElementById("opt-strategy-msg").textContent = "";
     } catch (e) {
         if (id !== optState.reqId) return;
-        document.getElementById("opt-strategy-msg").textContent = e.message;
+        document.getElementById("opt-strategy-msg").textContent = optOffline()
+            ? "The strategy builder needs the live backend, which is asleep right now. The chain is from the offline snapshot."
+            : e.message;
     }
     optRenderStrategy();
 }
@@ -583,7 +641,9 @@ async function optRunScan() {
         optState.scan = await optFetch(`/options/scan?${params}`);
         optRenderScan();
     } catch (e) {
-        body.innerHTML = `<tr><td colspan="11" class="feed-empty">Scan failed: ${escapeHtml(e.message)}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="11" class="feed-empty">${optOffline()
+            ? "The scanner needs the live backend, which is asleep right now."
+            : `Scan failed: ${escapeHtml(e.message)}`}</td></tr>`;
     }
 }
 

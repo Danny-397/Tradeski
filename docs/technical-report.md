@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,700), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 226, across 22 files, run in GitHub Actions with flake8 |
+| Tests | 227, across 22 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -277,7 +277,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-226 tests across 22 files run on every push through GitHub Actions, alongside flake8 linting.
+227 tests across 22 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -336,9 +336,10 @@ three-month Treasury bill yield would be the textbook choice.
 equity options are American, so values are approximate where early exercise matters: deep
 in-the-money puts, and calls just before an ex-dividend date. Quotes are delayed about 15
 minutes and priced at the midpoint, and real fills are usually worse. The builder reports
-what crossing the spread would cost, but no slippage beyond that. There is no IV history
-yet, so "is IV high?" is answered against the stock's own realised volatility, not as an
-IV rank.
+what crossing the spread would cost, but no slippage beyond that. No free source has IV
+history, so Tradeski records its own after each close, starting 2026-11-06. For the first
+20 trading days there is no percentile at all, and for the first year it covers less than a
+year, so it is labelled with its length rather than called an IV rank.
 
 **Sentiment is unvalidated, and is now labelled that way.** See §5. The lexicon extension is
 a fix for named failures, not a measured improvement, so the news panel shows "Headline
