@@ -4,7 +4,8 @@ Talks to a locally-running Tradeski backend for market data, and to FRED's
 public CSV endpoint for the macro strip (the backend route needs an API key
 that is not configured locally, but the underlying series are public).
 
-Writes frontend/demo-snapshot.js.
+Writes frontend/demo-snapshot.js, and appends today's at-the-money implied
+volatility for each ticker to frontend/data/iv_history.json (see record_iv).
 """
 import csv
 import datetime as dt
@@ -16,6 +17,8 @@ import urllib.request
 
 BACKEND = os.environ.get("TRADESKI_BACKEND", "http://127.0.0.1:8811")
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "demo-snapshot.js")
+IV_OUT = os.path.join(os.path.dirname(OUT), "data", "iv_history.json")
+IV_TARGET_DTE = 30          # the expiry nearest a month out, like most IV indices
 
 TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
 TIMEFRAMES = ["1D", "5D", "1M", "3M", "6M", "1Y"]
@@ -102,6 +105,74 @@ def build_macro():
     return out
 
 
+def nearest_expiry(expirations, target):
+    """The expiry whose days-to-expiry is closest to ``target`` (None if there are none)."""
+    return min(expirations, key=lambda e: abs(e["dte"] - target))["date"] if expirations else None
+
+
+def merge_iv(history, day, readings):
+    """Add one day's {symbol: {iv, expiry, dte}} to history, replacing a rerun of the same day.
+
+    history is {"symbols": {SYM: [[date, iv, dte], ...]}} with dates ascending.
+    """
+    symbols = history.setdefault("symbols", {})
+    for sym, r in readings.items():
+        rows = [row for row in symbols.get(sym, []) if row[0] != day]
+        rows.append([day, round(r["iv"], 4), r["dte"]])
+        symbols[sym] = sorted(rows)
+    history["updated"] = day
+    return history
+
+
+def record_iv(endpoints):
+    """Today's ATM implied vol at about 30 days, per ticker, into iv_history.json.
+
+    Tradeski has no source for IV history, so it keeps its own: one reading a
+    trading day from the day this started. The Options window shows where
+    today's IV sits in that history once there are enough days to mean
+    anything. Also stores the default symbol's chain in the snapshot, so the
+    offline demo can show it.
+    """
+    print("options (ATM IV at ~%d days):" % IV_TARGET_DTE)
+    readings = {}
+    for s in TICKER_SYMS:
+        try:
+            exp = get_json("/options/expirations?symbol=%s" % s)
+            expiry = nearest_expiry(exp.get("expirations") or [], IV_TARGET_DTE)
+            if not expiry:
+                print("  %-6s no listed options" % s)
+                continue
+            path = "/options/chain?symbol=%s&expiry=%s" % (s, expiry)
+            chain = get_json(path)
+            if s == DEFAULT_SYM:
+                # The offline Options window opens on the backend's default expiry.
+                endpoints["/options/expirations?symbol=%s" % s] = exp
+                endpoints[path] = chain
+                if exp.get("default") and exp["default"] != expiry:
+                    key = "/options/chain?symbol=%s&expiry=%s" % (s, exp["default"])
+                    endpoints[key] = get_json(key)
+            if chain.get("atm_iv"):
+                readings[s] = {"iv": chain["atm_iv"], "dte": chain["dte"]}
+                print("  %-6s %s  IV %.1f%%" % (s, expiry, chain["atm_iv"] * 100))
+        except Exception as e:  # noqa: BLE001
+            print("  %-6s FAILED %s" % (s, e))
+    if not readings:
+        return
+    try:
+        with io.open(IV_OUT, encoding="utf-8") as f:
+            history = json.load(f)
+    except (OSError, ValueError):
+        history = {"note": "At-the-money implied volatility of the expiry nearest 30 days out, recorded by "
+                           "scripts/capture_snapshot.py after each US close. Rows are [date, iv, days to expiry]."}
+    day = dt.datetime.now(dt.timezone.utc).date().isoformat()
+    merge_iv(history, day, readings)
+    os.makedirs(os.path.dirname(IV_OUT), exist_ok=True)
+    with io.open(IV_OUT, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(history, f, separators=(",", ":"), sort_keys=True)
+        f.write("\n")
+    print("  wrote %s (%d symbols)" % (IV_OUT, len(readings)))
+
+
 def main():
     endpoints = {}
 
@@ -131,6 +202,8 @@ def main():
             print("  %s ok" % path)
         except Exception as e:  # noqa: BLE001
             print("  %s FAILED %s" % (path, e))
+
+    record_iv(endpoints)
 
     print("macro (FRED public CSV):")
     endpoints["/macro"] = build_macro()

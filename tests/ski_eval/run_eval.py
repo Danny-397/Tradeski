@@ -2,13 +2,13 @@
 
     ANTHROPIC_API_KEY=... python tests/ski_eval/run_eval.py [--only ID ...] [--repeat N]
 
-Every data source (prices, fundamentals, news, FRED, portfolio pricing) is
+Every data source (prices, fundamentals, news, FRED, option chains, portfolio pricing) is
 replaced with deterministic fixtures, so a score change comes from Ski, not
 the market. Requests go through the real /chat endpoint via Flask's test
 client, so the prompt, tool loop and grounding check are the production code.
 Web search, when Ski uses it, is real.
 
-Cost: about 21 questions x 1 to 3 model calls on Claude Haiku 5.5, which is
+Cost: about 23 questions x 1 to 3 model calls on Claude Haiku 5.5, which is
 roughly $0.01 to $0.05 a run plus $0.01 per web search Ski chooses to run.
 Results are written to tests/ski_eval/results/ (gitignored).
 """
@@ -129,6 +129,41 @@ def chart_context() -> dict:
             "volatility": volatility(closes)[-1]}
 
 
+def fixture_expirations(symbol: str) -> list:
+    """Five expiries, one week to two months out, for any symbol with fixture prices."""
+    if symbol not in _SHAPES:
+        return []
+    today = datetime.date.today()
+    return [(today + datetime.timedelta(days=d)).isoformat() for d in (7, 14, 28, 35, 63)]
+
+
+def fixture_option_chain(symbol: str, expiry: str):
+    """A chain priced with Black-Scholes at a skewed volatility (puts dearer, as in
+    real markets), with put volume and open interest about 1.3x the calls'."""
+    from tracker import options as opt
+    if symbol not in _SHAPES:
+        return None
+    spot = fixture_bars(symbol)[-1]["close"]
+    base_vol = _SHAPES[symbol][2] * math.sqrt(252) + 0.05
+    T = max(opt.year_fraction(expiry), 1 / 365)
+    step = max(round(spot * 0.025, 0), 1.0)
+    rows = {"calls": [], "puts": []}
+    for i in range(-12, 13):
+        K = round(spot / step) * step + i * step
+        sigma = base_vol * (1 + 0.8 * max(0.0, 1 - K / spot))
+        weight = math.exp(-((K / spot - 1) / 0.06) ** 2)
+        for kind, mult in (("call", 1.0), ("put", 1.3)):
+            p = opt.bs_price(kind, spot, K, T, 0.04, sigma)
+            half = max(0.02, p * 0.02)
+            rows[kind + "s"].append({
+                "contractSymbol": f"{symbol}{expiry}{kind[0].upper()}{K:g}", "strike": K,
+                "bid": round(max(p - half, 0.0), 2), "ask": round(p + half, 2), "lastPrice": round(p, 2),
+                "volume": int(2000 * weight * mult), "openInterest": int(9000 * weight * mult) + 50,
+                "impliedVolatility": sigma,
+            })
+    return {"symbol": symbol, "spot": spot, "dividend_yield": 0.0, "market_state": "REGULAR", **rows}
+
+
 def install_fixtures(set_attr=setattr):
     """Point every data source in app.py at the fixtures.
 
@@ -147,6 +182,8 @@ def install_fixtures(set_attr=setattr):
     set_attr(app, "_cached_filings", fixture_filings)
     set_attr(app, "_fetch_cached_news", fixture_news)
     set_attr(app, "fetch_fred_observations", fixture_fred)
+    set_attr(app, "get_option_expirations", fixture_expirations)
+    set_attr(app, "get_option_chain", fixture_option_chain)
     set_attr(app, "_get_macro_context", lambda: MACRO_CONTEXT)
     return app
 

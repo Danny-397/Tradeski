@@ -31,8 +31,10 @@ from tracker import auth
 from tracker.fred import get_macro_snapshot, format_macro_context
 from tracker.fred import _fetch_observations as fetch_fred_observations
 from tracker import ski_tools, ski_grounding, sec_fundamentals, alert_eval
+from tracker import options as opt
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
+from tracker.price_fetcher import get_option_expirations, get_option_chain
 from tracker.analyzer import (
     sma,
     ema,
@@ -94,6 +96,7 @@ _CHART_TTL    = 300    # price history / stats cache: 5 minutes
 _NEWS_TTL     = 1800   # news + sentiment cache: 30 minutes
 _SCREENER_TTL = 600    # screener fundamentals cache: 10 minutes
 _CORR_TTL     = 3600  # correlation matrix cache: 1 hour
+_OPTIONS_TTL  = 300   # option chains: 5 minutes (quotes are delayed anyway)
 
 _CORR_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
 
@@ -989,6 +992,174 @@ def _fill_from_filings(rows: list) -> list:
 
 
 # ─────────────────────────────────────────────────────────────
+# Options: chain, strategy builder, scanner
+# ─────────────────────────────────────────────────────────────
+
+_OPTIONS_SCAN_MAX = 10
+_DEFAULT_RATE = 0.04
+
+
+def _options_rate() -> tuple:
+    """(annual rate, where it came from): the 3-month Treasury yield from FRED.
+
+    Options are priced off the short Treasury rate; the portfolio Sharpe ratio
+    uses fed funds (_risk_free_rate below).
+    """
+    obs = _cached_macro_history("DGS3MO", 1)
+    try:
+        return float(obs[0]["value"]) / 100.0, "the 3-month Treasury yield, from FRED"
+    except (IndexError, KeyError, TypeError, ValueError):
+        return _DEFAULT_RATE, "an assumed rate: FRED was unavailable"
+
+
+def _cached_expiries(symbol: str) -> list:
+    """Future expiries only: one that closed today can no longer be priced."""
+    key = f"opt_exp:{symbol}"
+    exp = _cache.get(key)
+    if exp is None:
+        exp = get_option_expirations(symbol)
+        _cache.set(key, exp, ttl=_OPTIONS_TTL)
+    return [e for e in exp if opt.year_fraction(e) > 0]
+
+
+def _cached_chain(symbol: str, expiry: str) -> Optional[dict]:
+    """A cleaned chain (IV and Greeks computed here), cached for five minutes."""
+    key = f"opt_chain:{symbol}:{expiry}"
+    chain = _cache.get(key)
+    if chain is None:
+        raw = get_option_chain(symbol, expiry)
+        if not raw:
+            return None
+        rate, rate_source = _options_rate()
+        chain = opt.clean_chain(raw, expiry, rate)
+        chain["rate_source"] = rate_source
+        closes = [b["close"] for b in _cached_bars(symbol, "3mo")]
+        hv = opt.realized_vol(closes, 30)
+        chain["realized_vol_30d"] = round(hv, 4) if hv else None
+        chain["as_of"] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+        _cache.set(key, chain, ttl=_OPTIONS_TTL)
+    return chain
+
+
+def _chain_for_dte(symbol: str, target_dte: int) -> Optional[dict]:
+    """The chain whose expiry is nearest ``target_dte`` days out (for Ski)."""
+    expiries = _cached_expiries(symbol)
+    if not expiries:
+        return None
+    expiry = min(expiries, key=lambda e: abs(opt.days_to_expiry(e) - target_dte))
+    return _cached_chain(symbol, expiry)
+
+
+def _option_args(body: dict) -> tuple:
+    """(symbol, expiry, error response) from the JSON body or query string.
+
+    An unknown or missing expiry falls back to the one nearest 20-60 days out.
+    """
+    sym = _clean_symbol(body.get("symbol") or request.args.get("symbol"))
+    if not sym:
+        return None, None, (jsonify({"error": "symbol is required"}), 400)
+    expiries = _cached_expiries(sym)
+    if not expiries:
+        return sym, None, (jsonify({"error": f"no listed options found for {sym}"}), 404)
+    expiry = body.get("expiry") or request.args.get("expiry") or ""
+    if expiry not in expiries:
+        expiry = opt.pick_expiry(expiries, 20, 60) or expiries[0]
+    return sym, expiry, None
+
+
+def _chain_error(sym: str, expiry: str) -> tuple:
+    return jsonify({"error": f"could not load the {sym} {expiry} chain; try again shortly"}), 502
+
+
+@app.route("/options/expirations")
+def options_expirations() -> tuple:
+    sym = _clean_symbol(request.args.get("symbol"))
+    if not sym:
+        return jsonify({"error": "symbol is required"}), 400
+    expiries = _cached_expiries(sym)
+    return jsonify({
+        "symbol": sym,
+        "expirations": [{"date": e, "dte": opt.days_to_expiry(e)} for e in expiries],
+        "default": opt.pick_expiry(expiries, 20, 60) or (expiries[0] if expiries else None),
+    })
+
+
+@app.route("/options/chain")
+@limiter.limit("60 per minute")
+def options_chain() -> tuple:
+    sym, expiry, err = _option_args({})
+    if err:
+        return err
+    chain = _cached_chain(sym, expiry)
+    return jsonify(chain) if chain else _chain_error(sym, expiry)
+
+
+@app.route("/options/strategy", methods=["POST"])
+@limiter.limit("60 per minute")
+def options_strategy() -> tuple:
+    """Build a strategy from a preset, or price user-chosen legs, and analyse it."""
+    body = request.get_json(silent=True) or {}
+    sym, expiry, err = _option_args(body)
+    if err:
+        return err
+    chain = _cached_chain(sym, expiry)
+    if not chain:
+        return _chain_error(sym, expiry)
+    try:
+        if body.get("legs"):
+            legs = opt.legs_from_request(body["legs"], chain)
+        else:
+            legs = opt.build_preset(str(body.get("preset") or ""), chain)
+        days = body.get("days_forward")
+        days = float(days) if isinstance(days, (int, float)) and not isinstance(days, bool) else None
+        result = opt.analyze(legs, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
+                             sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    result.update({"symbol": sym, "expiry": expiry, "dte": chain["dte"], "spot": chain["spot"],
+                   "atm_iv": chain["atm_iv"], "market_state": chain.get("market_state")})
+    return jsonify(result)
+
+
+@app.route("/options/scan")
+@limiter.limit("10 per minute")
+def options_scan() -> tuple:
+    """Best cash-secured put or covered call per symbol, under the given filters."""
+    kind = request.args.get("kind", "cash_secured_put")
+    if kind not in opt.SCAN_KINDS:
+        return jsonify({"error": f"kind must be one of {', '.join(opt.SCAN_KINDS)}"}), 400
+    raw = request.args.get("symbols", "")
+    syms = [s for s in dict.fromkeys(_clean_symbol(x) for x in raw.split(",")) if s][:_OPTIONS_SCAN_MAX]
+    if not syms:
+        return jsonify({"error": "give one or more symbols, comma separated"}), 400
+
+    def num(name, default, lo, hi):
+        try:
+            return max(lo, min(hi, float(request.args.get(name, default))))
+        except (TypeError, ValueError):
+            return default
+
+    min_dte, max_dte = int(num("min_dte", 20, 0, 365)), int(num("max_dte", 50, 1, 730))
+    filters = {"max_delta": num("max_delta", 0.30, 0.05, 0.6), "min_oi": int(num("min_oi", 100, 0, 1e6)),
+               "max_spread_pct": num("max_spread", 10, 1, 100)}
+
+    def one(sym):
+        expiry = opt.pick_expiry(_cached_expiries(sym), min_dte, max_dte, (min_dte + max_dte) // 2)
+        if not expiry:
+            return {"symbol": sym, "skipped": f"no expiry between {min_dte} and {max_dte} days"}
+        chain = _cached_chain(sym, expiry)
+        if not chain:
+            return {"symbol": sym, "skipped": "chain unavailable"}
+        return opt.scan_candidate(kind, chain, **filters) or {"symbol": sym, "skipped": "nothing passes the filters"}
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        rows = list(pool.map(one, syms))
+    found = sorted((r for r in rows if "skipped" not in r), key=lambda r: -r["annualized_pct"])
+    return jsonify({"kind": kind, "filters": {**filters, "min_dte": min_dte, "max_dte": max_dte},
+                    "results": found, "skipped": [r for r in rows if "skipped" in r]})
+
+
+# ─────────────────────────────────────────────────────────────
 # Correlation Heatmap
 # ─────────────────────────────────────────────────────────────
 
@@ -1203,13 +1374,18 @@ You also have TOOLS. Use them instead of guessing, and call several at once when
 - get_correlation: how closely tickers move together (diversification questions).
 - portfolio_what_if: the user's weights and risk before and after hypothetical trades ("what if I sold half my TSLA").
 - get_macro_history: the trend of a macro series, not just its latest reading.
+- get_options_overview: what a ticker's options imply (implied vs realised volatility, the expected move by an \
+expiry, put/call ratios, the strikes with the most open interest).
+- analyze_option_strategy: build a standard options strategy (covered call, spreads, straddle, iron condor...) \
+from the live chain and get its cost, max profit and loss, break-evens and chance of profit. Say that strikes follow \
+fixed rules and prices are delayed midpoints, and that the user can adjust it in the Options tab.
 - web_search: for events, earnings dates, people in office, and anything else the tools above don't cover.
 Rules:
 - Quote a number only if it appears in the data below, in a tool result, or in a search result you just ran. Never \
 estimate or recall a price, ratio or indicator reading from memory.
 - Tradeski's tools are the source for prices, indicators and portfolio maths; prefer them to web search for those.
-- If no tool or search can supply what was asked (options flow, VIX, short interest), say so plainly and answer \
-conceptually.
+- If no tool or search can supply what was asked (trade-level options flow such as sweeps, VIX, short \
+interest), say so plainly and answer conceptually.
 - When relevant, suggest which indicators on the Tradeski dashboard are most useful for the user's question.
 
 PORTFOLIO-AWARE BEHAVIOR
@@ -1302,6 +1478,7 @@ def _ski_data(user_id: Optional[int], sample: Optional[list]) -> ski_tools.SkiDa
         holdings=holdings,
         risk=risk,
         filings=_cached_filings,
+        options=_chain_for_dte,
     )
 
 

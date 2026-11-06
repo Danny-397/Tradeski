@@ -11,6 +11,7 @@ being loaded after the code it is supposed to wrap.
 import json
 import os
 import re
+import sys
 
 import pytest
 
@@ -60,6 +61,19 @@ def test_snapshot_has_metadata(snapshot):
     assert snapshot.get("capturedAt"), "snapshot has no capture timestamp"
     assert snapshot.get("defaultSymbol") in TICKER_SYMS
     assert isinstance(snapshot.get("endpoints"), dict)
+
+
+def test_iv_history_merge_replaces_a_rerun_of_the_same_day():
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import capture_snapshot as cap
+    h = cap.merge_iv({}, "2026-11-05", {"AAPL": {"iv": 0.2512345, "dte": 28}})
+    h = cap.merge_iv(h, "2026-11-06", {"AAPL": {"iv": 0.26, "dte": 27}, "SPY": {"iv": 0.14, "dte": 27}})
+    h = cap.merge_iv(h, "2026-11-06", {"AAPL": {"iv": 0.27, "dte": 27}})
+    assert h["symbols"]["AAPL"] == [["2026-11-05", 0.2512, 28], ["2026-11-06", 0.27, 27]]
+    assert h["symbols"]["SPY"] == [["2026-11-06", 0.14, 27]]
+    assert h["updated"] == "2026-11-06"
+    assert cap.nearest_expiry([{"date": "a", "dte": 7}, {"date": "b", "dte": 35}], 30) == "b"
+    assert cap.nearest_expiry([], 30) is None
 
 
 def test_snapshot_covers_every_ticker_symbol(snapshot):
