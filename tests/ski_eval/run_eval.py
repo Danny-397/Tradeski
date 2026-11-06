@@ -184,6 +184,7 @@ def install_fixtures(set_attr=setattr):
     set_attr(app, "fetch_fred_observations", fixture_fred)
     set_attr(app, "get_option_expirations", fixture_expirations)
     set_attr(app, "get_option_chain", fixture_option_chain)
+    set_attr(app, "get_eod_options", lambda s, base: None)
     set_attr(app, "_get_macro_context", lambda: MACRO_CONTEXT)
     return app
 

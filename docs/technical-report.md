@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 244, across 24 files, run in GitHub Actions with flake8 |
+| Tests | 247, across 24 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -277,7 +277,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-244 tests across 24 files run on every push through GitHub Actions, alongside flake8 linting.
+247 tests across 24 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -331,6 +331,12 @@ used to subtract a hardcoded 4.5%, so it was wrong by however far rates had move
 uses the effective federal funds rate from the FRED snapshot the dashboard already fetches,
 falls back to 4.5% only when FRED is unavailable, and reports which rate it used. A
 three-month Treasury bill yield would be the textbook choice.
+
+**In production, option quotes are end-of-day.** Yahoo refuses option requests from
+Render's servers (as it does company fundamentals) but answers GitHub's runners, so the
+daily snapshot job saves closing chains for twelve symbols and the backend falls back to
+them. The window says so and dates them. Any other symbol has no options on the live site
+until a data source that serves this host is wired in.
 
 **Options values are model values.** Black-Scholes treats every option as European. US
 equity options are American, so values are approximate where early exercise matters: deep

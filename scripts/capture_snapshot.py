@@ -19,10 +19,14 @@ BACKEND = os.environ.get("TRADESKI_BACKEND", "http://127.0.0.1:8811")
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "demo-snapshot.js")
 IV_OUT = os.path.join(os.path.dirname(OUT), "data", "iv_history.json")
 IV_TARGET_DTE = 30          # the expiry nearest a month out, like most IV indices
+EOD_DIR = os.path.join(os.path.dirname(OUT), "data", "options")
 
 TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
 TIMEFRAMES = ["1D", "5D", "1M", "3M", "6M", "1Y"]
 DEFAULT_SYM = "AAPL"
+# The ticker strip plus the scanner's default list.
+EOD_SYMS = TICKER_SYMS + ["JPM"]
+EOD_MAX_DTE, EOD_MAX_EXPIRIES = 75, 10
 
 # series_id -> (label, unit, description, fred transformation or None)
 FRED_SERIES = [
@@ -173,6 +177,36 @@ def record_iv(endpoints):
     print("  wrote %s (%d symbols)" % (IV_OUT, len(readings)))
 
 
+def capture_eod_chains():
+    """Save each symbol's closing option chains (expiries up to 75 days out,
+    strikes within 30% of the spot) for the backend to fall back on: Yahoo
+    serves option chains to this runner but refuses them to Render."""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tracker import options as opt
+    from tracker.price_fetcher import get_option_chain, get_option_expirations
+    print("end-of-day option chains:")
+    os.makedirs(EOD_DIR, exist_ok=True)
+    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+    for s in EOD_SYMS:
+        expiries = [e for e in get_option_expirations(s)
+                    if opt.year_fraction(e) > 0 and opt.days_to_expiry(e) <= EOD_MAX_DTE][:EOD_MAX_EXPIRIES]
+        out = {"symbol": s, "captured_at": now, "chains": {}}
+        for e in expiries:
+            raw = get_option_chain(s, e)
+            if not raw:
+                continue
+            out["spot"], out["dividend_yield"] = raw["spot"], raw["dividend_yield"]
+            out["chains"][e] = {"calls": opt.compact_rows(raw["calls"], raw["spot"]),
+                                "puts": opt.compact_rows(raw["puts"], raw["spot"])}
+        if not out["chains"]:
+            print("  %-6s FAILED (no chains; previous file kept)" % s)
+            continue
+        with io.open(os.path.join(EOD_DIR, s + ".json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(out, f, separators=(",", ":"), sort_keys=True)
+            f.write("\n")
+        print("  %-6s %d expiries" % (s, len(out["chains"])))
+
+
 def main():
     endpoints = {}
 
@@ -204,6 +238,7 @@ def main():
             print("  %s FAILED %s" % (path, e))
 
     record_iv(endpoints)
+    capture_eod_chains()
 
     print("macro (FRED public CSV):")
     endpoints["/macro"] = build_macro()
