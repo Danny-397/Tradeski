@@ -29,7 +29,7 @@ from tracker import database
 from tracker import auth
 from tracker.fred import get_macro_snapshot, format_macro_context
 from tracker.fred import _fetch_observations as fetch_fred_observations
-from tracker import ski_tools, ski_grounding
+from tracker import ski_tools, ski_grounding, sec_fundamentals
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
 from tracker.analyzer import (
@@ -1089,8 +1089,8 @@ Only what appears in the sections below this prompt: the macro snapshot (FRED), 
 headlines for the symbol on their chart, and the latest values of that chart's indicators (close, RSI, MACD, \
 SMA 20/50, EMA 20, Bollinger Bands, Z-Score, volatility). Any section can be missing.
 You also have TOOLS. Use them instead of guessing, and call several at once when a question needs several:
-- get_price_summary: returns, 52-week range, volatility and indicator trends for ANY ticker, not only the charted one.
-- get_fundamentals: sector, P/E, market cap for a ticker.
+- get_price_summary: returns, 52-week range, volatility and indicator trends for ANY ticker, not only the charted one, \nplus its return against the S&P 500 and its beta (use these for "is it the stock or the market?").
+- get_fundamentals: sector, P/E, market cap for a ticker; when those are missing, a from_filings section has \ntrailing EPS, P/E, market cap, revenue growth and net margin computed from SEC filings.
 - get_news: recent headlines for any ticker.
 - get_correlation: how closely tickers move together (diversification questions).
 - portfolio_what_if: the user's weights and risk before and after hypothetical trades ("what if I sold half my TSLA").
@@ -1158,6 +1158,24 @@ def _cached_macro_history(series_id: str, count: int) -> list:
     return obs or []
 
 
+_FILINGS_TTL = 12 * 3600  # filings change once a quarter; the price moves, so not longer
+
+
+def _cached_filings(symbol: str, price: Optional[float]) -> Optional[dict]:
+    """Fundamentals from SEC filings (None unless SEC_USER_AGENT is set)."""
+    if not sec_fundamentals.user_agent():
+        return None
+    if not price:
+        bars = _cached_bars(symbol, "1y")
+        price = bars[-1]["close"] if bars else None
+    key = f"ski_filings:{symbol}"
+    base = _cache.get(key)
+    if base is None:
+        base = sec_fundamentals.fundamentals(symbol) or {}
+        _cache.set(key, base, ttl=_FILINGS_TTL)
+    return sec_fundamentals.with_price(base, price) if base else None
+
+
 def _ski_data(user_id: Optional[int], sample: Optional[list]) -> ski_tools.SkiData:
     """The data Ski's tools read, scoped to this user (or the signed-out sample)."""
     def holdings() -> list:
@@ -1175,6 +1193,7 @@ def _ski_data(user_id: Optional[int], sample: Optional[list]) -> ski_tools.SkiDa
         macro_history=_cached_macro_history,
         holdings=holdings,
         risk=risk,
+        filings=_cached_filings,
     )
 
 
@@ -1219,12 +1238,14 @@ def _run_ski(client, system, messages: list, data: ski_tools.SkiData, web_search
         tool_sets.pop(0)
     system_blocks = _system_blocks(system)
     tools_used: list = []
+    lookups: list = []
     outputs: list = []
     search_texts: list = []
     response = None
 
     def done(reply: str) -> dict:
-        return {"reply": reply, "tools_used": tools_used, "tool_outputs": outputs, "search_texts": search_texts}
+        return {"reply": reply, "tools_used": tools_used, "lookups": list(dict.fromkeys(lookups)),
+                "tool_outputs": outputs, "search_texts": search_texts}
 
     for round_no in range(SKI_MAX_TOOL_ROUNDS + 1):
         while True:
@@ -1252,8 +1273,9 @@ def _run_ski(client, system, messages: list, data: ski_tools.SkiData, web_search
 
         # Server-side searches run inside the response; record them and keep
         # what they showed the model as evidence.
-        tools_used += [getattr(b, "name", "web_search") for b in response.content
-                       if getattr(b, "type", None) == "server_tool_use"]
+        searches = [b for b in response.content if getattr(b, "type", None) == "server_tool_use"]
+        tools_used += [getattr(b, "name", "web_search") for b in searches]
+        lookups += ["web search" for _ in searches]
         search_texts += ski_grounding.evidence_from_response_blocks(response.content)
 
         if response.stop_reason == "pause_turn":
@@ -1272,6 +1294,7 @@ def _run_ski(client, system, messages: list, data: ski_tools.SkiData, web_search
         # Every result goes back in one user message, as the API expects.
         messages.append({"role": "user", "content": [block for block, _ in results]})
         tools_used += [b.name for b in calls]
+        lookups += [ski_tools.describe_call(b.name, b.input) for b in calls]
         outputs += [out for _, out in results if out is not None]
 
     return done(_reply_text(response) or SKI_EMPTY)
@@ -1357,6 +1380,7 @@ def chat() -> tuple:
         return jsonify({
             "reply": result["reply"],
             "tools_used": result["tools_used"],
+            "lookups": result["lookups"],
             "grounded": grounding["grounded"],
             "ungrounded_figures": grounding["ungrounded"],
         })
@@ -1384,7 +1408,8 @@ Format rules — follow them exactly:
 - Every bullet must cite a specific number from the context — a position weight %, beta, Sharpe, \
 annualized volatility, P&L %, or a macro figure (CPI, Fed funds rate, unemployment). No vague filler.
 - After the bullets, add one final line starting with "Watch: " naming the single most relevant thing \
-to keep an eye on next (an upcoming data release, an earnings date, or a technical level).
+to keep an eye on next: a technical level from a tool result, or the next release of a macro series in the \
+context (CPI, jobs, the Fed). You have no earnings calendar, so never state an earnings date.
 - No greeting, no preamble, no headers, no sign-off — the bullets and the Watch line only.
 - Educational only. Never phrase anything as a recommendation to buy or sell."""
 

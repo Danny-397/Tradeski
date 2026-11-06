@@ -203,3 +203,81 @@ def test_loop_drops_web_search_then_all_tools_when_rejected():
     assert out["reply"] == "Bottom line: plain."
     names = [[t["name"] for t in c.get("tools", [])] for c in client.calls]
     assert names[0][0] == "web_search" and "web_search" not in names[1] and names[2] == []
+
+
+# ── data-quality additions ──────────────────────────────────
+
+def test_price_summary_compares_with_the_sp500():
+    data = fake_data(bars={"NVDA": make_bars(daily=0.003), "SPY": make_bars(daily=0.001, phase=1.0)})
+    out = st.run_tool("get_price_summary", {"symbol": "NVDA"}, data)
+    rel = out["vs_sp500"]
+    for k, mine in out["return_pct"].items():
+        assert rel["excess_return_pct_points"][k] == round(mine - rel["benchmark_return_pct"][k], 1)
+    assert rel["beta_vs_sp500"] is not None and rel["days_for_beta"] >= 60
+
+
+def test_a_stock_identical_to_the_index_has_beta_one():
+    same = make_bars()
+    rel = st.vs_benchmark(st.price_summary("X", same), same, same)
+    assert rel["beta_vs_sp500"] == 1.0 and rel["correlation_with_sp500"] == 1.0
+    assert set(rel["excess_return_pct_points"].values()) == {0.0}
+
+
+def test_spy_is_not_compared_with_itself():
+    assert "vs_sp500" not in st.run_tool("get_price_summary", {"symbol": "SPY"}, fake_data())
+
+
+def test_blank_fundamentals_are_dropped_and_filings_fill_the_gap():
+    data = fake_data()
+    data.fundamentals = lambda s: {"symbol": s, "name": s, "pe": None, "market_cap": None, "sector": "—",
+                                   "price": 100.0}
+    out = st.run_tool("get_fundamentals", {"symbol": "GOOGL"}, data)
+    assert "sector" not in out and "pe" not in out
+    assert "note" in out  # no filings source: tells the model to say so
+
+    seen = {}
+
+    def filings(sym, price):
+        seen["args"] = (sym, price)
+        return {"pe_trailing": 20.0, "market_cap_usd": 1e12, "pe_note": None}
+
+    data.filings = filings
+    out = st.run_tool("get_fundamentals", {"symbol": "GOOGL"}, data)
+    assert seen["args"] == ("GOOGL", 100.0)
+    assert out["from_filings"] == {"pe_trailing": 20.0, "market_cap_usd": 1e12}
+    assert "note" not in out
+
+
+def test_filings_are_skipped_when_market_data_has_pe():
+    data = fake_data()
+    data.filings = lambda s, p: 1 / 0  # would fail if called
+    out = st.run_tool("get_fundamentals", {"symbol": "AAPL"}, data)
+    assert out["pe"] == 30.1 and "from_filings" not in out
+
+
+def test_what_if_reports_the_change():
+    calls = iter([({"sharpe": 1.0, "beta": 1.3, "volatility": 30.0}, None),
+                  ({"sharpe": 1.2, "beta": 1.0, "volatility": 22.5}, None)])
+    data = fake_data(holdings=[{"symbol": "AAPL", "shares": 10, "avg_cost": 1},
+                               {"symbol": "TSLA", "shares": 10, "avg_cost": 1}],
+                     risk=lambda raw: next(calls))
+    out = st.run_tool("portfolio_what_if", {"changes": [{"symbol": "TSLA", "shares_change": -10}]}, data)
+    assert out["change_after_minus_before"]["beta"] == -0.3
+    assert out["change_after_minus_before"]["volatility"] == -7.5
+    assert out["change_after_minus_before"]["total_value"] < 0
+
+
+def test_describe_call_labels():
+    assert st.describe_call("get_price_summary", {"symbol": "nvda"}) == "NVDA price and chart"
+    assert st.describe_call("get_correlation", {"symbols": ["aapl", "msft"]}) == "correlation of AAPL, MSFT"
+    assert st.describe_call("get_macro_history", {"series_id": "UNRATE", "count": 12}) == "UNRATE history"
+
+
+def test_loop_reports_what_it_looked_up():
+    client = FakeClient(
+        resp("tool_use", tool_use("t1", "get_price_summary", {"symbol": "NVDA"}),
+             tool_use("t2", "get_price_summary", {"symbol": "NVDA"})),
+        resp("end_turn", text("Bottom line: up.")),
+    )
+    out = app._run_ski(client, "sys", [{"role": "user", "content": "q"}], fake_data())
+    assert out["lookups"] == ["NVDA price and chart"]  # duplicates collapse
