@@ -177,3 +177,40 @@ def get_ohlc_history(symbol: str, period: str = "1mo", interval: str = "1d") -> 
         return result
     except Exception:
         return []
+
+
+def get_option_expirations(symbol: str) -> list:
+    """Listed option expiry dates (YYYY-MM-DD) for a symbol, or [] if none."""
+    try:
+        return list(yf.Ticker(symbol).options or [])
+    except Exception:
+        return []
+
+
+def get_option_chain(symbol: str, expiry: str) -> dict | None:
+    """Raw calls and puts for one expiry, plus the spot price and dividend yield.
+
+    Rows are plain dicts with the data source's column names (strike, bid,
+    ask, lastPrice, volume, openInterest, impliedVolatility, ...); cleaning
+    and the maths are in tracker.options. None if the chain is unavailable.
+    """
+    try:
+        ticker = yf.Ticker(symbol)
+        chain = ticker.option_chain(expiry)
+        under = getattr(chain, "underlying", None) or {}
+        spot = under.get("regularMarketPrice")
+        if not spot:
+            spot = get_stock_price(symbol)
+        if not spot:
+            return None
+        div = under.get("trailingAnnualDividendYield")
+        return {
+            "symbol": symbol,
+            "spot": float(spot),
+            "dividend_yield": float(div) if div and math.isfinite(float(div)) else 0.0,
+            "market_state": under.get("marketState"),
+            "calls": chain.calls.to_dict("records"),
+            "puts": chain.puts.to_dict("records"),
+        }
+    except Exception:
+        return None

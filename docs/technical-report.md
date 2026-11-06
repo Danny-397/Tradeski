@@ -18,11 +18,11 @@ This report describes the architecture as built, the decisions worth defending, 
 
 | | |
 |---|---|
-| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 25 HTTP endpoints |
-| Frontend | Static HTML/CSS/JS, ~6,100 lines (`dashboard.js` alone is 2,690), Plotly.js, no framework and no build step |
+| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
+| Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,700), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 200, across 23 files, run in GitHub Actions with flake8 |
-| Assistant | Claude Haiku 5.5 with 6 Tradeski tools + web search, a figure-grounding check, and a 19-question eval |
+| Tests | 226, across 22 files, run in GitHub Actions with flake8 |
+| Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
 ---
@@ -137,6 +137,32 @@ The 90-day correlation heatmap covers 11 tracked symbols, computed as Pearson co
 across their aligned daily return series — not price levels, which would report near-1.0
 correlation for any two assets that both drift upward.
 
+### Options: priced here, not taken from the feed
+
+The Options window ([`tracker/options.py`](../tracker/options.py)) shows a chain, builds
+strategies and scans for cash-secured puts and covered calls. Its numbers follow the same
+rule as Ski's tools: the code computes them, and nothing is taken on trust from the feed.
+
+The data source does report an implied volatility per contract, but out of hours it is
+often stale, and for deep in-the-money strikes it is close to meaningless. So Tradeski
+solves IV itself, by bisection on Black-Scholes, from each contract's bid/ask midpoint.
+That uses the dividend yield and the 3-month Treasury yield from FRED, and time runs to
+4pm New York on the expiry date. A midpoint outside the no-arbitrage bounds (below
+intrinsic value, or above the stock price) gets no IV rather than a nonsense one. The feed's
+figure is used only as a labelled fallback when there is no two-sided quote. The volatility
+curve plots only the out-of-the-money side at each strike, because in-the-money quotes are
+mostly intrinsic value.
+
+A strategy's payoff at expiry is piecewise linear, so its extremes and break-evens are
+exact. Max profit and loss are read at zero and at each strike. The slope above the top
+strike says whether either is unlimited. Break-evens are the roots on each segment.
+"Chance of profit" integrates a lognormal at the ATM implied volatility over the price
+intervals where the payoff is positive. That is the probability the market's prices imply
+under risk-neutral drift, and the window says so: it is not a forecast. The same figure
+appears in the scanner and the builder for the same trade. An earlier version used the
+contract's own IV in one and the ATM IV in the other, and showed 73% and 76% for the same
+put.
+
 ---
 
 ## 5. News sentiment: why general-purpose scoring fails here
@@ -239,9 +265,11 @@ and indicator lengths, and it needed a rule for textbook levels: the first live 
 flagged for "70" in "approaching overbought (typically 70+)", which is a rule of thumb, not
 data. For now it only logs.
 
-**Quality is meant to be measured, not asserted.** `tests/ski_eval/` asks 21 questions
-through the real endpoint against fixed fixture data, in three groups: lookups, portfolio
-risk, and honesty traps (put/call ratio, short interest, tomorrow's close). Grading is
+**Quality is meant to be measured, not asserted.** `tests/ski_eval/` asks 23 questions
+through the real endpoint against fixed fixture data (including a fixture option chain),
+in three groups: lookups, portfolio risk, and honesty traps (short interest, trade-level
+options flow, tomorrow's close). The put/call ratio used to be a trap; with the options
+tools it is now a lookup. Grading is
 deterministic, with no model judging. As of this writing the eval has not been run against
 the live model, so there is no score to report; §9 says so.
 
@@ -249,7 +277,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-200 tests across 23 files run on every push through GitHub Actions, alongside flake8 linting.
+226 tests across 22 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -303,6 +331,14 @@ used to subtract a hardcoded 4.5%, so it was wrong by however far rates had move
 uses the effective federal funds rate from the FRED snapshot the dashboard already fetches,
 falls back to 4.5% only when FRED is unavailable, and reports which rate it used. A
 three-month Treasury bill yield would be the textbook choice.
+
+**Options values are model values.** Black-Scholes treats every option as European. US
+equity options are American, so values are approximate where early exercise matters: deep
+in-the-money puts, and calls just before an ex-dividend date. Quotes are delayed about 15
+minutes and priced at the midpoint, and real fills are usually worse. The builder reports
+what crossing the spread would cost, but no slippage beyond that. There is no IV history
+yet, so "is IV high?" is answered against the stock's own realised volatility, not as an
+IV rank.
 
 **Sentiment is unvalidated, and is now labelled that way.** See §5. The lexicon extension is
 a fix for named failures, not a measured improvement, so the news panel shows "Headline

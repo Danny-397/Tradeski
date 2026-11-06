@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-200%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-226%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -25,7 +25,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 
 ---
 
-Tradeski integrates five distinct data pipelines — live equity prices, Federal Reserve macroeconomic data, financial news with sentiment scoring, a fundamental stock screener, and an AI assistant grounded in real-time context — into a single coherent interface, with quantitative portfolio analytics and a 90-day correlation heatmap layered on top.
+Tradeski integrates six distinct data pipelines — live equity prices, option chains, Federal Reserve macroeconomic data, financial news with sentiment scoring, a fundamental stock screener, and an AI assistant grounded in real-time context — into a single coherent interface, with quantitative portfolio analytics and a 90-day correlation heatmap layered on top.
 
 Every quantitative indicator is hand-written directly on NumPy arrays — no TA-Lib, no pandas — so the indicator logic itself (Wilder smoothing, MACD divergence, band math) is the project's own code, with NumPy supplying only primitive operations like mean, standard deviation, and least-squares. The AI assistant (Ski) receives live macro, portfolio, and news data on every request — not generic training knowledge. The backend is a persistent WebSocket server deployed on Render; the frontend is a static site on Vercel.
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 200 tests across 23 files — CI on every push |
+| **Tests** | 226 tests across 22 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -120,6 +120,16 @@ Rule-based alerts — price above/below a level, RSI overbought (>70) / oversold
 
 Fundamental data for 28 curated stocks across five sectors, fetched in parallel via an 8-worker thread pool and cached per symbol. Filterable by P/E ratio, market cap tier, sector, and 52-week performance. Clicking a result loads that symbol on the chart.
 
+### Options
+
+An **Options** window ([`tracker/options.py`](tracker/options.py), [`frontend/options.js`](frontend/options.js)) for any optionable ticker, in three tabs:
+
+- **Chain.** Calls and puts side by side for any expiry, with bid/ask, volume, open interest, implied volatility and delta. Filters for strike distance from the spot, |delta|, minimum open interest and volume, and maximum bid/ask spread hide the illiquid strikes. Above the chain: the at-the-money IV next to the stock's 30-day realised volatility, the market-implied expected move by expiry, put/call ratios, and the volatility curve across strikes.
+- **Strategy builder.** Nine presets (long call/put, covered call, cash-secured put, bull call and bear put spreads, straddle, strangle, iron condor), or any combination of up to six legs, built by clicking bids and asks in the chain. For each: a payoff chart at expiry, today and at a chosen date, break-evens, max profit and loss, the market-implied chance of profit, net Greeks, what crossing the spread would cost, and a plain-English summary ("Makes money if AAPL closes between $317.55 and $367.45 on 2026-12-04"). One click hands the position to Ski to explain.
+- **Scanner.** Cash-secured puts or covered calls across up to ten symbols: for each, the strike with the most premium under a delta limit, filtered by days to expiry, open interest and spread, ranked by annualised return on capital.
+
+The data source's own IV is often stale out of hours, so Tradeski solves IV from each bid/ask midpoint itself and computes the Greeks with Black-Scholes (written on `math.erf`, no SciPy), using the 3-month Treasury yield from FRED. The window states the model's limits next to the numbers: quotes are delayed, prices are midpoints, Black-Scholes treats options as European, and the chance of profit is what option prices imply, not a forecast.
+
 ### Accounts & Saved Data
 
 Browsing, charting, the screener, and Ski work without an account. Creating a free account (email + password) persists your **portfolio, alerts, and watchlist** server-side so they survive across sessions and devices. Passwords are stored only as salted PBKDF2 hashes; sessions use signed, expiring bearer tokens (no server-side session table). Every personal record is scoped to its owner — the portfolio and alert tables are keyed by `user_id`, so one account can never read or mutate another's data. A published [Privacy Policy](frontend/privacy.html) documents exactly what is collected and why.
@@ -155,9 +165,10 @@ Tradeski/
 │   ├── 404.html               # Custom terminal-style 404 page
 │   ├── favicon.svg            # SVG favicon
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
-│   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
+│   ├── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
+│   └── options.js             # Options window: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 200 tests across 23 files
+├── tests/                     # pytest suite — 226 tests across 22 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -240,7 +251,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (200 tests) |
+| Testing | pytest (226 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -289,16 +300,18 @@ Ski is powered by **Anthropic Claude Haiku 5.5**. It starts every request with l
 | `get_correlation` | Daily-return correlation between 2 to 10 tickers, aligned on common trading days |
 | `portfolio_what_if` | Your weights and risk (Sharpe, beta, volatility) before and after hypothetical trades |
 | `get_macro_history` | Recent readings of a FRED series, to show its trend |
+| `get_options_overview` | What a ticker's options imply: ATM implied vs 30-day realised volatility, expected move by expiry, put/call ratios, the strikes with the most open interest |
+| `analyze_option_strategy` | A standard strategy built from the live chain: legs, cost, max profit and loss, break-evens, chance of profit, net Greeks |
 | `web_search` | Events, earnings dates, people in office: anything the tools above don't cover |
 
-Ski can answer "Is now a good time to add to my NVDA position?" with awareness of the user's actual cost basis, NVDA's own price trend, the current macro environment and recent news, not boilerplate. Its prompt says what data it doesn't have (options flow, VIX, short interest), and tells it to say so instead of inventing a value.
+Ski can answer "Is now a good time to add to my NVDA position?" with awareness of the user's actual cost basis, NVDA's own price trend, the current macro environment and recent news, not boilerplate. Its prompt says what data it doesn't have (trade-level options flow, VIX, short interest), and tells it to say so instead of inventing a value.
 
 **Grounding check** ([`tracker/ski_grounding.py`](tracker/ski_grounding.py)). After every answer, the server pulls the figures out of the reply and checks each one, at the reply's own rounding, against the data Ski was given: its context, its tool results and any cited search text. Counts, years, dates, indicator lengths ("14-day") and textbook levels named next to their indicator ("RSI above 70") are skipped. A figure that matches nothing is either invented or something Ski calculated itself. Either way it's logged, and the response carries `grounded` and `ungrounded_figures`. For now this only logs; it doesn't block anything.
 
-**Eval set** ([`tests/ski_eval/`](tests/ski_eval)). 21 questions asked through the real `/chat` endpoint against fixed fixture data, so a score change comes from Ski, not the market. They fall into three groups:
-- lookups: another ticker's trend, P/E, news, macro trends
+**Eval set** ([`tests/ski_eval/`](tests/ski_eval)). 23 questions asked through the real `/chat` endpoint against fixed fixture data, so a score change comes from Ski, not the market. They fall into three groups:
+- lookups: another ticker's trend, P/E, news, macro trends, and options (put/call ratio, expected move, a spread's cost and max loss), against a fixture option chain
 - portfolio risk: concentration, correlation, what-if trades
-- honesty traps: put/call ratio, short interest, tomorrow's price, an unknown ticker
+- honesty traps: short interest, unusual options flow, tomorrow's price, an unknown ticker
 
 Grading is deterministic, with no model judging: answer format, grounded figures, whether the expected tool was called, and required or banned phrases. Run it with `ANTHROPIC_API_KEY=... python tests/ski_eval/run_eval.py`, or from the manual **Ski eval** workflow (needs the key as a repository secret). A run costs a few cents.
 
@@ -482,6 +495,15 @@ Pairwise 90-day return correlation matrix for all tracked symbols. Cached 1 hour
 ### `GET /screener`
 Fundamental data for the full 28-stock universe. Parallel fetch, cached 10 min per symbol.
 
+### `GET /options/expirations?symbol=AAPL` · `GET /options/chain?symbol=AAPL&expiry=2026-12-04`
+Listed expiries (future ones only, with days to expiry and a default 20 to 60 days out), and one expiry's chain: every contract with bid/ask/mid, volume, open interest, spread %, IV solved from the midpoint (and its source), delta, gamma, theta per day and vega per vol point, plus the ATM IV, expected move, 30-day realised volatility, put/call ratios and the rate used. Cached 5 minutes.
+
+### `POST /options/strategy`
+Body: `{ "symbol": "AAPL", "expiry": "2026-12-04", "preset": "iron_condor" }`, or `"legs": [{ "type": "call", "qty": 1, "strike": 350 }, ...]` instead of a preset (qty < 0 sells; `"stock"` legs are 100 shares). Optional `days_forward` adds a P/L curve at that date. Returns the priced legs, net debit, max profit/loss (or unlimited), break-evens, profit zones, chance of profit, net Greeks, spread cost, P/L curves and a summary sentence.
+
+### `GET /options/scan?kind=cash_secured_put&symbols=AAPL,MSFT&max_delta=0.3&min_dte=20&max_dte=50`
+The best cash-secured put (or `kind=covered_call`) per symbol, up to 10 symbols, with `min_oi` and `max_spread` filters. Rate-limited to 10 a minute.
+
 ### `GET /watchlist/saved` · `POST /watchlist/saved` · `DELETE /watchlist/saved/<symbol>`
 Read, add to, or remove from the signed-in user's persistent watchlist. **Requires authentication.**
 
@@ -555,7 +577,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-200 tests across 23 files:
+226 tests across 22 files:
 
 | File | What it covers |
 |:---|:---|
@@ -582,6 +604,7 @@ python -m pytest -v
 | `test_sec_fundamentals.py` | Fundamentals from SEC filings: derived fourth quarters, gaps refused, restatements, share classes, P/E and margin; the screener fill never waits on EDGAR |
 | `test_ski_grounding.py` | Figure-vs-data matching rules, eval graders, and the eval harness end to end with a scripted model |
 | `test_ski_briefing.py` | Prompt-cache placement, and `/briefing` running the tool loop |
+| `test_options.py` | Black-Scholes against textbook values and put-call parity, Greeks against finite differences, IV round trips and stale quotes, payoffs, break-evens and chance of profit for each strategy shape, preset strike rules, the scanner's filters, the `/options` endpoints and Ski's options tools |
 
 ```bash
 flake8 .   # linting

@@ -17,6 +17,7 @@ from typing import Callable, Optional
 
 import numpy as np
 
+from tracker import options as opt
 from tracker.analyzer import atr, bollinger_bands, macd, rsi, sma, stochastic
 
 MAX_CORR_SYMBOLS = 10
@@ -47,6 +48,8 @@ class SkiData:
     risk: Callable[[list], tuple]                  # raw holdings -> (metrics | None, reason)
     # (symbol, price) -> fundamentals computed from SEC filings, or None
     filings: Optional[Callable[[str, Optional[float]], Optional[dict]]] = None
+    # (symbol, target days to expiry) -> cleaned option chain (tracker.options), or None
+    options: Optional[Callable[[str, int], Optional[dict]]] = None
 
 
 def clean_symbol(raw) -> str:
@@ -306,6 +309,32 @@ TOOLS = [
             "count": {"type": "integer", "description": f"How many readings, 2 to {MAX_MACRO_POINTS}"},
         }),
     },
+    {
+        "name": "get_options_overview",
+        "description": (
+            "What a ticker's listed options imply, for the expiry nearest days_to_expiry days out: at-the-money "
+            "implied volatility next to the stock's 30-day realised volatility, the market-implied expected move "
+            "by expiry (plus or minus), put/call ratios by volume and open interest, and the strikes with the "
+            "most open interest. Use for questions about options sentiment, whether options look expensive, "
+            "or how big a move the market is pricing (e.g. into earnings)."
+        ),
+        "input_schema": _schema({"symbol": _SYMBOL, "days_to_expiry": {"type": "integer"}}),
+    },
+    {
+        "name": "analyze_option_strategy",
+        "description": (
+            "Build a standard options strategy on a ticker from its live chain, at the expiry nearest "
+            "days_to_expiry days, and analyse it: the legs and strikes chosen, net cost or credit, max profit, "
+            "max loss, break-evens, the market-implied probability of profit, and net Greeks. Strikes follow "
+            "fixed rules (at the money, or short strikes near 0.30 delta, 0.20 for the condor). Prices are "
+            "bid/ask midpoints from delayed quotes. The user can adjust it in the Options tab."
+        ),
+        "input_schema": _schema({
+            "symbol": _SYMBOL,
+            "strategy": {"type": "string", "enum": list(opt.PRESETS)},
+            "days_to_expiry": {"type": "integer"},
+        }),
+    },
 ]
 for _tool in TOOLS:
     _tool["strict"] = True
@@ -411,7 +440,57 @@ def run_tool(name: str, args: dict, data: SkiData) -> dict:
             "readings_newest_first": [{"date": o["date"], "value": _r(float(o["value"]), 3)} for o in obs],
         } if obs else {"series_id": sid, "error": "FRED returned no data"}
 
+    if name in ("get_options_overview", "analyze_option_strategy"):
+        return _options_tool(name, args, data)
+
     raise ValueError(f"unknown tool {name}")
+
+
+def _options_tool(name: str, args: dict, data: SkiData) -> dict:
+    sym = clean_symbol(args.get("symbol"))
+    if not sym:
+        raise ValueError("symbol is required")
+    if data.options is None:
+        return {"symbol": sym, "error": "options data is not available here"}
+    dte = args.get("days_to_expiry")
+    dte = max(1, min(730, int(dte))) if isinstance(dte, (int, float)) else 30
+    chain = data.options(sym, dte)
+    if not chain:
+        return {"symbol": sym, "error": "no listed options found for this symbol"}
+    base = {"symbol": sym, "expiry": chain["expiry"], "days_to_expiry": chain["dte"], "spot": _r(chain["spot"])}
+    if name == "get_options_overview":
+        iv, hv = chain.get("atm_iv"), chain.get("realized_vol_30d")
+        move = chain.get("expected_move")
+
+        def top(side):
+            return [{"strike": c["strike"], "open_interest": c["open_interest"]}
+                    for c in sorted(side, key=lambda c: -c["open_interest"])[:3] if c["open_interest"]]
+
+        return {**base,
+                "atm_implied_vol_pct": _r(iv * 100, 1) if iv else None,
+                "realized_vol_30d_pct": _r(hv * 100, 1) if hv else None,
+                "implied_minus_realized_pct_points": _r((iv - hv) * 100, 1) if iv and hv else None,
+                "expected_move": _r(move) if move else None,
+                "expected_move_pct": _r(move / chain["spot"] * 100, 1) if move else None,
+                "put_call_volume_ratio": chain.get("put_call_volume"),
+                "put_call_open_interest_ratio": chain.get("put_call_oi"),
+                "most_open_interest_calls": top(chain["calls"]),
+                "most_open_interest_puts": top(chain["puts"]),
+                "quotes": "delayed; outside market hours they are the last session's"}
+    strategy = args.get("strategy")
+    if strategy not in opt.PRESETS:
+        raise ValueError(f"strategy must be one of {list(opt.PRESETS)}")
+    legs = opt.build_preset(strategy, chain)
+    res = opt.analyze(legs, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
+                      sigma=chain["atm_iv"], symbol=sym, expiry=chain["expiry"], points=3)
+    return {**base, "strategy": opt.PRESETS[strategy],
+            "legs": [{"action": "buy" if leg["qty"] > 0 else "sell", "quantity": abs(leg["qty"]),
+                      "type": leg["type"], "strike": leg["strike"], "price_per_share": _r(leg["price"])}
+                     for leg in legs],
+            **{k: res[k] for k in ("net_debit", "max_profit", "max_loss", "unlimited_profit", "unlimited_loss",
+                                   "breakevens", "prob_profit", "spread_cost", "greeks", "summary")},
+            "notes": "net_debit > 0 is paid, < 0 is collected; dollar amounts are per position (100 shares a "
+                     "contract); spread_cost is the extra paid by crossing the bid/ask spread."}
 
 
 def tool_result_block(tool_use_id: str, name: str, args: dict, data: SkiData) -> tuple[dict, Optional[dict]]:
@@ -448,6 +527,11 @@ def describe_call(name: str, args: dict) -> str:
         return "portfolio what-if"
     if name == "get_macro_history":
         return f"{args.get('series_id', 'macro')} history"
+    if name == "get_options_overview":
+        return f"{clean_symbol(args.get('symbol')) or '?'} options"
+    if name == "analyze_option_strategy":
+        label = opt.PRESETS.get(args.get("strategy"), "options strategy").lower()
+        return f"{clean_symbol(args.get('symbol')) or '?'} {label}"
     if name == "web_search":
         return "web search"
     return name
