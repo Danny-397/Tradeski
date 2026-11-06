@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-180%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-183%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 180 tests across 21 files — CI on every push |
+| **Tests** | 183 tests across 21 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -161,7 +161,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │
-├── tests/                     # pytest suite — 180 tests across 21 files
+├── tests/                     # pytest suite — 183 tests across 21 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -244,7 +244,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (180 tests) |
+| Testing | pytest (183 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -538,7 +538,7 @@ Open `.env` and fill in the three required keys:
 | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) | Yes — powers Ski |
 | `FRED_API_KEY` | [fred.stlouisfed.org/docs/api/api_key.html](https://fred.stlouisfed.org/docs/api/api_key.html) | No — macro ribbon disabled without it |
 | `NEWS_API_KEY` | [newsapi.org/register](https://newsapi.org/register) | No — news panel disabled without it |
-| `SEC_USER_AGENT` | Your app name and a contact email, e.g. `Tradeski you@example.com` ([SEC policy](https://www.sec.gov/os/accessing-edgar-data)) | No — without it Ski's P/E and market cap fall back to Yahoo, which is blocked on Render |
+| `SEC_USER_AGENT` | Your app name and a contact email, e.g. `Tradeski you@example.com` ([SEC policy](https://www.sec.gov/os/accessing-edgar-data)) | No — without it Ski's and the screener's P/E and market cap rely on Yahoo, which is blocked on Render |
 
 ### Run
 
@@ -561,7 +561,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-180 tests across 21 files:
+183 tests across 21 files:
 
 | File | What it covers |
 |:---|:---|
@@ -583,7 +583,7 @@ python -m pytest -v
 | `test_sample_portfolio.py` | Signed-out sample portfolio sent to Ski: validated, capped at 10 rows, signed-out only |
 | `test_ski_context.py` | Ski's chart snapshot: MACD crossover only on a sign change, malformed browser values dropped, no prompt claims of data Ski lacks |
 | `test_ski_tools.py` | Ski's tools (returns and S&P 500 comparison, correlation on common dates, what-if trades and deltas, blank fundamentals, errors) and the tool loop against a fake model |
-| `test_sec_fundamentals.py` | Fundamentals from SEC filings: derived fourth quarters, gaps refused, restatements, share classes, P/E and margin |
+| `test_sec_fundamentals.py` | Fundamentals from SEC filings: derived fourth quarters, gaps refused, restatements, share classes, P/E and margin; the screener fill never waits on EDGAR |
 | `test_ski_grounding.py` | Figure-vs-data matching rules, eval graders, and the eval harness end to end with a scripted model |
 | `test_ski_briefing.py` | Prompt-cache placement, and `/briefing` running the tool loop |
 

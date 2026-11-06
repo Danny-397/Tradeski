@@ -46,10 +46,25 @@ def user_agent() -> Optional[str]:
     return ua if "@" in ua else None
 
 
+_MIN_INTERVAL = 0.15  # SEC allows 10 requests a second; stay well under it
+_rate_lock = threading.Lock()
+_last_request = 0.0
+
+
+def _throttle() -> None:
+    global _last_request
+    with _rate_lock:
+        wait = _last_request + _MIN_INTERVAL - time.monotonic()
+        if wait > 0:
+            time.sleep(wait)
+        _last_request = time.monotonic()
+
+
 def _get(url: str) -> Optional[dict]:
     ua = user_agent()
     if not ua:
         return None
+    _throttle()
     try:
         resp = requests.get(url, headers={"User-Agent": ua, "Accept-Encoding": "gzip"}, timeout=_TIMEOUT)
         if resp.status_code != 200:

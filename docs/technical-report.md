@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 25 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~6,100 lines (`dashboard.js` alone is 2,690), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 180, across 21 files, run in GitHub Actions with flake8 |
+| Tests | 183, across 21 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 6 Tradeski tools + web search, a figure-grounding check, and a 19-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -221,7 +221,9 @@ Blank fields are now dropped, and Ski is told to say so when P/E is unavailable.
 `SEC_USER_AGENT` set, [`sec_fundamentals.py`](../tracker/sec_fundamentals.py) computes trailing
 EPS, P/E, market cap, revenue growth and net margin from SEC EDGAR filings. 10-K filings report
 only the full year, so the fourth quarter is derived as the year minus its first three quarters,
-and a window with a missing quarter is refused rather than summed. Each reply also lists what
+and a window with a missing quarter is refused rather than summed. The screener table uses the
+same figures for its blank P/E and market cap columns, but only from cache: one throttled
+background warm-up fetches the filings, so the page never waits on EDGAR. Each reply also lists what
 Ski looked up ("NVDA price and chart · web search"), so a reader can tell data from prose.
 
 Web search covers what the tools don't. The loop allows at most four rounds of tool calls,
@@ -246,7 +248,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-180 tests across 21 files run on every push through GitHub Actions, alongside flake8 linting.
+183 tests across 21 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the

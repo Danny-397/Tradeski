@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import re
+import threading
 import time
 import datetime
 from functools import wraps
@@ -903,7 +904,48 @@ def screener() -> tuple:
             if row:
                 stocks.append(row)
     stocks.sort(key=lambda r: r["symbol"])
+    stocks = _fill_from_filings(stocks)
     return jsonify({"stocks": stocks, "universe_size": len(_SCREENER_UNIVERSE)})
+
+
+_filings_warm_lock = threading.Lock()
+
+
+def _fill_from_filings(rows: list) -> list:
+    """Fill blank P/E and market cap from SEC filings (when SEC_USER_AGENT is set).
+
+    Only filings already in the cache are used, so the screener never waits on
+    EDGAR. Missing ones are fetched by one background warm-up (throttled to
+    SEC's rate limit), and appear on a later load.
+    """
+    if not sec_fundamentals.user_agent():
+        return rows
+    out, missing = [], []
+    for row in rows:
+        if row.get("pe") is not None and row.get("market_cap") is not None:
+            out.append(row)
+            continue
+        base = _cache.get(f"ski_filings:{row['symbol']}")
+        if base is None:
+            missing.append(row["symbol"])
+            out.append(row)
+            continue
+        filed = sec_fundamentals.with_price(base, row.get("price")) if base else {}
+        row = dict(row)  # the cached screener row is shared; never mutate it
+        if row.get("pe") is None and filed.get("pe_trailing") is not None:
+            row["pe"], row["pe_source"] = filed["pe_trailing"], "sec_filings"
+        if row.get("market_cap") is None and filed.get("market_cap_usd"):
+            row["market_cap"] = int(filed["market_cap_usd"])
+        out.append(row)
+    if missing and _filings_warm_lock.acquire(blocking=False):
+        def warm():
+            try:
+                for sym in missing:
+                    _cached_filings(sym, None)
+            finally:
+                _filings_warm_lock.release()
+        threading.Thread(target=warm, daemon=True).start()
+    return out
 
 
 # ─────────────────────────────────────────────────────────────
