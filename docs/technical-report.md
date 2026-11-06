@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 25 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~6,100 lines (`dashboard.js` alone is 2,690), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 183, across 21 files, run in GitHub Actions with flake8 |
+| Tests | 196, across 22 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 6 Tradeski tools + web search, a figure-grounding check, and a 19-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -248,7 +248,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-183 tests across 21 files run on every push through GitHub Actions, alongside flake8 linting.
+196 tests across 22 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -272,6 +272,18 @@ compared the *set* of namespaces each event was emitted on, and a dead code path
 emitted `price_update` correctly on the default namespace masked the live one that did not.
 Checking each emit site individually, rather than unioning them per event, is the whole
 difference between a test that catches this and a test that looks like it does.
+
+The same blind spot hid a second dead feature, found much later. **Alerts never fired.** The
+form saved them, the panel listed them, and nothing ever checked them: the function that
+would broadcast a triggered alert was defined and never called, and the background tracker
+only pushed prices. The stream contract test passed throughout, because that dead function
+was the "somewhere" it found `alert_triggered` emitted. A test that asks whether code exists
+cannot tell you whether it runs. Alerts are now checked by
+[`alert_eval.py`](../tracker/alert_eval.py) against the price history since each alert was
+set, which also suits a backend that sleeps: a crossing that happened while it was asleep is
+caught on the next check, with the time it happened. `tests/test_alerts.py` asserts that an
+alert actually fires, end to end through `/alerts`, which is the property the old tests never
+checked.
 
 ---
 

@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-183%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-196%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 183 tests across 21 files — CI on every push |
+| **Tests** | 196 tests across 22 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -114,7 +114,7 @@ A full-screen modal shows a pairwise 90-day return correlation matrix for all 11
 
 ### Alert Engine
 
-Rule-based alerts — price above/below threshold, RSI overbought (>70) / oversold (<30), volume spike, volatility spike — with cooldown tracking, optional Pushover push notifications, and SQLite persistence across restarts.
+Rule-based alerts — price above/below a level, RSI overbought (>70) / oversold (<30), volume spike (2× the 20-day average), volatility spike (|z| > 2.5). They are checked against **price history since the alert was created**, not live ticks ([`alert_eval.py`](tracker/alert_eval.py)), so a move that happened while the free-tier backend was asleep still fires, stamped with when it happened. Price alerts use hourly bars, so they are precise to about an hour. A fired alert moves to a Triggered list, shows in the status bar, and raises a browser notification if you allowed them. Delivery is by the owner's own request, never a socket broadcast.
 
 ### Stock Screener
 
@@ -139,7 +139,8 @@ Tradeski/
 │   ├── fred.py                # FRED API client — 7 macro series with trend detection
 │   ├── news.py                # NewsAPI + VADER sentiment with financial lexicon
 │   ├── ski_tools.py           # Ski's tools: price summary, fundamentals, news, correlation, what-if, macro
-│   ├── alerts.py              # Rule-based alert evaluation engine
+│   ├── alert_eval.py          # Alert checks against price history since each alert was set
+│   ├── alerts.py              # Legacy tick-based rules (CLI only)
 │   ├── notifier.py            # Pushover push notification handler
 │   ├── scheduler.py           # APScheduler background job manager
 │   ├── daily_summary.py       # Daily price/volume summary generator
@@ -161,7 +162,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │
-├── tests/                     # pytest suite — 183 tests across 21 files
+├── tests/                     # pytest suite — 196 tests across 22 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -207,7 +208,7 @@ Tradeski/
            ┌──────────────────┐
            │  REST Endpoints  │   WebSocket
            │  /health         │──────────────► price_update
-           │  /stats          │──────────────► alert_triggered
+           │  /stats          │
            │  /price_history  │
            │  /macro          │
            │  /news           │
@@ -244,7 +245,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (183 tests) |
+| Testing | pytest (196 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -491,7 +492,7 @@ Fundamental data for the full 28-stock universe. Parallel fetch, cached 10 min p
 Read, add to, or remove from the signed-in user's persistent watchlist. **Requires authentication.**
 
 ### `GET /alerts` · `POST /alerts` · `DELETE /alerts/<id>`
-List, create, and delete rule-based price and indicator alerts. **Requires authentication**; alerts are scoped to the signed-in user.
+List, create, and delete rule-based price and indicator alerts. **Requires authentication**; alerts are scoped to the signed-in user. `GET` checks the user's active alerts against price history first and returns `{ "active": [...], "triggered": [...] }`. A price alert needs a positive `threshold`; each user may have up to 20 active alerts.
 
 ### `POST /chat`
 Ski chatbot. Body: `{ "message": "...", "history": [...], "symbol": "AAPL" }`.
@@ -505,7 +506,6 @@ Proactive portfolio briefing — no question needed. Assembles the user's live m
 | Event | Direction | Payload |
 |:---|:---|:---|
 | `price_update` | Server → Client | `{ symbol, price, change_pct, timestamp }` |
-| `alert_triggered` | Server → Client | `{ symbol, message, timestamp }` |
 
 ---
 
@@ -561,7 +561,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-183 tests across 21 files:
+196 tests across 22 files:
 
 | File | What it covers |
 |:---|:---|
@@ -579,6 +579,7 @@ python -m pytest -v
 | `test_price_fetcher.py` | Live yfinance smoke test |
 | `test_stream_contract.py` | Shape of the streamed payload the dashboard consumes |
 | `test_security_contract.py` | Rate limits keyed per visitor behind the proxy; alert input validated before it is stored |
+| `test_alerts.py` | Alerts fire: each type on the right bar, never on bars before the alert was set, owner-scoped, and caught up after the server slept |
 | `test_symbols.py` | Ticker-search index: loads before the dashboard, unique symbols, API spelling (BRK-B) |
 | `test_sample_portfolio.py` | Signed-out sample portfolio sent to Ski: validated, capped at 10 rows, signed-out only |
 | `test_ski_context.py` | Ski's chart snapshot: MACD crossover only on a sign change, malformed browser values dropped, no prompt claims of data Ski lacks |

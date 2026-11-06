@@ -156,6 +156,11 @@ def init_db() -> None:
     # Legacy alerts table (pre-auth) lacks user_id — add it non-destructively.
     if "user_id" not in _column_names(cursor, "alerts"):
         _execute(cursor, "ALTER TABLE alerts ADD COLUMN user_id INTEGER")
+    # When an alert fires it is kept, inactive, with when and at what price.
+    alert_cols = _column_names(cursor, "alerts")
+    for col in ("triggered_at", "trigger_price"):
+        if col not in alert_cols:
+            _execute(cursor, f"ALTER TABLE alerts ADD COLUMN {col} {_REAL}")
 
     # Portfolio: per-user, unique per (user, symbol). The pre-auth table had a
     # bare UNIQUE(symbol) constraint that can't be altered in place, so recreate
@@ -400,6 +405,74 @@ def get_alerts(user_id: int):
         ORDER BY created_at DESC
         """,
         (user_id,),
+    )
+    conn.close()
+    return rows
+
+
+def count_active_alerts(user_id: int) -> int:
+    conn = _connect()
+    cursor = conn.cursor()
+    row = _fetchone(cursor, "SELECT COUNT(*) FROM alerts WHERE active = 1 AND user_id = ?", (user_id,))
+    conn.close()
+    return int(row[0]) if row else 0
+
+
+def get_active_alerts_for_eval(user_id: Optional[int] = None):
+    """Active alerts as (id, user_id, symbol, alert_type, threshold, created_at).
+
+    One user's when ``user_id`` is given, otherwise every user's (the
+    background checker). Legacy rows with no owner are skipped.
+    """
+    conn = _connect()
+    cursor = conn.cursor()
+    sql = """
+        SELECT id, user_id, symbol, alert_type, threshold, created_at
+        FROM alerts
+        WHERE active = 1 AND user_id IS NOT NULL
+    """
+    params: tuple = ()
+    if user_id is not None:
+        sql += " AND user_id = ?"
+        params = (user_id,)
+    rows = _fetchall(cursor, sql, params)
+    conn.close()
+    return rows
+
+
+def mark_alert_triggered(alert_id: int, user_id: int, triggered_at: float, price: float, message: str) -> bool:
+    """Record that an alert fired and deactivate it. Scoped to its owner; True if it changed."""
+    conn = _connect()
+    cursor = conn.cursor()
+    _execute(
+        cursor,
+        """
+        UPDATE alerts
+        SET active = 0, triggered_at = ?, trigger_price = ?, message = ?
+        WHERE id = ? AND user_id = ? AND active = 1
+        """,
+        (triggered_at, price, message, alert_id, user_id),
+    )
+    changed = cursor.rowcount == 1
+    conn.commit()
+    conn.close()
+    return changed
+
+
+def get_triggered_alerts(user_id: int, limit: int = 10):
+    """A user's fired alerts, newest first: (id, symbol, alert_type, threshold, triggered_at, price, message)."""
+    conn = _connect()
+    cursor = conn.cursor()
+    rows = _fetchall(
+        cursor,
+        """
+        SELECT id, symbol, alert_type, threshold, triggered_at, trigger_price, message
+        FROM alerts
+        WHERE active = 0 AND user_id = ? AND triggered_at IS NOT NULL
+        ORDER BY triggered_at DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
     )
     conn.close()
     return rows
