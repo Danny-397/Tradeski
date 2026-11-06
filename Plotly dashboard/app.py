@@ -41,7 +41,6 @@ from tracker.analyzer import (
     bollinger_bands,
     zscore,
     volatility,
-    linear_regression_prediction,
 )
 
 app = Flask(__name__)
@@ -313,7 +312,6 @@ def price_history() -> tuple:
     upper_band, lower_band = bollinger_bands(closes, 20)
     z_vals                 = zscore(closes, 20)
     vol_vals               = volatility(closes, 20)
-    prediction             = linear_regression_prediction(closes)
 
     result = {
         "timestamps": timestamps,
@@ -334,7 +332,6 @@ def price_history() -> tuple:
         "lower_band": lower_band,
         "zscore":     z_vals,
         "volatility": vol_vals,
-        "prediction": prediction,
     }
 
     _cache.set(cache_key, result, ttl=_CHART_TTL)
@@ -781,7 +778,7 @@ def _get_portfolio_context(user_id: Optional[int], sample: Optional[list] = None
     if risk:
         lines.append(
             "  RISK METRICS (1Y daily returns, value-weighted): "
-            f"Sharpe {risk['sharpe']}, "
+            f"Sharpe {risk['sharpe']} (risk-free rate {risk.get('risk_free_pct', 4.5)}%), "
             f"beta vs S&P 500 {risk['beta']}, "
             f"annualized volatility {risk['volatility']}%."
         )
@@ -1032,6 +1029,30 @@ def correlation_endpoint() -> tuple:
 # Portfolio Risk Metrics
 # ─────────────────────────────────────────────────────────────
 
+DEFAULT_RISK_FREE = 0.045  # used only when FRED is unavailable
+
+
+def _risk_free_rate() -> Tuple[float, str]:
+    """Annual risk-free rate as a fraction, and where it came from.
+
+    The effective federal funds rate from the FRED snapshot the dashboard
+    already fetches (cached an hour). A hardcoded 4.5% made every Sharpe ratio
+    wrong by however far rates had moved.
+    """
+    fred_key = os.environ.get("FRED_API_KEY", "")
+    snap = _cache.get("macro_snapshot")
+    if snap is None and fred_key:
+        try:
+            snap = get_macro_snapshot(fred_key)
+            _cache.set("macro_snapshot", snap, ttl=_FRED_TTL)
+        except Exception:
+            snap = None
+    value = ((snap or {}).get("FEDFUNDS") or {}).get("value")
+    if isinstance(value, (int, float)) and np.isfinite(value) and 0 <= value < 25:
+        return value / 100, "fed_funds"
+    return DEFAULT_RISK_FREE, "default"
+
+
 def _compute_portfolio_risk(holdings: List[dict]) -> Tuple[Optional[dict], Optional[str]]:
     """Compute Sharpe, beta vs SPY, and annualized vol from enriched holdings.
 
@@ -1068,13 +1089,15 @@ def _compute_portfolio_risk(holdings: List[dict]) -> Tuple[Optional[dict], Optio
     if std == 0:
         return None, "Insufficient variance"
 
-    RISK_FREE_DAILY = 0.045 / 252
+    risk_free, rf_source = _risk_free_rate()
+    RISK_FREE_DAILY = risk_free / 252
     ann_vol = round(std * float(np.sqrt(252)) * 100, 1)
     sharpe = round(float((np.mean(port_returns) - RISK_FREE_DAILY) / std * np.sqrt(252)), 2)
     spy_var = float(np.var(spy_returns))
     beta = round(float(np.cov(port_returns, spy_returns)[0][1] / spy_var), 2) if spy_var > 0 else 1.0
 
-    return {"sharpe": sharpe, "beta": beta, "volatility": ann_vol}, None
+    return {"sharpe": sharpe, "beta": beta, "volatility": ann_vol,
+            "risk_free_pct": round(risk_free * 100, 2), "risk_free_source": rf_source}, None
 
 
 def _portfolio_risk_cached(user_id: int) -> Optional[dict]:

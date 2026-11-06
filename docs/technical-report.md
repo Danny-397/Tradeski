@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 25 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~6,100 lines (`dashboard.js` alone is 2,690), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 196, across 22 files, run in GitHub Actions with flake8 |
+| Tests | 200, across 23 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 6 Tradeski tools + web search, a figure-grounding check, and a 19-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -92,8 +92,9 @@ inserts it onto `sys.path` explicitly so the process works regardless of working
 
 Every technical indicator is implemented directly on NumPy arrays rather than pulled from
 TA-Lib or pandas: SMA, EMA, RSI with Wilder smoothing, MACD, Bollinger Bands, ATR, the
-Stochastic Oscillator, rolling Z-score, rolling volatility, and a least-squares linear
-regression forecast ([`analyzer.py`](../tracker/analyzer.py)).
+Stochastic Oscillator, rolling Z-score and rolling volatility
+([`analyzer.py`](../tracker/analyzer.py)). A least-squares "next value" extrapolation is
+still in the module, but it is no longer computed for the dashboard (see §9).
 
 The point of writing them by hand is not that the libraries are wrong. It is that the
 boundary conditions are where indicators are actually wrong, and you only meet them if you
@@ -248,7 +249,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-196 tests across 22 files run on every push through GitHub Actions, alongside flake8 linting.
+200 tests across 23 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -297,12 +298,16 @@ rate is the intended rate multiplied by the worker count, and two users can see 
 differ by one TTL. Correct for a single-worker deployment, which is what runs; wrong the
 moment it scales horizontally. Redis is the obvious fix and is not implemented.
 
-**The risk-free rate is hardcoded at 4.5%.** It should come from the FRED series the
-application is already fetching. Every Sharpe ratio is therefore slightly wrong in a
-direction that changes with the rate environment.
+**The risk-free rate is the fed funds rate, which is an approximation.** The Sharpe ratio
+used to subtract a hardcoded 4.5%, so it was wrong by however far rates had moved. It now
+uses the effective federal funds rate from the FRED snapshot the dashboard already fetches,
+falls back to 4.5% only when FRED is unavailable, and reports which rate it used. A
+three-month Treasury bill yield would be the textbook choice.
 
-**Sentiment is unvalidated.** See §5. The lexicon extension is a fix for named failures,
-not a measured improvement.
+**Sentiment is unvalidated, and is now labelled that way.** See §5. The lexicon extension is
+a fix for named failures, not a measured improvement, so the news panel shows "Headline
+tone" (positive, neutral, negative) with a note that it is a word-list score, not a call on
+the stock.
 
 **The assistant's quality is unmeasured.** The eval in §7 exists and its harness is tested
 end to end with a scripted model, but it has not yet been run against the real one. Until it
@@ -317,25 +322,25 @@ scope here — that question is the entire subject of
 is mostly "no". Reading the two projects together is the intended experience: this one
 displays the indicators, that one measures whether displaying them means anything.
 
-**`tracker/main.py` is dead code.** It is a legacy standalone CLI tracker from before the
-web dashboard existed, and it no longer imports — it references a `dashboard` module that
-does not exist under that name. It is 467 lines of the repository that no execution path
-reaches, and it should be deleted rather than left to imply it runs.
+**Dead code has been removed, and it hid a dead feature.** `tracker/main.py`, a CLI tracker
+from before the web dashboard that no longer imported, is gone, with the four modules only
+it used (the old tick-based alert rules, a scheduler, a daily summary and a pruning job) and
+the `apscheduler` dependency. The old alert rules looked like the dashboard's alert engine,
+which made it easy to assume alerts worked; they did not (§8).
 
-**The linear-regression "prediction" is a trend extrapolation, not a forecast.** It fits a
-least-squares line to the recent window and reads off the next point. It is labeled as a
-prediction in the UI, which oversells it; it carries no error bars and no evaluation of
-whether it beats the naive "tomorrow equals today" baseline. It almost certainly does not.
+**The linear-regression "prediction" is no longer sent.** It fitted a least-squares line and
+read off the next point: a trend extrapolation with no error bars and no test against the
+naive "tomorrow equals today" baseline. The dashboard had stopped displaying it, yet
+`/price_history` still computed and shipped it. It is no longer computed there.
 
 ---
 
 ## 10. What I would do differently
 
-Move the cache to Redis and make TTLs configuration rather than constants. Pull the
-risk-free rate from FRED. Delete `tracker/main.py`. Either validate the sentiment lexicon
-against a labeled set or relabel the panel as a heuristic. And either give the regression
-forecast an honest error estimate or remove it — of everything on the dashboard it is the
-element that most looks like a claim and least is one.
+Move the cache to Redis and make TTLs configuration rather than constants. Validate the
+sentiment lexicon against a labelled set of headlines, so "tone" could become a measured
+claim. Test features end to end from the first day: alerts were broken for months, and
+every unit test passed the whole time.
 
 For the assistant, I would have written the eval before the first prompt rather than after
 the feature shipped. Until then, Ski was judged by reading answers and deciding they looked
