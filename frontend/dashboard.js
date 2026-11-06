@@ -2315,7 +2315,7 @@ function renderScreenerTable() {
             <td class="sc-symbol">${escapeHtml(s.symbol)}</td>
             <td class="sc-name">${escapeHtml(s.name || "")}</td>
             <td class="sc-price">${s.price !== null ? "$" + s.price.toFixed(2) : "—"}</td>
-            <td class="sc-pe">${s.pe !== null ? s.pe.toFixed(1) : "—"}</td>
+            <td class="sc-pe"${s.pe_source === "sec_filings" ? ' title="Trailing P/E computed from SEC filings"' : ""}>${s.pe != null ? s.pe.toFixed(1) : "—"}</td>
             <td class="sc-mcap">${fmtMcap(s.market_cap)}</td>
             <td class="sc-sector">${escapeHtml(s.sector || "—")}</td>
             <td class="sc-high">${s.high_52w !== null ? "$" + s.high_52w.toFixed(2) : "—"}</td>

@@ -91,3 +91,44 @@ def test_disabled_without_a_contact_user_agent(monkeypatch):
     assert sec.fundamentals("AAPL") is None
     monkeypatch.setenv("SEC_USER_AGENT", "Tradeski")  # no contact email: SEC would refuse it
     assert sec.user_agent() is None
+
+
+# ── the screener fill in app.py ─────────────────────────────
+
+def _app(monkeypatch):
+    sys.path.insert(0, os.path.join(ROOT, "Plotly dashboard"))
+    import app
+    from cache import SimpleCache
+    monkeypatch.setattr(app, "_cache", SimpleCache())
+    monkeypatch.setenv("SEC_USER_AGENT", "Tradeski test@example.com")
+    return app
+
+
+BLANK = {"symbol": "GOOGL", "name": "GOOGL", "price": 200.0, "pe": None, "market_cap": None, "sector": "—"}
+
+
+def test_screener_uses_cached_filings_without_mutating_the_cached_row(monkeypatch):
+    app = _app(monkeypatch)
+    app._cache.set("ski_filings:GOOGL", {"eps_trailing_4q": 10.0, "shares_outstanding": 1000}, ttl=60)
+    row = dict(BLANK)
+    out = app._fill_from_filings([row])
+    assert out[0]["pe"] == 20.0 and out[0]["market_cap"] == 200_000 and out[0]["pe_source"] == "sec_filings"
+    assert row["pe"] is None
+
+
+def test_screener_never_waits_on_edgar(monkeypatch):
+    app = _app(monkeypatch)
+    started = []
+    monkeypatch.setattr(app, "_cached_filings", lambda sym, price: started.append(sym))
+    monkeypatch.setattr(app.threading, "Thread",
+                        lambda target, daemon: type("T", (), {"start": lambda self: target()})())
+    out = app._fill_from_filings([dict(BLANK)])
+    assert out[0]["pe"] is None  # nothing cached yet: served as is
+    assert started == ["GOOGL"]  # and warmed in the background for next time
+
+
+def test_screener_untouched_without_sec_contact(monkeypatch):
+    app = _app(monkeypatch)
+    monkeypatch.delenv("SEC_USER_AGENT")
+    rows = [dict(BLANK)]
+    assert app._fill_from_filings(rows) is rows
