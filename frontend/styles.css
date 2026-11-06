@@ -1085,6 +1085,11 @@ select.form-input {
     font-weight: 600;
     line-height: var(--lh-snug);
 }
+.ski-lookups {
+    color: var(--text-muted);
+    font-size: var(--fs-micro);
+    line-height: var(--lh-snug);
+}
 .ski-list { margin: 0; padding-left: 1.1em; }
 .ski-list li + li { margin-top: var(--s-2); }
 .ski-list li::marker { color: var(--accent); }

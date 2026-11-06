@@ -1869,6 +1869,16 @@ function setSkiReply(el, text) {
     el.classList.add("ski-rich");
 }
 
+// Under a reply, list what Ski looked up ("NVDA price and chart · web search")
+// so the user can see which answers came from data and which from the model.
+function appendSkiLookups(bubble, lookups) {
+    if (!Array.isArray(lookups) || !lookups.length) return;
+    const line = document.createElement("div");
+    line.className = "ski-lookups";
+    line.textContent = "Checked: " + lookups.slice(0, 6).map(String).join(" · ");
+    bubble.appendChild(line);
+}
+
 function buildChartContext() {
     const d = state.chartData;
     if (!d) return null;
@@ -1985,8 +1995,10 @@ async function skiSend() {
         }
         const data = await res.json();
         const reply = data.reply || data.error || "No response.";
-        if (data.reply) setSkiReply(loadingBubble, reply);
-        else loadingBubble.textContent = reply;
+        if (data.reply) {
+            setSkiReply(loadingBubble, reply);
+            appendSkiLookups(loadingBubble, data.lookups);
+        } else loadingBubble.textContent = reply;
         loadingBubble.classList.remove("loading");
         skiState.history.push({ role: "assistant", content: reply });
         if (skiState.history.length > 20) skiState.history = skiState.history.slice(-20);

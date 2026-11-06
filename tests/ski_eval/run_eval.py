@@ -8,7 +8,7 @@ the market. Requests go through the real /chat endpoint via Flask's test
 client, so the prompt, tool loop and grounding check are the production code.
 Web search, when Ski uses it, is real.
 
-Cost: about 19 questions x 1 to 3 model calls on Claude Haiku 5.5, which is
+Cost: about 21 questions x 1 to 3 model calls on Claude Haiku 5.5, which is
 roughly $0.01 to $0.05 a run plus $0.01 per web search Ski chooses to run.
 Results are written to tests/ski_eval/results/ (gitignored).
 """
@@ -32,6 +32,7 @@ from graders import grade  # noqa: E402
 _SHAPES = {
     "NVDA": (60.0, 0.0030, 0.012), "AAPL": (170.0, 0.0006, 0.008), "TSLA": (300.0, -0.0012, 0.020),
     "MSFT": (380.0, 0.0008, 0.007), "SPY": (480.0, 0.0005, 0.005), "QQQ": (400.0, 0.0007, 0.007),
+    "GOOGL": (160.0, 0.0009, 0.009),
 }
 _FUNDAMENTALS = {
     "NVDA": {"name": "NVIDIA", "sector": "Technology", "pe": 48.2, "market_cap": 3.1e12},
@@ -39,7 +40,22 @@ _FUNDAMENTALS = {
     "TSLA": {"name": "Tesla", "sector": "Consumer Cyclical", "pe": 72.9, "market_cap": 6.4e11},
     "MSFT": {"name": "Microsoft", "sector": "Technology", "pe": 35.6, "market_cap": 3.2e12},
     "SPY": {"name": "SPDR S&P 500 ETF", "sector": "ETF", "pe": None, "market_cap": None},
+    # As on Render, where Yahoo's .info is blocked: no P/E, market cap or sector.
+    "GOOGL": {"name": "GOOGL", "sector": "—", "pe": None, "market_cap": None},
 }
+# What tracker/sec_fundamentals.py computes from filings (price-independent part).
+_FILINGS = {
+    "GOOGL": {"source": "SEC filings (10-Q/10-K), computed by Tradeski", "eps_trailing_4q": 9.1,
+              "latest_quarter_end": "2026-09-30", "revenue_trailing_4q_usd": 402_000_000_000,
+              "revenue_growth_yoy_pct": 13.2, "net_margin_trailing_pct": 28.4,
+              "shares_outstanding": 12_100_000_000},
+}
+
+
+def fixture_filings(symbol: str, price):
+    from tracker import sec_fundamentals
+    base = _FILINGS.get(symbol)
+    return sec_fundamentals.with_price(base, price or fixture_bars(symbol)[-1]["close"]) if base else None
 
 
 def fixture_bars(symbol: str, period: str = "1y", _interval: str = "1d") -> list:
@@ -128,6 +144,7 @@ def install_fixtures(set_attr=setattr):
     set_attr(app, "get_stock_price", lambda s: fixture_bars(s)[-1]["close"] if fixture_bars(s) else None)
     set_attr(app.database, "get_recent_prices", lambda s, limit=1: [])
     set_attr(app, "_fetch_screener_row", fixture_fundamentals)
+    set_attr(app, "_cached_filings", fixture_filings)
     set_attr(app, "_fetch_cached_news", fixture_news)
     set_attr(app, "fetch_fred_observations", fixture_fred)
     set_attr(app, "_get_macro_context", lambda: MACRO_CONTEXT)

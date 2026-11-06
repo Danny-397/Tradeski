@@ -45,6 +45,8 @@ class SkiData:
     macro_history: Callable[[str, int], list]      # (series_id, n) -> FRED observations
     holdings: Callable[[], list]                   # the user's (or sample) raw holdings
     risk: Callable[[list], tuple]                  # raw holdings -> (metrics | None, reason)
+    # (symbol, price) -> fundamentals computed from SEC filings, or None
+    filings: Optional[Callable[[str, Optional[float]], Optional[dict]]] = None
 
 
 def clean_symbol(raw) -> str:
@@ -152,6 +154,48 @@ def _daily_returns_by_date(bars: list) -> dict:
     return {d: closes[d] / closes[p] - 1 for p, d in zip(dates, dates[1:]) if closes[p]}
 
 
+BENCHMARK = "SPY"
+
+
+def vs_benchmark(summary: dict, bars: list, bench_bars: list) -> Optional[dict]:
+    """The stock's returns against the S&P 500 (SPY), and its beta to it.
+
+    Computed here so the model never has to subtract two returns itself: that
+    is the question "is it the stock or the market?" answered in numbers.
+    """
+    bench = price_summary(BENCHMARK, bench_bars) if bench_bars else {}
+    if "return_pct" not in summary or "return_pct" not in bench:
+        return None
+    excess = {}
+    for k, mine in summary["return_pct"].items():
+        theirs = bench["return_pct"].get(k)
+        excess[k] = _r(mine - theirs, 1) if mine is not None and theirs is not None else None
+
+    a, b = _daily_returns_by_date(bars), _daily_returns_by_date(bench_bars)
+    common = sorted(set(a) & set(b))
+    beta = corr = None
+    if len(common) >= 60:
+        x = np.array([b[d] for d in common])
+        y = np.array([a[d] for d in common])
+        var = float(np.var(x))
+        if var > 0:
+            beta = _r(float(np.cov(y, x, ddof=0)[0][1]) / var, 2)
+            corr = _r(float(np.corrcoef(y, x)[0][1]), 2)
+    return {
+        "benchmark": "S&P 500 (SPY)",
+        "benchmark_return_pct": bench["return_pct"],
+        "excess_return_pct_points": excess,
+        "beta_vs_sp500": beta,
+        "correlation_with_sp500": corr,
+        "days_for_beta": len(common),
+    }
+
+
+def clean_fundamentals(row: Optional[dict]) -> dict:
+    """Drop blank fields ("—" placeholders, nulls) so the model is not shown empty data."""
+    return {k: v for k, v in (row or {}).items() if v not in (None, "", "—", "-")}
+
+
 def correlation(series: dict) -> dict:
     """Correlation of daily returns, aligned on the dates every symbol traded."""
     returns = {s: _daily_returns_by_date(b) for s, b in series.items() if b}
@@ -213,15 +257,19 @@ TOOLS = [
         "description": (
             "One year of daily prices for any ticker, summarised: latest close, 1-week / 1-month / 3-month / "
             "1-year returns, distance from the 52-week high and low, realised volatility, and RSI, MACD, "
-            "moving averages, Bollinger position, ATR and stochastic (several given now and 5 days ago). "
-            "Use for any question about how a stock is doing or what its chart looks like."
+            "moving averages, Bollinger position, ATR and stochastic (several given now and 5 days ago), plus "
+            "the same returns for the S&P 500, the stock's excess return over it, and its beta to it. "
+            "Use for any question about how a stock is doing, what its chart looks like, or whether a move "
+            "is the stock or the whole market."
         ),
         "input_schema": _schema({"symbol": _SYMBOL}),
     },
     {
         "name": "get_fundamentals",
         "description": "Company name, sector, P/E, market cap, 52-week range and 52-week performance for a ticker. "
-                       "Some fields can be null when the data source is rate-limited.",
+                       "When the market-data source lacks P/E or market cap, a from_filings section gives trailing "
+                       "EPS, P/E, market cap, revenue growth and net margin computed from the company's SEC "
+                       "filings. Missing fields are omitted, never guessed.",
         "input_schema": _schema({"symbol": _SYMBOL}),
     },
     {
@@ -239,8 +287,8 @@ TOOLS = [
         "name": "portfolio_what_if",
         "description": (
             "Recompute the user's portfolio weights and risk (Sharpe, beta vs S&P 500, annualised volatility, "
-            "1-year daily returns) before and after hypothetical trades. shares_change is positive to buy and "
-            "negative to sell. Nothing is traded; this is a calculation."
+            "1-year daily returns) before and after hypothetical trades, and the change in each. "
+            "shares_change is positive to buy and negative to sell. Nothing is traded; this is a calculation."
         ),
         "input_schema": _schema({
             "changes": {
@@ -271,6 +319,24 @@ def _book_view(holdings: list, priced: dict) -> dict:
     return {"total_value": _r(total), "weights_pct": weights}
 
 
+def _fundamentals(sym: str, data: SkiData) -> dict:
+    row = clean_fundamentals(data.fundamentals(sym))
+    if data.filings and ("pe" not in row or "market_cap" not in row):
+        try:
+            filed = data.filings(sym, row.get("price"))
+        except Exception:
+            filed = None
+        if filed:
+            row = {"symbol": sym, **row, "from_filings": clean_fundamentals(filed)}
+    if not row:
+        return {"symbol": sym, "error": "no fundamental data for this symbol"}
+    row.setdefault("symbol", sym)
+    if "pe" not in row and "pe_trailing" not in row.get("from_filings", {}):
+        row["note"] = ("P/E and market cap are not available from Tradeski's data sources right now. "
+                       "Say so, or use web_search if the user needs them.")
+    return row
+
+
 def run_tool(name: str, args: dict, data: SkiData) -> dict:
     """Execute one tool call. Raises ValueError for bad input (reported to the model)."""
     if name in ("get_price_summary", "get_fundamentals", "get_news"):
@@ -279,10 +345,16 @@ def run_tool(name: str, args: dict, data: SkiData) -> dict:
             raise ValueError("symbol is required")
         if name == "get_price_summary":
             bars = data.bars(sym, "1y")
-            return price_summary(sym, bars) if bars else {"symbol": sym, "error": "no price data for this symbol"}
+            if not bars:
+                return {"symbol": sym, "error": "no price data for this symbol"}
+            out = price_summary(sym, bars)
+            if sym != BENCHMARK and "error" not in out:
+                rel = vs_benchmark(out, bars, data.bars(BENCHMARK, "1y"))
+                if rel:
+                    out["vs_sp500"] = rel
+            return out
         if name == "get_fundamentals":
-            row = data.fundamentals(sym)
-            return row or {"symbol": sym, "error": "no fundamental data for this symbol"}
+            return _fundamentals(sym, data)
         articles = data.news(sym)
         return {
             "symbol": sym,
@@ -315,7 +387,16 @@ def run_tool(name: str, args: dict, data: SkiData) -> dict:
             metrics, reason = data.risk(book) if book else (None, "empty portfolio")
             return {**_book_view(book, priced), "risk": metrics, "risk_unavailable_reason": None if metrics else reason}
 
-        return {"before": side(before), "after": side(after), "notes": notes, "unpriced_symbols": unpriced}
+        b, a = side(before), side(after)
+        change = {}
+        if b["risk"] and a["risk"]:
+            for k in ("beta", "volatility", "sharpe"):
+                if b["risk"].get(k) is not None and a["risk"].get(k) is not None:
+                    change[k] = _r(a["risk"][k] - b["risk"][k], 2)
+        if b["total_value"] is not None and a["total_value"] is not None:
+            change["total_value"] = _r(a["total_value"] - b["total_value"])
+        return {"before": b, "after": a, "change_after_minus_before": change,
+                "notes": notes, "unpriced_symbols": unpriced}
 
     if name == "get_macro_history":
         sid = args.get("series_id")
@@ -346,3 +427,27 @@ def tool_result_block(tool_use_id: str, name: str, args: dict, data: SkiData) ->
     except Exception as exc:  # reported to the model so it can recover or say so
         message = str(exc) if isinstance(exc, ValueError) else "the data source failed; try again later"
         return {"type": "tool_result", "tool_use_id": tool_use_id, "is_error": True, "content": message}, None
+
+
+_CALL_LABELS = {
+    "get_price_summary": "{symbol} price and chart",
+    "get_fundamentals": "{symbol} fundamentals",
+    "get_news": "{symbol} news",
+}
+
+
+def describe_call(name: str, args: dict) -> str:
+    """A short label for what a tool call looked up, shown under Ski's reply."""
+    args = args or {}
+    if name in _CALL_LABELS:
+        return _CALL_LABELS[name].format(symbol=clean_symbol(args.get("symbol")) or "?")
+    if name == "get_correlation":
+        syms = [clean_symbol(s) for s in (args.get("symbols") or [])][:4]
+        return "correlation of " + ", ".join(s for s in syms if s)
+    if name == "portfolio_what_if":
+        return "portfolio what-if"
+    if name == "get_macro_history":
+        return f"{args.get('series_id', 'macro')} history"
+    if name == "web_search":
+        return "web search"
+    return name
