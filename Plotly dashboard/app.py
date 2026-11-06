@@ -999,8 +999,12 @@ _OPTIONS_SCAN_MAX = 10
 _DEFAULT_RATE = 0.04
 
 
-def _risk_free_rate() -> tuple:
-    """(annual rate, where it came from): the 3-month Treasury yield from FRED."""
+def _options_rate() -> tuple:
+    """(annual rate, where it came from): the 3-month Treasury yield from FRED.
+
+    Options are priced off the short Treasury rate; the portfolio Sharpe ratio
+    uses fed funds (_risk_free_rate below).
+    """
     obs = _cached_macro_history("DGS3MO", 1)
     try:
         return float(obs[0]["value"]) / 100.0, "the 3-month Treasury yield, from FRED"
@@ -1026,7 +1030,7 @@ def _cached_chain(symbol: str, expiry: str) -> Optional[dict]:
         raw = get_option_chain(symbol, expiry)
         if not raw:
             return None
-        rate, rate_source = _risk_free_rate()
+        rate, rate_source = _options_rate()
         chain = opt.clean_chain(raw, expiry, rate)
         chain["rate_source"] = rate_source
         closes = [b["close"] for b in _cached_bars(symbol, "3mo")]
