@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-196%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-200%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 196 tests across 22 files — CI on every push |
+| **Tests** | 200 tests across 23 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -104,7 +104,7 @@ Add holdings by symbol, share count, and average cost basis. See unrealized P&L 
 
 | Metric | Method |
 |:---|:---|
-| Sharpe Ratio | Annualized excess return / annualized volatility · risk-free rate: 4.5% |
+| Sharpe Ratio | Annualized excess return / annualized volatility · risk-free rate: the current fed funds rate from FRED (4.5% if FRED is unavailable) |
 | Portfolio Beta | Covariance with SPY / variance of SPY over 252 trading days |
 | Annualized Volatility | Rolling standard deviation of weighted daily returns × √252 |
 
@@ -140,14 +140,9 @@ Tradeski/
 │   ├── news.py                # NewsAPI + VADER sentiment with financial lexicon
 │   ├── ski_tools.py           # Ski's tools: price summary, fundamentals, news, correlation, what-if, macro
 │   ├── alert_eval.py          # Alert checks against price history since each alert was set
-│   ├── alerts.py              # Legacy tick-based rules (CLI only)
 │   ├── notifier.py            # Pushover push notification handler
-│   ├── scheduler.py           # APScheduler background job manager
-│   ├── daily_summary.py       # Daily price/volume summary generator
-│   ├── pruning.py             # Automatic 30-day data retention cleanup
 │   ├── config.py              # Environment variable configuration
 │   ├── logger.py              # Rotating file + console logger
-│   └── main.py                # Real-time tracker entry point
 │
 ├── Plotly dashboard/          # Flask + Socket.IO application server
 │   ├── app.py                 # REST API, WebSocket emitters, Ski /chat + /briefing endpoints
@@ -162,7 +157,7 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   └── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │
-├── tests/                     # pytest suite — 196 tests across 22 files
+├── tests/                     # pytest suite — 200 tests across 23 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -245,7 +240,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (196 tests) |
+| Testing | pytest (200 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -266,7 +261,6 @@ All ten indicators live in [`tracker/analyzer.py`](tracker/analyzer.py) and are 
 | Volatility | Rolling standard deviation proxy for realized vol |
 | ATR (14) | True range smoothed via Wilder's method — matches Wilder (1978) spec |
 | Stochastic | %K/%D oscillator with configurable lookback |
-| Linear Regression | Least-squares next-value prediction via `numpy.linalg.lstsq` |
 
 **RSI — Wilder Smoothing:** Initial up/down averages use an arithmetic mean over the seed period. Subsequent values: `avg = (prev × (period − 1) + current) / period`. Output range: [0, 100].
 
@@ -561,7 +555,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-196 tests across 22 files:
+200 tests across 23 files:
 
 | File | What it covers |
 |:---|:---|
@@ -580,6 +574,7 @@ python -m pytest -v
 | `test_stream_contract.py` | Shape of the streamed payload the dashboard consumes |
 | `test_security_contract.py` | Rate limits keyed per visitor behind the proxy; alert input validated before it is stored |
 | `test_alerts.py` | Alerts fire: each type on the right bar, never on bars before the alert was set, owner-scoped, and caught up after the server slept |
+| `test_portfolio_risk.py` | Sharpe uses the current fed funds rate (with a fallback), and the unshown prediction is no longer sent |
 | `test_symbols.py` | Ticker-search index: loads before the dashboard, unique symbols, API spelling (BRK-B) |
 | `test_sample_portfolio.py` | Signed-out sample portfolio sent to Ski: validated, capped at 10 rows, signed-out only |
 | `test_ski_context.py` | Ski's chart snapshot: MACD crossover only on a sign change, malformed browser values dropped, no prompt claims of data Ski lacks |
@@ -631,7 +626,7 @@ Writing Wilder's smoothing from scratch requires understanding why it diverges f
 
 Tradeski spans six engineering disciplines in one codebase:
 
-- **Data engineering** — real-time polling, SQLite schema design, TTL caching, 30-day retention pruning
+- **Data engineering** — real-time polling, SQLite/Postgres schema design, TTL caching
 - **Backend architecture** — REST API design, WebSocket streaming, background scheduling, parallel HTTP fetching
 - **Quantitative analysis** — ten financial indicators written by hand on NumPy; Sharpe ratio, beta, and volatility from raw daily return vectors
 - **Statistical computing** — pairwise correlation matrix over 90-day return series; portfolio variance weighted by live market value

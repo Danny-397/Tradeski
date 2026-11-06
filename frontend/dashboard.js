@@ -1920,6 +1920,13 @@ function appendSkiLookups(bubble, lookups) {
     bubble.appendChild(line);
 }
 
+// The news scores are a word list's reading of a headline's wording (VADER),
+// unvalidated against returns, so they are shown as tone, not as a call.
+const TONE_TITLE = "Tone of the headline's wording, scored by a word list (VADER). A rough hint, not a forecast.";
+function toneWord(label) {
+    return { bullish: "Positive", bearish: "Negative" }[label] || "Neutral";
+}
+
 function buildChartContext() {
     const d = state.chartData;
     if (!d) return null;
@@ -2151,7 +2158,7 @@ async function loadNews(sym) {
         if (chip) {
             const label = agg.label || "neutral";
             const sign  = (agg.score || 0) >= 0 ? "+" : "";
-            chip.textContent = `${label.charAt(0).toUpperCase() + label.slice(1)} ${sign}${(agg.score || 0).toFixed(2)}`;
+            chip.textContent = `${toneWord(label)} ${sign}${(agg.score || 0).toFixed(2)}`;
             chip.className   = `sentiment-chip ${label}`;
         }
 
@@ -2168,7 +2175,7 @@ async function loadNews(sym) {
             item.className = "news-item";
             item.innerHTML = `
                 <div class="news-item-header">
-                    <span class="news-sentiment ${lbl}">${lbl.charAt(0).toUpperCase() + lbl.slice(1)} ${score}</span>
+                    <span class="news-sentiment ${lbl}" title="${TONE_TITLE}">${toneWord(lbl)} ${score}</span>
                 </div>
                 <a class="news-title" href="${escapeHtml(/^https?:\/\//i.test(a.url || "") ? a.url : "#")}" target="_blank" rel="noopener">
                     ${escapeHtml(a.title || "")}
@@ -2492,6 +2499,11 @@ async function loadPortfolioRisk() {
         if (data.error) { row.style.display = "none"; return; }
 
         sharpeEl.textContent = data.sharpe != null ? data.sharpe.toFixed(2) : "—";
+        if (data.risk_free_pct != null) {
+            sharpeEl.parentElement.title = `Sharpe ratio: return above the risk-free rate per unit of risk `
+                + `(higher is better). Risk-free rate ${data.risk_free_pct}%`
+                + (data.risk_free_source === "fed_funds" ? ", the current fed funds rate (FRED)." : ", a default.");
+        }
         betaEl.textContent   = data.beta   != null ? data.beta.toFixed(2)   : "—";
         volEl.textContent    = data.volatility != null ? `${data.volatility}%` : "—";
 
