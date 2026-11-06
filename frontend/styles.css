@@ -288,6 +288,16 @@ body {
 .alert-row-left { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .alert-sym-type { font-size: var(--fs-xs); font-weight: 600; color: var(--text-strong); }
 .alert-thresh   { font-family: var(--data); font-size: var(--fs-micro); color: var(--text-muted); }
+.alerts-subhead {
+    padding: var(--s-4) var(--s-3) var(--s-2);
+    color: var(--text-muted);
+    font-size: var(--fs-micro);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.alert-fired-msg { font-size: var(--fs-xs); color: var(--text-strong); line-height: var(--lh-snug); }
+.alert-modal-note { margin: 0; color: var(--text-muted); font-size: var(--fs-micro); line-height: var(--lh-snug); }
+.alert-error { margin: 0; min-height: 1em; color: var(--red); font-size: var(--fs-xs); }
 .del-btn {
     flex-shrink: 0;
     width: 24px; height: 24px;

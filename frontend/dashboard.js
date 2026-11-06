@@ -397,7 +397,6 @@ function initWebSocket() {
         state.socket.on("connect",    () => setWs(true));
         state.socket.on("disconnect", () => setWs(false));
         state.socket.on("price_update",    onPriceUpdate);
-        state.socket.on("alert_triggered", onAlertTriggered);
     } catch (_) {
         setWs(false);
     }
@@ -416,10 +415,6 @@ function onPriceUpdate(msg) {
         renderHeaderPrice(msg.symbol, msg.price, pct);
         setLastUpdate();
     }
-}
-
-function onAlertTriggered(alert) {
-    pushFeed(`${alert.symbol}: ${alert.message}`, "alert");
 }
 
 // ============================================================
@@ -1353,9 +1348,33 @@ async function loadAlerts() {
         const res = await fetch(`${CFG.API}/alerts`);
         if (res.status === 401) { clearSession(); renderSignedOutAlerts(); return; }
         if (!res.ok) return;
-        state.alerts = await res.json();
+        const data = await res.json();
+        state.alerts = data.active || [];
+        state.triggeredAlerts = data.triggered || [];
         renderAlertList();
+        announceNewTriggers(state.triggeredAlerts);
     } catch (_) {}
+}
+
+// Alerts are checked on the server against price history, and each /alerts
+// call returns the ones that fired. Announce an alert once: the ids already
+// shown are remembered in localStorage, so a reload doesn't repeat them.
+const SEEN_TRIGGERS_KEY = "tradeski_seen_triggers";
+
+function announceNewTriggers(triggered) {
+    let seen;
+    try { seen = new Set(JSON.parse(localStorage.getItem(SEEN_TRIGGERS_KEY) || "[]")); }
+    catch (_) { seen = new Set(); }
+    const fresh = triggered.filter(([id]) => !seen.has(id));
+    if (!fresh.length) return;
+    for (const [id, , , , , , message] of fresh) {
+        seen.add(id);
+        setStatus(`Alert: ${message}`);
+        if ("Notification" in window && Notification.permission === "granted") {
+            try { new Notification("Tradeski alert", { body: String(message), tag: `alert-${id}` }); } catch (_) {}
+        }
+    }
+    try { localStorage.setItem(SEEN_TRIGGERS_KEY, JSON.stringify([...seen].slice(-100))); } catch (_) {}
 }
 
 function renderAlertList() {
@@ -1364,28 +1383,38 @@ function renderAlertList() {
     const footer = document.getElementById("alert-footer");
     if (footer) footer.style.display = "";
     badge.textContent = state.alerts.length;
+    const triggered = state.triggeredAlerts || [];
 
-    if (!state.alerts.length) {
+    if (!state.alerts.length && !triggered.length) {
         el.innerHTML = `<div class="feed-empty">No alerts set</div>`;
         return;
     }
 
-    el.innerHTML = state.alerts.map(([id, sym, type, thresh]) => `
+    const active = state.alerts.map(([id, sym, type, thresh]) => `
         <div class="alert-row">
             <div class="alert-row-left">
                 <span class="alert-sym-type">${escapeHtml(String(sym))} · ${escapeHtml(fmtAlertType(type))}</span>
                 ${thresh != null ? `<span class="alert-thresh">@ $${fmt(thresh)}</span>` : ""}
             </div>
-            <button class="del-btn" onclick="deleteAlert(${id})" title="Delete alert">✕</button>
+            <button class="del-btn" onclick="deleteAlert(${Number(id)})" title="Delete alert">✕</button>
         </div>
     `).join("");
+    const fired = triggered.map(([id, , , , , , message]) => `
+        <div class="alert-row alert-row-fired">
+            <div class="alert-row-left">
+                <span class="alert-fired-msg">${escapeHtml(String(message || ""))}</span>
+            </div>
+            <button class="del-btn" onclick="deleteAlert(${Number(id)})" title="Dismiss">✕</button>
+        </div>
+    `).join("");
+    el.innerHTML = (active || `<div class="feed-empty">No active alerts</div>`)
+        + (fired ? `<div class="alerts-subhead">Triggered</div>${fired}` : "");
 }
 
 async function deleteAlert(id) {
     try {
         await fetch(`${CFG.API}/alerts/${id}`, { method: "DELETE" });
         await loadAlerts();
-        pushFeed(`Alert #${id} removed`, "");
     } catch (_) {}
 }
 
@@ -1430,19 +1459,30 @@ async function submitAlert() {
         return;
     }
 
+    const errorEl = document.getElementById("alert-error");
+    if (errorEl) errorEl.textContent = "";
     try {
-        await fetch(`${CFG.API}/alerts`, {
+        const res = await fetch(`${CFG.API}/alerts`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ symbol, alert_type: alertType, threshold }),
         });
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            if (errorEl) errorEl.textContent = body.error || "Could not create the alert.";
+            return;
+        }
         document.getElementById("alert-modal").style.display = "none";
         document.getElementById("alert-symbol").value = "";
         document.getElementById("alert-threshold").value = "";
+        setStatus(`Alert created: ${symbol} ${fmtAlertType(alertType)}`);
+        // Ask once, when the user first shows they want alerts, not on page load.
+        if ("Notification" in window && Notification.permission === "default") {
+            try { Notification.requestPermission(); } catch (_) {}
+        }
         await loadAlerts();
-        pushFeed(`Alert created: ${symbol} ${fmtAlertType(alertType)}`, "buy");
     } catch (_) {
-        setStatus("Failed to create alert");
+        if (errorEl) errorEl.textContent = "Could not reach the server. Try again in a moment.";
     }
 }
 
@@ -1509,6 +1549,7 @@ function initPortfolio() {
     });
     loadPortfolio();
     setInterval(() => { if (!pageIdle()) loadPortfolio(); }, CFG.PORTFOLIO_REFRESH_MS);
+    setInterval(() => { if (!pageIdle() && getToken()) loadAlerts(); }, 60_000);
 }
 
 async function loadPortfolio() {

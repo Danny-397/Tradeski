@@ -30,7 +30,7 @@ from tracker import database
 from tracker import auth
 from tracker.fred import get_macro_snapshot, format_macro_context
 from tracker.fred import _fetch_observations as fetch_fred_observations
-from tracker import ski_tools, ski_grounding, sec_fundamentals
+from tracker import ski_tools, ski_grounding, sec_fundamentals, alert_eval
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
 from tracker.analyzer import (
@@ -451,13 +451,52 @@ def market_status() -> tuple:
 @app.route("/alerts", methods=["GET"])
 @require_auth
 def get_alerts() -> tuple:
-    """Return the signed-in user's alerts."""
-    return jsonify(database.get_alerts(g.user_id))
+    """Return the signed-in user's active alerts, after checking them, and the ones that fired."""
+    try:
+        _check_alerts(database.get_active_alerts_for_eval(g.user_id))
+    except Exception:
+        app.logger.exception("alert check failed")  # still list the alerts
+    return jsonify({
+        "active": database.get_alerts(g.user_id),
+        "triggered": database.get_triggered_alerts(g.user_id, 10),
+    })
 
 
 # The options the alert form offers; anything else is rejected rather than stored.
-_ALERT_TYPES = {"price_above", "price_below", "rsi_overbought", "rsi_oversold",
-                "volume_spike", "volatility_spike"}
+_ALERT_TYPES = alert_eval.PRICE_TYPES | alert_eval.INDICATOR_TYPES
+MAX_ACTIVE_ALERTS = 20
+
+
+def _alert_bars(symbol: str, period: str, interval: str) -> list:
+    key = f"alert_bars:{symbol}:{period}:{interval}"
+    bars = _cache.get(key)
+    if bars is None:
+        bars = get_ohlc_history(symbol, period, interval)
+        _cache.set(key, bars, ttl=_CHART_TTL)
+    return bars or []
+
+
+def _check_alerts(rows) -> int:
+    """Evaluate active alerts against price history and record the ones that fired.
+
+    ``rows`` are (id, user_id, symbol, alert_type, threshold, created_at). Each
+    distinct (symbol, bar size) is fetched once, through the cache. Returns how
+    many alerts fired.
+    """
+    now = time.time()
+    plans = [(r, alert_eval.history_request(r[3], r[5], now)) for r in rows]
+    needed = {(r[2], *req) for r, req in plans}
+    if not needed:
+        return 0
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        bars = dict(zip(needed, pool.map(lambda k: _alert_bars(*k), needed)))
+    fired = 0
+    for (alert_id, user_id, symbol, alert_type, threshold, created_at), req in plans:
+        hit = alert_eval.evaluate(alert_type, symbol, threshold, created_at, bars[(symbol, *req)])
+        if hit and database.mark_alert_triggered(alert_id, user_id, hit["triggered_at"], hit["price"],
+                                                 hit["message"]):
+            fired += 1
+    return fired
 
 
 @app.route("/alerts", methods=["POST"])
@@ -478,6 +517,10 @@ def create_alert() -> tuple:
             for k in ("threshold", "multiplier", "zscore"))
     except (TypeError, ValueError):
         return jsonify({"error": "threshold, multiplier and zscore must be numbers"}), 400
+    if alert_type in alert_eval.PRICE_TYPES and not (threshold and np.isfinite(threshold) and threshold > 0):
+        return jsonify({"error": "a price alert needs a price above zero"}), 400
+    if database.count_active_alerts(g.user_id) >= MAX_ACTIVE_ALERTS:
+        return jsonify({"error": f"you can have up to {MAX_ACTIVE_ALERTS} active alerts"}), 400
 
     alert_id = database.create_alert(
         symbol,
@@ -1536,33 +1579,8 @@ def briefing() -> tuple:
 # WebSocket Broadcasts
 # ─────────────────────────────────────────────────────────────
 
-def broadcast_price(
-    symbol: str,
-    price: float,
-    change_pct: Optional[float] = None,
-) -> None:
-    """Broadcast price update."""
-    socketio.emit(
-        "price_update",
-        {
-            "symbol": symbol,
-            "price": price,
-            "change_pct": change_pct,
-            "timestamp": time.time(),
-        },
-    )
-
-
-def broadcast_alert(symbol: str, message: str) -> None:
-    """Broadcast alert trigger."""
-    socketio.emit(
-        "alert_triggered",
-        {
-            "symbol": symbol,
-            "message": message,
-            "timestamp": time.time(),
-        },
-    )
+# Alerts are delivered by the owner's own /alerts poll, never by a socket
+# broadcast: an emit with no room would reach every connected visitor.
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1591,6 +1609,12 @@ def _background_tracker() -> None:
                     )
             except Exception:
                 pass
+        # Check alerts while awake. Moves made while asleep are caught too,
+        # because alerts are evaluated against price history, not ticks.
+        try:
+            _check_alerts(database.get_active_alerts_for_eval())
+        except Exception:
+            app.logger.exception("background alert check failed")
         time.sleep(interval)
 
 
