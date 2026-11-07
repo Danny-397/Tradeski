@@ -207,11 +207,13 @@ function updateAuthUI() {
 function onSignedIn() {
     loadPortfolio();
     loadAlerts();
+    if (typeof scrOnAuthChange === "function") scrOnAuthChange();
 }
 
 function onSignedOut() {
     renderSignedOutPortfolio();
     renderSignedOutAlerts();
+    if (typeof scrOnAuthChange === "function") scrOnAuthChange();
 }
 
 // A signed-out visitor can try the portfolio features on this example

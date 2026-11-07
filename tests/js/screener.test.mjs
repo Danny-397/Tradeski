@@ -21,11 +21,14 @@ function declaration(head) {
 
 const heads = ["const SCR_FIELDS", "function scrRows", "function scrDaysUntil", "function scrMatches",
                "function scrSort", "function scrFormat", "function scrCsv", "function scrActiveCount",
-               "function scrUnitValue"];
+               "function scrUnitValue", "function scrScreenFrom", "function scrScreenStatus", "function scrMarkSeen"];
+const seenMax = src.match(/^const SCR_SEEN_MAX = \d+;/m)[0];
 const ctx = vm.createContext({});
-vm.runInContext(heads.map(declaration).join("\n") +
-    "\nthis.__x = { scrRows, scrMatches, scrSort, scrFormat, scrCsv, scrActiveCount, scrUnitValue };", ctx);
-const { scrRows, scrMatches, scrSort, scrFormat, scrCsv, scrActiveCount, scrUnitValue } = ctx.__x;
+vm.runInContext(seenMax + "\n" + heads.map(declaration).join("\n") +
+    "\nthis.__x = { scrRows, scrMatches, scrSort, scrFormat, scrCsv, scrActiveCount, scrUnitValue," +
+    " scrScreenFrom, scrScreenStatus, scrMarkSeen, SCR_SEEN_MAX };", ctx);
+const { scrRows, scrMatches, scrSort, scrFormat, scrCsv, scrActiveCount, scrUnitValue,
+        scrScreenFrom, scrScreenStatus, scrMarkSeen, SCR_SEEN_MAX } = ctx.__x;
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
 const data = {
@@ -95,4 +98,33 @@ test("filter chips show bounds in their units", () => {
 test("active filter count", () => {
     assert.equal(scrActiveCount({ ranges: { pe: [null, 15], rsi: [null, null] }, selects: { sector: "Energy", country: "" },
                                    earnings: "week" }), 3);
+});
+
+test("a saved screen copies the filters instead of sharing them", () => {
+    const filters = { ranges: { pe: [null, 15] }, selects: { sector: "Energy" }, earnings: "", search: "" };
+    const saved = scrScreenFrom("  Cheap energy ", filters, { col: "pe", dir: 1 }, "valuation");
+    filters.ranges.pe[1] = 99;
+    assert.equal(saved.name, "Cheap energy");
+    assert.deepEqual(plain(saved.filters.ranges), { pe: [null, 15] });
+    assert.deepEqual(plain(saved.sort), { col: "pe", dir: 1 });
+    assert.equal(saved.seen, null);
+});
+
+test("new matches are the ones outside last time's list", () => {
+    const tech = scrScreenFrom("Tech", { ...none, selects: { sector: "Technology" } }, { col: "market_cap", dir: -1 });
+    // Never opened: nothing counts as new yet.
+    assert.deepEqual(plain(scrScreenStatus(rows, tech, "2026-11-07")), { matches: ["AAPL", "TSM"], fresh: [] });
+    const looked = scrMarkSeen(tech, ["AAPL"], "2026-11-06");
+    assert.deepEqual(plain(looked.seen), ["AAPL"]);
+    assert.equal(looked.seen_at, "2026-11-06");
+    assert.deepEqual(plain(scrScreenStatus(rows, looked, "2026-11-07").fresh), ["TSM"]);
+    // Opening it again makes today's matches the baseline.
+    const again = scrMarkSeen(looked, ["TSM", "AAPL"], "2026-11-07");
+    assert.deepEqual(plain(again.seen), ["AAPL", "TSM"]);
+    assert.deepEqual(plain(scrScreenStatus(rows, again, "2026-11-07").fresh), []);
+});
+
+test("a screen too broad to track stores no baseline", () => {
+    const many = Array.from({ length: SCR_SEEN_MAX + 1 }, (_, i) => `S${i}`);
+    assert.equal(scrMarkSeen({ name: "All" }, many, "2026-11-07").seen, null);
 });

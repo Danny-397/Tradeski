@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-280%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-300%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 280 tests across 26 files — CI on every push |
+| **Tests** | 300 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -125,6 +125,7 @@ Rule-based alerts — price above/below a level, RSI overbought (>70) / oversold
   - **Analysts & ownership:** rating, target upside, analyst count, short float, institutional ownership.
 - **13 preset screens**, such as oversold large caps, pullbacks in uptrends, unusual volume, dividend payers and analyst favourites.
 - **Six column views**, sortable on any column, with search, paging and CSV export. Clicking a symbol charts it.
+- **Saved screens with new-match alerts:** save up to 10 filter setups (to your account when signed in, otherwise in the browser). Each remembers the stocks it matched when you last opened it, so after the nightly rebuild the Screener button shows how many new stocks qualify and the table tags them **New**, with a "show only new" toggle.
 
 The data is built after each US close by a GitHub Actions workflow ([`scripts/build_screener.py`](scripts/build_screener.py)), not on Render:
 
@@ -159,7 +160,7 @@ No free source has implied-volatility history, so Tradeski keeps its own. After 
 
 ### Accounts & Saved Data
 
-Browsing, charting, the screener, and Ski work without an account. Creating a free account (email + password) persists your **portfolio, alerts, and watchlist** server-side so they survive across sessions and devices. Passwords are stored only as salted PBKDF2 hashes; sessions use signed, expiring bearer tokens (no server-side session table). Every personal record is scoped to its owner — the portfolio and alert tables are keyed by `user_id`, so one account can never read or mutate another's data. A published [Privacy Policy](frontend/privacy.html) documents exactly what is collected and why.
+Browsing, charting, the screener, and Ski work without an account. Creating a free account (email + password) persists your **portfolio, alerts, watchlist and saved screens** server-side so they survive across sessions and devices. Passwords are stored only as salted PBKDF2 hashes; sessions use signed, expiring bearer tokens (no server-side session table). Every personal record is scoped to its owner — the portfolio and alert tables are keyed by `user_id`, so one account can never read or mutate another's data. A published [Privacy Policy](frontend/privacy.html) documents exactly what is collected and why.
 
 ---
 
@@ -171,12 +172,13 @@ Tradeski/
 ├── tracker/                   # Core Python backend module
 │   ├── analyzer.py            # 10 quantitative indicators, written by hand on NumPy
 │   ├── auth.py                # Password hashing (PBKDF2) + signed bearer tokens
-│   ├── database.py            # SQLite persistence — prices, alerts, portfolio, users, watchlist
+│   ├── database.py            # SQLite persistence — prices, alerts, portfolio, users, watchlist, saved screens
 │   ├── price_fetcher.py       # yfinance: live prices, OHLC history, screener data
 │   ├── fred.py                # FRED API client — 7 macro series with trend detection
 │   ├── news.py                # NewsAPI + VADER sentiment with financial lexicon
 │   ├── ski_tools.py           # Ski's tools: price summary, fundamentals, news, correlation, what-if, macro
 │   ├── alert_eval.py          # Alert checks against price history since each alert was set
+│   ├── screens.py             # Saved screener setups: validation before storage
 │   ├── notifier.py            # Pushover push notification handler
 │   ├── config.py              # Environment variable configuration
 │   ├── logger.py              # Rotating file + console logger
@@ -193,11 +195,11 @@ Tradeski/
 │   ├── favicon.svg            # SVG favicon
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   ├── dashboard.js           # WebSocket, Plotly, Ski, health indicator
-│   ├── screener.js            # Stock screener: every US-listed stock, filters, presets, CSV
+│   ├── screener.js            # Stock screener: every US-listed stock, filters, presets, saved screens, CSV
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 280 tests across 26 files
+├── tests/                     # pytest suite — 300 tests across 27 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -205,6 +207,7 @@ Tradeski/
 │   ├── test_news.py           # VADER: financial lexicon augmentation, aggregation
 │   ├── test_portfolio.py      # CRUD operations, UPSERT behavior
 │   ├── test_screener.py       # Data normalization, ETF fallback, edge cases
+│   ├── test_screens.py        # Saved screens: validation, per-user storage, /screens API
 │   ├── test_notifier.py       # Pushover mock: correct POST structure
 │   └── test_price_fetcher.py  # Live yfinance smoke test
 │
@@ -280,7 +283,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (280 tests) |
+| Testing | pytest (300 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -533,6 +536,9 @@ The best trade per symbol, up to 10 symbols: `kind` is `cash_secured_put`, `cove
 ### `GET /watchlist/saved` · `POST /watchlist/saved` · `DELETE /watchlist/saved/<symbol>`
 Read, add to, or remove from the signed-in user's persistent watchlist. **Requires authentication.**
 
+### `GET /screens` · `PUT /screens`
+Read or replace the signed-in user's saved screener setups: `{ "screens": [{ "name", "filters", "sort", "view", "seen", "seen_at" }] }`. Up to 10 screens with unique names; `seen` is the symbols matched when the screen was last opened (at most 3,000), from which the browser finds new matches. Everything is validated before it is stored. **Requires authentication.**
+
 ### `GET /alerts` · `POST /alerts` · `DELETE /alerts/<id>`
 List, create, and delete rule-based price and indicator alerts. **Requires authentication**; alerts are scoped to the signed-in user. `GET` checks the user's active alerts against price history first and returns `{ "active": [...], "triggered": [...] }`. A price alert needs a positive `threshold`; each user may have up to 20 active alerts.
 
@@ -603,7 +609,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-280 tests across 26 files:
+300 tests across 27 files:
 
 | File | What it covers |
 |:---|:---|
@@ -617,6 +623,7 @@ python -m pytest -v
 | `test_portfolio.py` | CRUD operations, UPSERT behavior, case-insensitive symbols |
 | `test_build_screener.py` | Screener data build: the symbol directory keeps only common stocks, technicals from known price paths, RSI identical to the chart's, price-derived ratios, row layout |
 | `test_screener.py` | Normalization, ETF sector fallback, and the history fallback for when Yahoo blocks `.info` |
+| `test_screens.py` | Saved screens: validation (names, filter fields and bounds, symbol lists, limits), per-user storage and the `/screens` API |
 | `test_notifier.py` | Pushover mock: correct POST structure, skip without credentials |
 | `test_ohlc_history.py` | Dropping yfinance's NaN placeholder bar; JSON-safe numbers |
 | `test_price_fetcher.py` | Live yfinance smoke test |

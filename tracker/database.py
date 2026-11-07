@@ -199,6 +199,15 @@ def init_db() -> None:
         )
     """)
 
+    # Saved screener setups: one JSON document per user (validated by tracker/screens.py).
+    _execute(cursor, f"""
+        CREATE TABLE IF NOT EXISTS saved_screens (
+            user_id    INTEGER PRIMARY KEY,
+            data       TEXT NOT NULL,
+            updated_at {_TS_DEFAULT}
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -610,6 +619,35 @@ def remove_from_watchlist(user_id: int, symbol: str) -> None:
         cursor,
         "DELETE FROM watchlist WHERE user_id = ? AND symbol = ?",
         (user_id, sym),
+    )
+    conn.commit()
+    conn.close()
+
+
+# ------------------------------------------------------------------------------
+# Saved screens (per-user JSON document)
+# ------------------------------------------------------------------------------
+
+def get_saved_screens(user_id: int) -> Optional[str]:
+    """Return the user's saved screens as stored JSON text, or None."""
+    conn = _connect()
+    cursor = conn.cursor()
+    row = _fetchone(cursor, "SELECT data FROM saved_screens WHERE user_id = ?", (user_id,))
+    conn.close()
+    return row[0] if row else None
+
+
+def set_saved_screens(user_id: int, data: str) -> None:
+    """Replace the user's saved screens."""
+    conn = _connect()
+    cursor = conn.cursor()
+    _execute(
+        cursor,
+        f"""
+        INSERT INTO saved_screens (user_id, data, updated_at) VALUES (?, ?, {_NOW})
+        ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+        """,
+        (user_id, data),
     )
     conn.commit()
     conn.close()
