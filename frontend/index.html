@@ -377,66 +377,48 @@
         </div>
     </div>
 
-    <!-- ===== SCREENER MODAL ===== -->
+    <!-- ===== SCREENER (screener.js) ===== -->
     <div class="modal-overlay" id="screener-modal" style="display:none">
-        <div class="modal modal-wide">
-            <div class="modal-header">
-                <span class="panel-title">Stock screener</span>
+        <div class="modal modal-wide scr-modal" role="dialog" aria-modal="true" aria-labelledby="scr-title">
+            <div class="modal-header scr-header">
+                <span class="panel-title" id="scr-title">Stock screener</span>
                 <span class="badge" id="screener-count">—</span>
+                <span class="scr-asof" id="scr-asof"></span>
                 <button class="btn-icon" id="close-screener-btn" aria-label="Close">✕</button>
             </div>
-            <div class="screener-filters">
-                <div class="filter-group">
-                    <label class="filter-label">P/E ratio</label>
-                    <div class="filter-range">
-                        <input type="number" id="pe-min" class="filter-input" placeholder="Min" min="0" step="0.5">
-                        <span class="filter-sep">–</span>
-                        <input type="number" id="pe-max" class="filter-input" placeholder="Max" min="0" step="0.5">
-                    </div>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Market cap</label>
-                    <select id="mcap-filter" class="filter-select">
-                        <option value="">Any</option>
-                        <option value="mega">Mega (&gt;$200B)</option>
-                        <option value="large">Large ($10B–$200B)</option>
-                        <option value="mid">Mid ($2B–$10B)</option>
-                        <option value="small">Small (&lt;$2B)</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Sector</label>
-                    <select id="sector-filter" class="filter-select">
-                        <option value="">All sectors</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">52-week change, %</label>
-                    <div class="filter-range">
-                        <input type="number" id="perf-min" class="filter-input" placeholder="Min" step="5">
-                        <span class="filter-sep">–</span>
-                        <input type="number" id="perf-max" class="filter-input" placeholder="Max" step="5">
-                    </div>
-                </div>
-                <button class="btn-secondary filter-reset" id="reset-filters-btn">Reset</button>
+            <div class="scr-toolbar">
+                <input type="search" id="scr-search" class="filter-input scr-search" placeholder="Search symbol or company"
+                       autocomplete="off" spellcheck="false" aria-label="Search symbol or company">
+                <select id="scr-preset" class="filter-select" aria-label="Preset screens"></select>
+                <button class="btn-secondary scr-filters-toggle" id="scr-filters-toggle">Filters</button>
+                <button class="text-btn" id="scr-reset">Reset</button>
+                <button class="btn-secondary" id="scr-export" title="Download the matching stocks as CSV">Export CSV</button>
             </div>
-            <div class="screener-table-wrap">
-                <table class="screener-table" id="screener-table">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-col="symbol">Symbol <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="name">Name <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="price">Price <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="pe">P/E <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="market_cap">Market cap <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="sector">Sector <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="high_52w">52W high <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="low_52w">52W low <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="perf_52w">52W change <span class="sort-icon">↕</span></th>
-                        </tr>
-                    </thead>
-                    <tbody id="screener-tbody"></tbody>
-                </table>
+            <div class="scr-body" id="scr-body">
+                <aside class="scr-filters" id="scr-filters" aria-label="Filters"></aside>
+                <section class="scr-results">
+                    <div class="scr-views" role="tablist">
+                        <button class="scr-view active" data-view="overview">Overview</button>
+                        <button class="scr-view" data-view="valuation">Valuation</button>
+                        <button class="scr-view" data-view="financial">Financial</button>
+                        <button class="scr-view" data-view="performance">Performance</button>
+                        <button class="scr-view" data-view="technical">Technical</button>
+                        <button class="scr-view" data-view="analysts">Analysts</button>
+                    </div>
+                    <div class="scr-chips" id="scr-chips"></div>
+                    <div class="screener-table-wrap">
+                        <table class="screener-table scr-table">
+                            <thead id="scr-head"></thead>
+                            <tbody id="scr-body-rows"></tbody>
+                        </table>
+                    </div>
+                    <div class="scr-pager">
+                        <button class="btn-secondary" id="scr-prev">← Prev</button>
+                        <span id="scr-page" class="scr-page"></span>
+                        <button class="btn-secondary" id="scr-next">Next →</button>
+                    </div>
+                    <p class="opt-note scr-note">Every US-listed common stock (Nasdaq, NYSE, NYSE American), rebuilt after each close from Nasdaq's symbol directory and Yahoo Finance data. Technical columns are computed by Tradeski from a year of daily prices; P/E, market cap and yield are recomputed from each day's close. Click a symbol to chart it.</p>
+                </section>
             </div>
         </div>
     </div>
@@ -641,6 +623,7 @@
          recorded data snapshot when the backend is unreachable; it must run before these. -->
     <script src="symbols.js" defer></script>
     <script src="dashboard.js" defer></script>
+    <script src="screener.js" defer></script>
     <script src="options.js" defer></script>
 <script src="scroll-focus.js" defer></script>
 </body>
