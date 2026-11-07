@@ -203,3 +203,27 @@ test("paper trades: saving, capping and P/L for debits and credits", () => {
     assert.deepEqual(plain(optPaperPnl(-245, -150)), { pnl: 95, pct: null });                   // sold for 245, 150 to close
     assert.deepEqual(plain(optPaperPnl(-245, -400)), { pnl: -155, pct: null });
 });
+
+test("the time-decay verdict", () => {
+    const { optDecayNote } = load(["optMoney", "optDecayNote"]);
+    const buy = [{ days: 0, pnl: 0 }, { days: 27, pnl: -1178 }];
+    assert.equal(optDecayNote(buy, -24.5, "AAPL", 342.37),
+        "Time works against you: if AAPL stays at $342.37, this position loses about $1,178 by expiry (about $24.50 a day now).");
+    const sell = [{ days: 0, pnl: 0 }, { days: 27, pnl: 245 }];
+    assert.match(optDecayNote(sell, 9.1, "AAPL", 342.37), /^Time is on your side: .* gains about \$245 by expiry/);
+    assert.match(optDecayNote([{ days: 0, pnl: 0 }, { days: 5, pnl: 0.4 }], 0, "X", 10), /^Time barely matters/);
+    assert.equal(optDecayNote([], 0, "X", 10), "");
+});
+
+test("thin-market reasons for a leg", () => {
+    const ctx = vm.createContext({});
+    vm.runInContext("const OPT_THIN_SPREAD = 10; const OPT_THIN_OI = 100;\n" + declaration("optThinReason") +
+        "\nthis.__f = optThinReason;", ctx);
+    const thin = ctx.__f;
+    const chain = { calls: [{ strike: 100, spread_pct: 4, open_interest: 900 }, { strike: 120, spread_pct: 35, open_interest: 12 }],
+                    puts: [{ strike: 90, spread_pct: null, open_interest: 500 }] };
+    assert.equal(thin({ type: "call", strike: 100 }, chain), "");
+    assert.equal(thin({ type: "call", strike: 120 }, chain), "bid-ask spread 35% of the price; only 12 contracts open");
+    assert.equal(thin({ type: "put", strike: 90 }, chain), "no two-sided quote");
+    assert.equal(thin({ type: "stock", strike: null }, chain), "");
+});

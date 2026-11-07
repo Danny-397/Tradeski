@@ -370,6 +370,21 @@ def _prob_below(x: float, S: float, T: float, r: float, q: float, sigma: float) 
     return norm_cdf(z)
 
 
+def price_odds(x: float, S: float, T: float, r: float, q: float, sigma: Optional[float]) -> Optional[dict]:
+    """What option prices imply about the stock reaching ``x`` by expiry.
+
+    ``above``/``below``: chance it ends above or below x (lognormal at
+    ``sigma``, risk-neutral drift). ``touch``: chance it trades at x at some
+    point before expiry, from the reflection principle (about twice the
+    chance of ending beyond it), so an approximation.
+    """
+    if not sigma or T <= 0 or x <= 0:
+        return None
+    below = _prob_below(x, S, T, r, q, sigma)
+    beyond = 1 - below if x >= S else below
+    return {"above": round(1 - below, 4), "below": round(below, 4), "touch": round(min(1.0, 2 * beyond), 4)}
+
+
 def profit_zones(legs: list) -> list:
     """Price intervals [(lo, hi), ...] where P/L at expiry is positive (hi may be inf)."""
     edges = sorted(set(_kinks(legs)) | set(breakevens(legs)))
@@ -474,6 +489,12 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
             row["at_date"] = round(position_pnl(shifted, x, t_at, r, q), 2)
         scenarios.append(row)
 
+    # Time decay: the position's P/L each day if the stock stays where it is.
+    days_left = max(int(round(T * 365)), 1)
+    step = max(1, days_left // 60)
+    decay = [{"days": d, "pnl": round(position_pnl(shifted, S, max(T - d / 365.0, 0.0), r, q), 2)}
+             for d in list(range(0, days_left, step)) + [days_left]]
+
     when = f" on {expiry}" if expiry else " at expiry"
     lines = [f"{'Costs' if debit > 0 else 'Collects'} {_money(debit)} up front (at mid prices)."]
     if zones:
@@ -504,6 +525,7 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
         "curves": curves,
         "scenarios": scenarios,
         "iv_shift": iv_shift,
+        "decay": decay,
         "summary": " ".join(lines),
     }
 

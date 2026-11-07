@@ -1178,8 +1178,11 @@ def options_compare() -> tuple:
     target = body.get("target")
     target = float(target) if isinstance(target, (int, float)) and not isinstance(target, bool) and target > 0 else None
     rows = opt.compare_strategies(chain, presets, target, symbol=sym)
+    odds = opt.price_odds(target, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
+                          chain["atm_iv"]) if target else None
     return jsonify({"symbol": sym, "expiry": expiry, "spot": chain["spot"], "dte": chain["dte"],
-                    "expected_move": chain.get("expected_move"), "target": target, "strategies": rows})
+                    "expected_move": chain.get("expected_move"), "target": target, "target_odds": odds,
+                    "strategies": rows})
 
 
 @app.route("/options/scan")

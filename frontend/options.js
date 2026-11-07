@@ -216,6 +216,34 @@ function optPaperStore(list) {
     if (n) n.textContent = list.length ? String(list.length) : "";
 }
 
+// Why a priced leg is hard to trade near its mid, or "" if it isn't:
+// a bid-ask spread over 10% of the mid, or fewer than 100 contracts open.
+const OPT_THIN_SPREAD = 10;
+const OPT_THIN_OI = 100;
+function optThinReason(leg, chain) {
+    if (!leg || leg.type === "stock" || !chain) return "";
+    const side = leg.type === "call" ? chain.calls : chain.puts;
+    const c = (side || []).find(x => x.strike === leg.strike);
+    if (!c) return "";
+    const why = [];
+    if (c.spread_pct === null || c.spread_pct === undefined) why.push("no two-sided quote");
+    else if (c.spread_pct > OPT_THIN_SPREAD) why.push(`bid-ask spread ${c.spread_pct.toFixed(0)}% of the price`);
+    if (c.open_interest < OPT_THIN_OI) why.push(`only ${c.open_interest} contracts open`);
+    return why.join("; ");
+}
+
+// The time-decay verdict: does waiting help or hurt if the stock stays put?
+function optDecayNote(decay, thetaPerDay, symbol, spot) {
+    if (!decay || decay.length < 2) return "";
+    const total = decay[decay.length - 1].pnl - decay[0].pnl;
+    const day = optMoney(Math.abs(thetaPerDay));
+    const at = `if ${symbol} stays at $${spot.toFixed(2)}`;
+    if (Math.abs(total) < 1) return `Time barely matters here: ${at}, the value hardly changes by expiry.`;
+    return total > 0
+        ? `Time is on your side: ${at}, this position gains about ${optMoney(total)} by expiry (about ${day} a day now).`
+        : `Time works against you: ${at}, this position loses about ${optMoney(-total)} by expiry (about ${day} a day now).`;
+}
+
 // The IV slider's label: 0 -> "unchanged", -15 -> "15 points lower".
 function optIvShiftLabel(shift) {
     if (!shift) return "unchanged";
@@ -448,7 +476,7 @@ function optShowTab(tab) {
     });
     document.querySelectorAll(".opt-pane").forEach(p => { p.hidden = p.id !== `opt-pane-${tab}`; });
     optSyncUrl();
-    if (tab === "strategy" && optState.analysis) optDrawPayoff(optState.analysis);
+    if (tab === "strategy" && optState.analysis) { optDrawPayoff(optState.analysis); optDrawDecay(optState.analysis); }
     if (tab === "chain" && optState.chain) optDrawSmile(optState.chain);
     if (tab === "compare") optEnsureCompare();
     if (tab === "paper") optRenderPaper();
@@ -606,10 +634,14 @@ function optRenderCompare() {
     if (t) {
         const winners = d.strategies.filter(r => r.pnl_at_target > 0).length;
         const move = (t / d.spot - 1) * 100;
+        const o = d.target_odds;
+        const odds = o ? ` Option prices imply a <strong>${Math.round((t >= d.spot ? o.above : o.below) * 100)}% chance</strong> ` +
+            `${sym} ends ${t >= d.spot ? "above" : "below"} $${t.toFixed(2)} by then, and about ${Math.round(o.touch * 100)}% ` +
+            "that it trades there at some point before." : "";
         help.innerHTML = `Ranked for <strong>${sym} at $${t.toFixed(2)}</strong> on ${optDate(d.expiry)} ` +
             `(${move >= 0 ? "+" : ""}${move.toFixed(1)}% from $${d.spot.toFixed(2)}). ${winners} of ${d.strategies.length} strategies ` +
             "make money there. Best fit first: the most profit at your target for each dollar it can lose. " +
-            "If you're wrong, the worst case still applies.";
+            "If you're wrong, the worst case still applies." + odds;
     } else {
         help.textContent = `Type a price (or pick a move) to rank all ${d.strategies.length} strategies for it. ` +
             "Without one, you can still compare any of them below.";
@@ -1054,6 +1086,7 @@ function optRenderStrategy() {
     const c = optState.chain;
     const strikes = c ? [...new Set([...c.calls, ...c.puts].map(x => x.strike))].sort((x, y) => x - y) : [];
     const priced = a ? a.legs : [];
+    const thinLegs = priced.map(p => optThinReason(p, c));
     legsEl.innerHTML = optState.legs.length ? optState.legs.map((l, i) => {
         const p = priced[i];
         const strikeSel = l.type === "stock" ? `<span class="opt-dim">—</span>` :
@@ -1070,9 +1103,17 @@ function optRenderStrategy() {
                     t === "stock" ? "100 shares" : t}</option>`).join("")}</select></td>
             <td>${strikeSel}</td>
             <td class="opt-num">${p ? "$" + p.price.toFixed(2) : "—"}</td>
-            <td class="opt-leg-plain">${p ? escapeHtml(optLegPlain(p, a.symbol)) : ""}</td>
+            <td class="opt-leg-plain">${p ? escapeHtml(optLegPlain(p, a.symbol)) : ""}${
+                thinLegs[i] ? ` <span class="opt-thin" title="${escapeHtml(thinLegs[i])}">thin market</span>` : ""}</td>
             <td><button class="btn-icon" data-remove="${i}" aria-label="Remove leg">✕</button></td></tr>`;
     }).join("") : `<tr><td colspan="7" class="feed-empty">Pick a strategy above, or click a bid (sell) or ask (buy) in the Chain tab.</td></tr>`;
+    const thinCount = thinLegs.filter(Boolean).length;
+    const thinNote = document.getElementById("opt-thin-note");
+    thinNote.hidden = !thinCount;
+    thinNote.textContent = thinCount
+        ? `${thinCount === 1 ? "One leg trades" : thinCount + " legs trade"} thinly (a wide bid-ask spread or few open ` +
+          "contracts). Real fills there are usually well away from the mid prices used here, so expect the cost to be worse."
+        : "";
 
     const stats = document.getElementById("opt-stats");
     const sum = document.getElementById("opt-strategy-summary");
@@ -1150,7 +1191,31 @@ function optRenderStrategy() {
         ["Reward / risk", a.return_on_risk === null ? "—" : a.return_on_risk.toFixed(2) + "×", "Best case divided by worst case."],
     ].map(([k, v, d]) => `<div class="opt-greek"><span class="opt-outcome-label">${k}</span>
         <span class="opt-greek-val">${v}</span><span class="opt-greek-text">${d}</span></div>`).join("");
-    if (optState.tab === "strategy") optDrawPayoff(a);
+    document.getElementById("opt-decay-note").textContent =
+        optDecayNote(a.decay, a.greeks.theta, a.symbol, a.spot);
+    if (optState.tab === "strategy") { optDrawPayoff(a); optDrawDecay(a); }
+}
+
+function optDrawDecay(a) {
+    const el = document.getElementById("opt-decay");
+    if (!el || typeof Plotly === "undefined" || !a.decay) return;
+    const start = new Date();
+    const dates = a.decay.map(p => new Date(start.getTime() + p.days * 86400000).toISOString().slice(0, 10));
+    const ys = a.decay.map(p => p.pnl);
+    const up = ys[ys.length - 1] >= ys[0];
+    Plotly.react(el, [{
+        x: dates, y: ys, type: "scatter", mode: "lines", line: { color: up ? "#4ADE80" : "#F87171", width: 2.5 },
+        fill: "tozeroy", fillcolor: up ? "rgba(22,163,74,0.12)" : "rgba(239,68,68,0.12)",
+        hovertemplate: "%{x|%b %d}: %{y:$,.0f}<extra></extra>",
+    }], optPlotTheme({
+        margin: { l: 70, r: 20, t: 16, b: 40 },
+        xaxis: { type: "date", tickformat: "%b %d", gridcolor: "rgba(255,255,255,0.06)", tickfont: { size: 12, color: "#C9CED6" } },
+        yaxis: { title: { text: "P/L at today's price", font: { size: 12, color: "#C9CED6" } }, tickprefix: "$",
+                 tickformat: ",.0f", gridcolor: "rgba(255,255,255,0.06)", zeroline: true,
+                 zerolinecolor: "rgba(255,255,255,0.3)", tickfont: { size: 12, color: "#C9CED6" } },
+        hovermode: "x unified",
+        hoverlabel: { bgcolor: "#111214", bordercolor: "#3B4048", font: { color: "#F3F4F6", size: 13 } },
+    }), { responsive: true, displayModeBar: false });
 }
 
 function optLegEdit(e) {
