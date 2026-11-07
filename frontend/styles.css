@@ -1502,3 +1502,79 @@ select.form-input {
     .opt-payoff { height: 280px; }
     .opt-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ===== SCREENER (screener.js) ===== */
+.scr-modal { width: min(98vw, 1440px); height: 92vh; max-height: 92vh; }
+.scr-header { flex-shrink: 0; }
+.scr-asof { font-size: var(--fs-xs); color: var(--text-secondary); margin-right: auto; }
+.scr-header .panel-title { margin-right: 0; }
+.scr-toolbar {
+    display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; flex-shrink: 0;
+    padding: var(--s-3) var(--s-7) var(--s-5); border-bottom: 1px solid var(--border);
+}
+.scr-search { width: 240px; }
+.scr-toolbar .filter-select { min-width: 260px; }
+.scr-filters-toggle { display: none; }
+.scr-body { flex: 1; min-height: 0; display: flex; }
+.scr-filters {
+    width: 290px; flex-shrink: 0; overflow-y: auto;
+    border-right: 1px solid var(--border); padding: var(--s-3) 0 var(--s-7);
+}
+.scr-group { border-bottom: 1px solid var(--border-subtle); }
+.scr-group summary {
+    display: flex; align-items: center; gap: var(--s-3); cursor: pointer; list-style: none;
+    padding: var(--s-4) var(--s-6); font-size: var(--fs-sm); font-weight: 600; color: var(--text-strong);
+}
+.scr-group summary::-webkit-details-marker { display: none; }
+.scr-group summary::after { content: "▸"; margin-left: auto; color: var(--text-muted); transition: transform var(--t-fast) var(--ease); }
+.scr-group[open] summary::after { transform: rotate(90deg); }
+.scr-group-count:empty { display: none; }
+.scr-group-body { display: flex; flex-direction: column; gap: var(--s-4); padding: 0 var(--s-6) var(--s-5); }
+.scr-filter { display: flex; flex-direction: column; gap: var(--s-2); }
+.scr-filter .filter-select { min-width: 0; width: 100%; }
+.scr-filter .filter-range .filter-input { width: 100%; min-width: 0; }
+.scr-unit { color: var(--text-muted); font-weight: 400; }
+.scr-results { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.scr-views { display: flex; gap: var(--s-2); padding: var(--s-4) var(--s-6) var(--s-3); flex-wrap: wrap; flex-shrink: 0; }
+.scr-view {
+    height: 28px; padding: 0 var(--s-5); border: none; border-radius: 6px;
+    background: transparent; color: var(--text-secondary); font-size: var(--fs-xs); font-weight: 500;
+    transition: background-color var(--t) var(--ease), color var(--t-fast) var(--ease);
+}
+.scr-view:hover { color: var(--text-strong); }
+.scr-view.active {
+    background: var(--bg-control); color: var(--text-strong);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.scr-chips { display: flex; flex-wrap: wrap; gap: var(--s-3); padding: 0 var(--s-6) var(--s-3); flex-shrink: 0; }
+.scr-chips:empty { display: none; }
+.scr-chip {
+    border: 1px solid rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.1); color: #BFD5FF;
+    border-radius: 999px; padding: 2px 10px; font-size: var(--fs-xs); cursor: pointer;
+}
+.scr-chip:hover { background: rgba(59, 130, 246, 0.2); }
+.scr-table th.scr-num, .scr-table td.scr-num { text-align: right; font-family: var(--data); }
+.scr-table td.scr-num.positive { color: var(--green); }
+.scr-table td.scr-num.negative { color: var(--red); }
+.scr-table td.scr-text { max-width: 220px; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
+.scr-pager {
+    display: flex; align-items: center; justify-content: center; gap: var(--s-5); flex-shrink: 0;
+    padding: var(--s-4) var(--s-6); border-top: 1px solid var(--border);
+}
+.scr-page { font-size: var(--fs-xs); color: var(--text-secondary); min-width: 110px; text-align: center; }
+/* .opt-note sets flex-basis: 100%, which in this column would take all the height from the table. */
+.scr-note { flex: 0 0 auto; padding: 0 var(--s-6) var(--s-5); }
+
+@media (max-width: 900px) {
+    .scr-modal { height: 100vh; height: 100dvh; max-height: none; }
+    .scr-filters-toggle { display: inline-flex; }
+    .scr-filters { display: none; }
+    .scr-body.scr-filters-open .scr-filters {
+        display: block; position: absolute; inset: 0; width: auto; z-index: 3;
+        background: var(--bg-raised); border-right: none;
+    }
+    .scr-body { position: relative; }
+    .scr-search { width: 100%; }
+    .scr-toolbar .filter-select { min-width: 0; flex: 1; }
+    .scr-toolbar { padding-left: var(--s-5); padding-right: var(--s-5); }
+}

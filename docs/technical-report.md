@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 251, across 25 files, run in GitHub Actions with flake8 |
+| Tests | 261, across 26 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -56,9 +56,22 @@ are discussed in §9. What matters is that the TTL is a per-source decision rath
 global constant, and that per-route rate limiting sits in front of the expensive endpoints:
 registration at 10/hour, login at 10/minute, the assistant at 20/hour and 50/day.
 
-The screener fans out across a 29-symbol universe — 27 stocks spanning technology,
-financials, healthcare, energy and consumer staples, plus SPY and QQQ — through an
-eight-worker thread pool, so 29 sequential network round-trips become roughly four waves.
+The screener used to fan out across a 29-symbol universe through an eight-worker thread
+pool. That was a demo, not a screener, and it could not grow: every symbol was another
+request from a 512 MB free-tier server that Yahoo often refuses. It now covers every
+US-listed common stock (about 5,500) by moving the work out of the request path entirely.
+A GitHub Actions job runs after each close. It reads Nasdaq Trader's public symbol
+directory, downloads a year of daily prices for the whole universe in batches of 200,
+computes every technical column itself, and refreshes fundamentals for the 1,000 companies
+whose figures are oldest, large caps first. The first full run showed why that cap exists:
+Yahoo answered about 1,000 company lookups from one address and then refused, so the job
+backs off once, then stops and keeps the previous values. Fundamentals change quarterly, so
+a six-day turnover costs nothing. Ratios that move with
+the price (P/E, market cap, P/S, P/B, yield, target upside) are recomputed from that day's
+close. The output is published as one static file on a data branch whose single commit is
+replaced each run, so a few megabytes of daily prices never accumulate in git history. The
+browser downloads it once and filters locally: about 40 filters over 5,500 rows takes
+milliseconds, and the backend is never involved.
 
 ---
 
@@ -284,7 +297,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-251 tests across 25 files run on every push through GitHub Actions, alongside flake8 linting.
+261 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the

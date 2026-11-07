@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-251%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-261%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -25,7 +25,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 
 ---
 
-Tradeski integrates six distinct data pipelines — live equity prices, option chains, Federal Reserve macroeconomic data, financial news with sentiment scoring, a fundamental stock screener, and an AI assistant grounded in real-time context — into a single coherent interface, with quantitative portfolio analytics and a 90-day correlation heatmap layered on top.
+Tradeski integrates six distinct data pipelines — live equity prices, option chains, Federal Reserve macroeconomic data, financial news with sentiment scoring, a screener over every US-listed stock, and an AI assistant grounded in real-time context — into a single coherent interface, with quantitative portfolio analytics and a 90-day correlation heatmap layered on top.
 
 Every quantitative indicator is hand-written directly on NumPy arrays — no TA-Lib, no pandas — so the indicator logic itself (Wilder smoothing, MACD divergence, band math) is the project's own code, with NumPy supplying only primitive operations like mean, standard deviation, and least-squares. The AI assistant (Ski) receives live macro, portfolio, and news data on every request — not generic training knowledge. The backend is a persistent WebSocket server deployed on Render; the frontend is a static site on Vercel.
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 251 tests across 25 files — CI on every push |
+| **Tests** | 261 tests across 26 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -118,7 +118,23 @@ Rule-based alerts — price above/below a level, RSI overbought (>70) / oversold
 
 ### Stock Screener
 
-Fundamental data for 28 curated stocks across five sectors, fetched in parallel via an 8-worker thread pool and cached per symbol. Filterable by P/E ratio, market cap tier, sector, and 52-week performance. Clicking a result loads that symbol on the chart.
+**Every US-listed common stock**, about 5,500: everything on Nasdaq, NYSE and NYSE American from Nasdaq Trader's public symbol directory, minus ETFs, warrants, units, preferreds and blank-check companies ([`screener.js`](frontend/screener.js)).
+
+- **About 40 filters** in six groups:
+  - **Descriptive:** exchange, sector, industry, country, market cap, price, volume, relative volume, earnings date.
+  - **Valuation:** P/E, forward P/E, PEG, P/S, P/B, dividend yield.
+  - **Growth & profitability:** revenue and EPS growth, margins, ROE, debt/equity, current ratio.
+  - **Performance:** today, 1W through 1Y, YTD.
+  - **Technical:** RSI, distance from the 20-, 50- and 200-day averages, distance from the 52-week high and low, volatility, beta, ATR.
+  - **Analysts & ownership:** rating, target upside, analyst count, short float, institutional ownership.
+- **13 preset screens**, such as oversold large caps, pullbacks in uptrends, unusual volume, dividend payers and analyst favourites.
+- **Six column views**, sortable on any column, with search, paging and CSV export. Clicking a symbol charts it.
+
+The data is built after each US close by a GitHub Actions workflow ([`scripts/build_screener.py`](scripts/build_screener.py)), not on Render:
+
+- **Prices:** a year of daily prices for the whole universe, from which every technical column is computed. RSI is the same calculation as the chart sidebar's.
+- **Fundamentals:** each company's fundamentals from Yahoo, refreshed for the 1,000 stalest companies a run (large caps first; Yahoo throttles at about that many). The whole market turns over about every six trading days, which is plenty for figures that change quarterly; each row records the date its fundamentals are from. P/E, market cap, P/S, P/B, yield and target upside are recomputed from each day's close.
+- **Publishing:** the result goes to the `screener-data` branch as a single commit replaced on every run, so daily data adds nothing to the repository's history. The browser reads it as a static file; screening never touches the backend and works when it is asleep.
 
 ### Options
 
@@ -169,10 +185,11 @@ Tradeski/
 │   ├── 404.html               # Custom terminal-style 404 page
 │   ├── favicon.svg            # SVG favicon
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
-│   ├── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
+│   ├── dashboard.js           # WebSocket, Plotly, Ski, health indicator
+│   ├── screener.js            # Stock screener: every US-listed stock, filters, presets, CSV
 │   └── options.js             # Options window: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 251 tests across 25 files
+├── tests/                     # pytest suite — 261 tests across 26 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -255,7 +272,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (251 tests) |
+| Testing | pytest (261 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -500,7 +517,7 @@ Pairwise 90-day return correlation matrix for all tracked symbols. Cached 1 hour
 ```
 
 ### `GET /screener`
-Fundamental data for the full 28-stock universe. Parallel fetch, cached 10 min per symbol.
+Fundamental data for a 29-stock universe, from the backend. The dashboard's screener no longer uses it (it reads the daily `screener-data` file); it remains for the offline snapshot and Ski's fundamentals lookups.
 
 ### `GET /options/expirations?symbol=AAPL` · `GET /options/chain?symbol=AAPL&expiry=2026-12-04`
 Listed expiries (future ones only, with days to expiry and a default 20 to 60 days out), and one expiry's chain: every contract with bid/ask/mid, volume, open interest, spread %, IV solved from the midpoint (and its source), delta, gamma, theta per day and vega per vol point, plus the ATM IV, expected move, 30-day realised volatility, put/call ratios and the rate used. Cached 5 minutes.
@@ -584,7 +601,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-251 tests across 25 files:
+261 tests across 26 files:
 
 | File | What it covers |
 |:---|:---|
@@ -596,6 +613,7 @@ python -m pytest -v
 | `test_fred.py` | FRED client with mocked HTTP — trend detection, missing series |
 | `test_news.py` | VADER: financial lexicon augmentation, aggregation |
 | `test_portfolio.py` | CRUD operations, UPSERT behavior, case-insensitive symbols |
+| `test_build_screener.py` | Screener data build: the symbol directory keeps only common stocks, technicals from known price paths, RSI identical to the chart's, price-derived ratios, row layout |
 | `test_screener.py` | Normalization, ETF sector fallback, and the history fallback for when Yahoo blocks `.info` |
 | `test_notifier.py` | Pushover mock: correct POST structure, skip without credentials |
 | `test_ohlc_history.py` | Dropping yfinance's NaN placeholder bar; JSON-safe numbers |
