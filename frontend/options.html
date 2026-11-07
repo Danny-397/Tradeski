@@ -268,7 +268,10 @@
                     <div class="filter-group"><label class="filter-label" for="opt-scan-kind">Strategy</label>
                         <select id="opt-scan-kind" class="filter-select">
                             <option value="cash_secured_put">Cash-secured puts</option>
-                            <option value="covered_call">Covered calls</option></select></div>
+                            <option value="covered_call">Covered calls</option>
+                            <option value="bull_put_spread">Bull put spreads (defined risk)</option>
+                            <option value="bear_call_spread">Bear call spreads (defined risk)</option>
+                            <option value="iron_condor">Iron condors (defined risk)</option></select></div>
                     <div class="filter-group opt-scan-syms"><label class="filter-label" for="opt-scan-symbols">Symbols (up to 10)</label>
                         <input type="text" id="opt-scan-symbols" class="filter-input" autocomplete="off" spellcheck="false"></div>
                     <div class="filter-group"><label class="filter-label" for="opt-scan-delta">Max |delta|</label>
@@ -283,19 +286,21 @@
                         <input type="number" id="opt-scan-oi" class="filter-input" value="100" min="0" step="50"></div>
                     <div class="filter-group"><label class="filter-label" for="opt-scan-spread">Max spread %</label>
                         <input type="number" id="opt-scan-spread" class="filter-input" value="10" min="1" step="1"></div>
+                    <label class="opt-scan-check"><input type="checkbox" id="opt-scan-earnings" checked>
+                        Skip stocks reporting earnings before expiry</label>
                     <button class="btn-primary" id="opt-scan-run">Scan</button>
                 </div>
-                <p class="opt-hint">For each symbol: the expiry nearest the middle of the window, and the strike with the most premium whose |delta| stays under the limit. Click a row to open it in the strategy builder.</p>
+                <p class="opt-hint" id="opt-scan-hint">For each symbol: the expiry nearest the middle of the window, and the strike with the most premium whose |delta| stays under the limit. Click a row to open it in the strategy builder.</p>
                 <div class="opt-table-wrap">
                     <table class="screener-table" id="opt-scan-table">
                         <thead><tr>
                             <th class="sortable" data-col="symbol">Symbol <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="dte">Expiry <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="strike">Strike <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="strike">Strikes <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="delta">Delta <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="iv">IV <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="premium">Premium <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="capital" title="Cash to secure the put, or the cost of 100 shares">Capital <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="capital" title="Cash to secure the put, the cost of 100 shares, or the most a spread can lose">Capital at risk <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="return_pct">Return <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="annualized_pct">Annualised <span class="sort-icon">↓</span></th>
                             <th class="sortable" data-col="breakeven">Break-even <span class="sort-icon">↕</span></th>
@@ -305,7 +310,7 @@
                     </table>
                 </div>
                 <p class="opt-note" id="opt-scan-skipped"></p>
-                <p class="opt-note">Annualised return assumes the same trade could be repeated all year, which it usually can't; use it to compare, not as a forecast. A cash-secured put can leave you owning the stock at the strike, and a covered call caps your upside.</p>
+                <p class="opt-note">Annualised return assumes the same trade could be repeated all year, which it usually can't; use it to compare, not as a forecast. A cash-secured put can leave you owning the stock at the strike, and a covered call caps your upside. Spreads and condors buy protection further out, so the most they can lose is fixed: the capital shown.</p>
             </section>
     </main>
 

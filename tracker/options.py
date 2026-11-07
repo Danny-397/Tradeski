@@ -663,7 +663,8 @@ def legs_from_request(specs: list, chain: dict, max_legs: int = 6) -> list:
 # Scanner: cash-secured puts and covered calls across symbols
 # ─────────────────────────────────────────────────────────────
 
-SCAN_KINDS = ("cash_secured_put", "covered_call")
+SCAN_KINDS = ("cash_secured_put", "covered_call", "bull_put_spread", "bear_call_spread", "iron_condor")
+SPREAD_WIDTH = 0.025          # protective leg about 2.5% of the stock price beyond the short one
 
 
 def pick_expiry(expiries: list, min_dte: int, max_dte: int, target: int = 30,
@@ -674,46 +675,97 @@ def pick_expiry(expiries: list, min_dte: int, max_dte: int, target: int = 30,
     return min(ok)[1] if ok else None
 
 
-def scan_candidate(kind: str, chain: dict, max_delta: float = 0.30, min_oi: int = 100,
-                   max_spread_pct: float = 10.0) -> Optional[dict]:
-    """The best short put (or covered call) in one chain that passes the filters.
-
-    "Best" is the strike whose |delta| is closest to ``max_delta`` from
-    below: the most premium the filters allow. Returns None if none pass.
-    """
-    if kind not in SCAN_KINDS:
-        raise ValueError(f"kind must be one of {SCAN_KINDS}")
-    S, T, r, q = chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"]
-    side = chain["puts"] if kind == "cash_secured_put" else chain["calls"]
+def _short_pick(side: list, S: float, puts: bool, max_delta: float, min_oi: int, max_spread_pct: float):
+    """The out-of-the-money short option with the most premium the filters allow."""
     pool = [c for c in _quoted(side)
             if c.get("delta") is not None and abs(c["delta"]) <= max_delta
             and c["open_interest"] >= min_oi
             and c["spread_pct"] is not None and c["spread_pct"] <= max_spread_pct
-            and (c["strike"] < S if kind == "cash_secured_put" else c["strike"] > S)]
-    if not pool:
-        return None
-    best = max(pool, key=lambda c: abs(c["delta"]))
-    legs = [_leg(best, -1)] if kind == "cash_secured_put" else [stock_leg(S), _leg(best, -1)]
+            and (c["strike"] < S if puts else c["strike"] > S)]
+    return max(pool, key=lambda c: abs(c["delta"])) if pool else None
+
+
+def _wing(side: list, short: dict, S: float, puts: bool):
+    """The protective long option about SPREAD_WIDTH of the stock price further out."""
+    want = short["strike"] - S * SPREAD_WIDTH if puts else short["strike"] + S * SPREAD_WIDTH
+    return _pick(_quoted(side), lambda c: abs(c["strike"] - want),
+                 lambda c: c["strike"] < short["strike"] if puts else c["strike"] > short["strike"])
+
+
+def scan_candidate(kind: str, chain: dict, max_delta: float = 0.30, min_oi: int = 100,
+                   max_spread_pct: float = 10.0) -> Optional[dict]:
+    """The best trade of one kind in one chain that passes the filters, or None.
+
+    The short option is the one whose |delta| is closest to ``max_delta``
+    from below: the most premium the filters allow. Spreads and the condor
+    add a protective option about 2.5% of the stock price further out, so
+    their capital is the most they can lose, not the cash to secure them.
+    """
+    if kind not in SCAN_KINDS:
+        raise ValueError(f"kind must be one of {SCAN_KINDS}")
+    S, T, r, q = chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"]
+    pick = lambda puts: _short_pick(chain["puts"] if puts else chain["calls"], S, puts,  # noqa: E731
+                                    max_delta, min_oi, max_spread_pct)
+    shorts, legs = [], []
+    if kind in ("cash_secured_put", "bull_put_spread", "iron_condor"):
+        p = pick(True)
+        if not p:
+            return None
+        shorts.append(p)
+        legs.append(_leg(p, -1))
+        if kind != "cash_secured_put":
+            w = _wing(chain["puts"], p, S, True)
+            if not w:
+                return None
+            legs.append(_leg(w, 1))
+    if kind in ("covered_call", "bear_call_spread", "iron_condor"):
+        c = pick(False)
+        if not c:
+            return None
+        shorts.append(c)
+        legs.append(_leg(c, -1))
+        if kind == "covered_call":
+            legs.insert(0, stock_leg(S))
+        else:
+            w = _wing(chain["calls"], c, S, False)
+            if not w:
+                return None
+            legs.append(_leg(w, 1))
     # The ATM IV, as the strategy builder uses, so both show the same chance of profit.
-    res = analyze(legs, S, T, r, q, sigma=chain.get("atm_iv") or best["iv"], points=3)
-    capital = best["strike"] * MULTIPLIER if kind == "cash_secured_put" else S * MULTIPLIER
-    premium = best["mid"] * MULTIPLIER
+    res = analyze(legs, S, T, r, q, sigma=chain.get("atm_iv") or shorts[0]["iv"], points=3)
+    premium = -res["net_debit"] if kind != "covered_call" else shorts[0]["mid"] * MULTIPLIER
+    if premium <= 0:
+        return None
+    if kind == "cash_secured_put":
+        capital = shorts[0]["strike"] * MULTIPLIER
+    elif kind == "covered_call":
+        capital = S * MULTIPLIER
+    else:
+        capital = -res["max_loss"]           # a spread's capital at risk is its worst case
+    if capital <= 0:
+        return None
     dte = max(chain.get("dte") or 1, 1)
+    option_legs = [leg for leg in legs if leg["type"] != "stock"]
     return {
         "symbol": chain.get("symbol"),
         "kind": kind,
         "expiry": chain["expiry"],
         "dte": dte,
         "spot": S,
-        "strike": best["strike"],
-        "delta": best["delta"],
-        "iv": best["iv"],
+        "strike": shorts[0]["strike"],
+        "strikes": " / ".join(f"{'+' if leg['qty'] > 0 else '-'}{leg['strike']:g}{leg['type'][0].upper()}"
+                              for leg in sorted(option_legs, key=lambda x: x["strike"])),
+        "legs": [{"type": leg["type"], "qty": leg["qty"], "strike": leg["strike"]} for leg in legs],
+        "delta": shorts[0]["delta"],
+        "iv": shorts[0]["iv"],
         "premium": round(premium, 2),
         "capital": round(capital, 2),
         "return_pct": round(premium / capital * 100.0, 2),
         "annualized_pct": round(premium / capital * 100.0 * 365.0 / dte, 1),
         "breakeven": res["breakevens"][0] if res["breakevens"] else None,
+        "breakevens": res["breakevens"],
         "prob_profit": res["prob_profit"],
-        "open_interest": best["open_interest"],
-        "spread_pct": best["spread_pct"],
+        "open_interest": min(x["open_interest"] for x in shorts),
+        "spread_pct": max(x["spread_pct"] for x in shorts),
+        "earnings_before_expiry": bool(chain.get("earnings_before_expiry")),
     }

@@ -1254,6 +1254,7 @@ async function optRunScan() {
         max_dte: document.getElementById("opt-scan-dmax").value || "50",
         min_oi: document.getElementById("opt-scan-oi").value || "100",
         max_spread: document.getElementById("opt-scan-spread").value || "10",
+        skip_earnings: document.getElementById("opt-scan-earnings").checked ? "1" : "0",
     });
     const body = document.getElementById("opt-scan-body");
     body.innerHTML = `<tr><td colspan="11" class="screener-loading"><div class="loading-spinner"></div>
@@ -1285,7 +1286,8 @@ function optRenderScan() {
         <tr class="screener-row opt-scan-row" data-i="${s.results.indexOf(r)}" title="Open in the strategy builder">
             <td class="sc-symbol">${escapeHtml(r.symbol)}</td>
             <td class="opt-num">${r.expiry} <span class="opt-dim">(${r.dte}d)</span></td>
-            <td class="opt-num">${r.strike}</td>
+            <td class="opt-num" title="${escapeHtml(r.strikes || "")}: + bought, - sold; P put, C call">${escapeHtml(r.strikes || String(r.strike))}${
+                r.earnings_before_expiry ? ` <span class="opt-earn-flag" title="Earnings before expiry">earnings</span>` : ""}</td>
             <td class="opt-num">${r.delta.toFixed(2)}</td>
             <td class="opt-num">${optPct(r.iv)}</td>
             <td class="opt-num">${optMoney(r.premium)}</td>
@@ -1310,9 +1312,10 @@ async function optScanClick(e) {
         document.getElementById("opt-expiry").value = r.expiry;
         await optLoadChain(r.expiry);
     }
-    optState.legs = r.kind === "covered_call"
-        ? [{ type: "stock", qty: 1, strike: null }, { type: "call", qty: -1, strike: r.strike }]
-        : [{ type: "put", qty: -1, strike: r.strike }];
+    optState.legs = r.legs ? r.legs.map(l => ({ ...l }))
+        : r.kind === "covered_call"
+            ? [{ type: "stock", qty: 1, strike: null }, { type: "call", qty: -1, strike: r.strike }]
+            : [{ type: "put", qty: -1, strike: r.strike }];
     optState.preset = null;
     optSetPreset(null);
     optShowTab("strategy");

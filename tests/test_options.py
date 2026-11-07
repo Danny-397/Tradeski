@@ -559,3 +559,34 @@ def test_iv_shift_moves_values_before_expiry_only():
     floor = opt.analyze(legs, S, T, R, sigma=SIGMA, iv_shift=-90)
     assert {r["move_pct"]: r for r in floor["scenarios"]}[0]["today"] == pytest.approx(
         100 * (opt.bs_price("call", S, 100, T, R, 0.01) - price), abs=0.01)
+
+
+@pytest.mark.parametrize("kind", ["bull_put_spread", "bear_call_spread", "iron_condor"])
+def test_scanner_spreads_risk_only_their_worst_case(kind):
+    c = chain(half_spread=0.02)
+    r = opt.scan_candidate(kind, c, max_delta=0.30)
+    assert r and r["premium"] > 0 and r["kind"] == kind
+    legs = opt.legs_from_request(r["legs"], c)
+    res = opt.analyze(legs, S, c["years"], R, sigma=c["atm_iv"])
+    assert r["capital"] == pytest.approx(-res["max_loss"], abs=0.01)        # capital = worst case
+    assert r["premium"] == pytest.approx(-res["net_debit"], abs=0.01)       # a credit
+    assert r["return_pct"] == pytest.approx(r["premium"] / r["capital"] * 100, abs=0.01)
+    shorts = [leg for leg in r["legs"] if leg["qty"] < 0]
+    longs = [leg for leg in r["legs"] if leg["qty"] > 0]
+    assert len(shorts) == len(longs) == (2 if kind == "iron_condor" else 1)
+    for sh in shorts:                                                        # protection is further out
+        wing = next(lg for lg in longs if lg["type"] == sh["type"])
+        assert (wing["strike"] < sh["strike"]) if sh["type"] == "put" else (wing["strike"] > sh["strike"])
+    assert "/" in r["strikes"] and len(r["breakevens"]) == (2 if kind == "iron_condor" else 1)
+
+
+def test_scan_endpoint_can_skip_stocks_reporting_before_expiry(client, monkeypatch):
+    import app
+    soon = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=5)).timestamp()
+    real = app.get_option_chain
+    monkeypatch.setattr(app, "get_option_chain",
+                        lambda s, e: {**real(s, e), "earnings_ts": [soon]} if real(s, e) else None)
+    url = "/options/scan?symbols=TEST&kind=bull_put_spread&min_dte=20&max_dte=50&max_spread=25"
+    assert client.get(url).get_json()["results"][0]["earnings_before_expiry"] is True
+    skipped = client.get(url + "&skip_earnings=1").get_json()
+    assert skipped["results"] == [] and "earnings on" in skipped["skipped"][0]["skipped"]

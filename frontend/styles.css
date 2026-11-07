@@ -1751,3 +1751,8 @@ select.form-input {
 .paper-actions { display: flex; align-items: center; gap: var(--s-3); }
 @media (max-width: 1100px) { .opt-intro-steps { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .opt-intro-steps { grid-template-columns: 1fr; } }
+
+.opt-scan-check { display: inline-flex; align-items: center; gap: var(--s-3); font-size: var(--fs-sm); color: #C9CED6; align-self: center; }
+.opt-scan-check input { width: 16px; height: 16px; accent-color: #3B82F6; }
+.opt-earn-flag { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 700;
+    color: #FCD34D; background: rgba(245, 158, 11, 0.16); vertical-align: middle; }

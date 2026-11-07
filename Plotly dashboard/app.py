@@ -1211,12 +1211,16 @@ def options_scan() -> tuple:
         chain = _cached_chain(sym, expiry)
         if not chain:
             return {"symbol": sym, "skipped": "chain unavailable"}
+        if skip_earnings and chain.get("earnings_before_expiry"):
+            return {"symbol": sym, "skipped": f"earnings on {chain['earnings']['date']}, before expiry"}
         return opt.scan_candidate(kind, chain, **filters) or {"symbol": sym, "skipped": "nothing passes the filters"}
 
+    skip_earnings = request.args.get("skip_earnings", "").lower() in ("1", "true", "yes")
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = list(pool.map(one, syms))
     found = sorted((r for r in rows if "skipped" not in r), key=lambda r: -r["annualized_pct"])
-    return jsonify({"kind": kind, "filters": {**filters, "min_dte": min_dte, "max_dte": max_dte},
+    return jsonify({"kind": kind, "filters": {**filters, "min_dte": min_dte, "max_dte": max_dte,
+                                              "skip_earnings": skip_earnings},
                     "results": found, "skipped": [r for r in rows if "skipped" in r]})
 
 
