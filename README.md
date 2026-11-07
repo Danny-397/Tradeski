@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-266%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-276%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 266 tests across 26 files — CI on every push |
+| **Tests** | 276 tests across 26 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -134,11 +134,15 @@ The data is built after each US close by a GitHub Actions workflow ([`scripts/bu
 
 ### Options
 
-**Options has its own page** at `/options` ([`options.html`](frontend/options.html), [`options.js`](frontend/options.js), maths in [`tracker/options.py`](tracker/options.py)), opened from the dashboard header on the charted symbol. Its state (symbol, expiry, tab) lives in the address bar, so any view can be linked to, and quick-pick chips switch between the symbols with saved chains. Three tabs:
+**Options has its own page** at `/options` ([`options.html`](frontend/options.html), [`options.js`](frontend/options.js), maths in [`tracker/options.py`](tracker/options.py)), opened from the dashboard header on the charted symbol. Its state (symbol, expiry, tab) lives in the address bar, so any view can be linked to, and quick-pick chips switch between the symbols with saved chains. The header shows the next earnings date (expiries after it are marked), and a short intro explains the tabs:
 
 - **Chain.** Calls and puts side by side for any expiry, with bid/ask, volume, open interest, implied volatility and delta. Filters for strike distance from the spot, |delta|, minimum open interest and volume, and maximum bid/ask spread hide the illiquid strikes. Above the chain: the at-the-money IV next to the stock's 30-day realised volatility, the market-implied expected move by expiry, put/call ratios, and the volatility curve across strikes.
 - **Strategy builder.** Pick from nine strategies shown as cards, each with the market view it suits (bullish, bearish, neutral, big move), what it does in one line and how much it can lose. You can also combine up to six legs by clicking bids and asks in the chain; each leg is spelled out ("Sell 1 AAPL $320 put at $3.25 a share: you collect $325"). The result reads top to bottom: a plain-words summary ("Makes money if AAPL closes between $317.55 and $367.45 on 2026-12-04"), then cards for what you pay or collect, the best and worst case, break-even and the chance of profit, then a profit-and-loss chart with the break-evens marked (at expiry, today, or any date before), then a **"what if the stock moves" table** with the exact P/L at −20% to +20%. The Greeks and the cost of crossing the spread sit in an Advanced section. "Ask Ski" takes you back to the dashboard with Ski open and the question filled in.
-- **Scanner.** Cash-secured puts or covered calls across up to ten symbols: for each, the strike with the most premium under a delta limit, filtered by days to expiry, open interest and spread, ranked by annualised return on capital.
+- **Compare & choose.** Say where you think the stock will be at expiry (type a price, or pick down 10% … up 10%). All nine strategies are ranked for that view: the ones that make money there come first, ordered by profit at your target per dollar they can lose, with a "Best fit" badge. Tick up to three to see their P/L lines on one chart (your target, today's price and the expected range marked) and a side-by-side table: cost, best and worst case, break-evens, where each makes money, chance of profit, and P/L if the stock drops 10%, stays flat or rises 10%.
+- **Scanner.** Cash-secured puts, covered calls, bull put spreads, bear call spreads or iron condors across up to ten symbols. For each, it picks the trade with the most premium under a delta limit, filtered by days to expiry, open interest and spread, and ranks by annualised return on the capital at risk (for spreads, the most they can lose). Stocks reporting earnings before expiry are skipped by default.
+- **Paper trades.** "Save as paper trade" keeps a position, with its entry prices, in your browser. This tab re-prices them all at today's quotes and shows each one's profit or loss and the total.
+
+On the strategy chart, a shaded band marks the range the market expects by expiry (one standard deviation, about a 68% chance). An **implied-volatility slider** (with a "Try an IV crush" button) shows what happens to the position's value before expiry if IV falls or rises. For example, an AAPL straddle held over earnings loses about $2,100 on a 15-point IV drop with the stock unchanged. If the expiry spans an earnings report, a warning says so.
 
 The data source's own IV is often stale out of hours, so Tradeski solves IV from each bid/ask midpoint itself and computes the Greeks with Black-Scholes (written on `math.erf`, no SciPy), using the 3-month Treasury yield from FRED. The window states the model's limits next to the numbers: quotes are delayed, prices are midpoints, Black-Scholes treats options as European, and the chance of profit is what option prices imply, not a forecast.
 
@@ -186,7 +190,7 @@ Tradeski/
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 266 tests across 26 files
+├── tests/                     # pytest suite — 276 tests across 26 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -269,7 +273,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (266 tests) |
+| Testing | pytest (276 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -510,10 +514,13 @@ Fundamental data for a 29-stock universe, from the backend. The dashboard's scre
 Listed expiries (future ones only, with days to expiry and a default 20 to 60 days out), and one expiry's chain: every contract with bid/ask/mid, volume, open interest, spread %, IV solved from the midpoint (and its source), delta, gamma, theta per day and vega per vol point, plus the ATM IV, expected move, 30-day realised volatility, put/call ratios and the rate used. Cached 5 minutes.
 
 ### `POST /options/strategy`
-Body: `{ "symbol": "AAPL", "expiry": "2026-12-04", "preset": "iron_condor" }`, or `"legs": [{ "type": "call", "qty": 1, "strike": 350 }, ...]` instead of a preset (qty < 0 sells; `"stock"` legs are 100 shares). Optional `days_forward` adds a P/L curve at that date. Returns the priced legs, net debit, max profit/loss (or unlimited), break-evens, profit zones, chance of profit, net Greeks, spread cost, P/L curves and a summary sentence.
+Body: `{ "symbol": "AAPL", "expiry": "2026-12-04", "preset": "iron_condor" }`, or `"legs": [{ "type": "call", "qty": 1, "strike": 350 }, ...]` instead of a preset (qty < 0 sells; `"stock"` legs are 100 shares). Optional `days_forward` adds a P/L curve at that date, and `iv_shift` (volatility points, ±50) moves every option's IV for the values before expiry. Returns the priced legs, net debit, max profit/loss (or unlimited), break-evens, profit zones, chance of profit, net Greeks, spread cost, P/L curves, a what-if table (`scenarios`: P/L at −20% … +20%) and a summary sentence.
+
+### `POST /options/compare`
+Body: `{ "symbol": "NVDA", "expiry": "2026-12-04", "target": 205 }` (both optional, plus `presets` to choose). Every strategy priced on one chain with its P/L curve and what-if table. With a `target`, each gets `pnl_at_target` and `reward_risk_at_target`, and the list is ranked for that view.
 
 ### `GET /options/scan?kind=cash_secured_put&symbols=AAPL,MSFT&max_delta=0.3&min_dte=20&max_dte=50`
-The best cash-secured put (or `kind=covered_call`) per symbol, up to 10 symbols, with `min_oi` and `max_spread` filters. Rate-limited to 10 a minute.
+The best trade per symbol, up to 10 symbols: `kind` is `cash_secured_put`, `covered_call`, `bull_put_spread`, `bear_call_spread` or `iron_condor`, with `min_oi`, `max_spread` and `skip_earnings=1` filters. Each result has its legs, a strikes label and whether earnings fall before expiry. Rate-limited to 10 a minute.
 
 ### `GET /watchlist/saved` · `POST /watchlist/saved` · `DELETE /watchlist/saved/<symbol>`
 Read, add to, or remove from the signed-in user's persistent watchlist. **Requires authentication.**
@@ -588,7 +595,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-266 tests across 26 files:
+276 tests across 26 files:
 
 | File | What it covers |
 |:---|:---|

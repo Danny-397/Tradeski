@@ -142,3 +142,64 @@ test("each leg as a sentence", () => {
     assert.equal(optLegPlain({ type: "stock", qty: 1, strike: null, price: 342.37 }, "AAPL"),
                  "Buy 100 AAPL shares at $342.37: you pay $34,237");
 });
+
+test("dates, day counts and the expected range", () => {
+    const { optDate, optDaysBetween, optExpectedRange } = load(["optDate", "optDaysBetween", "optExpectedRange"]);
+    assert.equal(optDate("2027-01-28"), "Jan 28, 2027");
+    assert.equal(optDaysBetween("2026-11-07", "2027-01-28"), 82);
+    assert.deepEqual(plain(optExpectedRange({ spot: 342.37, expected_move: 25.07 })), { lo: 317.3, hi: 367.44 });
+    assert.equal(optExpectedRange({ spot: 100, expected_move: null }), null);
+});
+
+test("which strategies to compare when the list loads", () => {
+    const ctx = vm.createContext({});
+    vm.runInContext('const OPT_COMPARE_MAX = 3; const OPT_COMPARE_DEFAULT = ["long_call", "bull_call_spread", "covered_call"];\n' +
+        declaration("optCompareSelection") + "\nthis.__f = optCompareSelection;", ctx);
+    const pick = ctx.__f;
+    const rows = [{ preset: "bull_call_spread", pnl_at_target: 900 }, { preset: "long_call", pnl_at_target: 600 },
+                  { preset: "covered_call", pnl_at_target: 300 }, { preset: "long_strangle", pnl_at_target: 50 },
+                  { preset: "long_put", pnl_at_target: -400 }];
+    assert.deepEqual(plain(pick(rows, null, 110)), ["bull_call_spread", "long_call", "covered_call"]);   // top three
+    assert.deepEqual(plain(pick(rows, ["long_put", "gone"], 110)), ["long_put"]);                          // keep picks
+    assert.deepEqual(plain(pick(rows, null, null)), ["long_call", "bull_call_spread", "covered_call"]);   // starter set
+    assert.deepEqual(plain(pick([{ preset: "long_put", pnl_at_target: -1 }], null, 90)), []);             // nothing wins
+});
+
+test("the comparison chart's window, and curves clipped to it", () => {
+    const { optCompareWindow, optClipCurve } = load(["optCompareWindow", "optClipCurve"]);
+    const r2 = a => plain(a).map(v => +v.toFixed(2));
+    assert.deepEqual(r2(optCompareWindow(100, 5, null)), [87.5, 112.5]);               // 2.5 expected moves
+    assert.deepEqual(r2(optCompareWindow(100, 1, null)), [88, 112]);                   // at least ±12%
+    assert.deepEqual(r2(optCompareWindow(100, 30, null)), [60, 140]);                  // at most ±40%
+    assert.deepEqual(plain(optCompareWindow(100, 5, 130)).map(v => +v.toFixed(2)), [87.5, 136.5]);  // shows the target
+    const c = optClipCurve([0, 10, 20, 30], [0, 100, 200, 300], 5, 25);
+    assert.deepEqual(plain(c), { x: [5, 10, 20, 25], y: [50, 100, 200, 250] });
+});
+
+test("IV slider labels", () => {
+    const { optIvShiftLabel, optIvTag } = load(["optIvShiftLabel", "optIvTag"]);
+    assert.equal(optIvShiftLabel(0), "unchanged");
+    assert.equal(optIvShiftLabel(-15), "15 points lower");
+    assert.equal(optIvShiftLabel(1), "1 point higher");
+    assert.equal(optIvTag(0), "");
+    assert.equal(optIvTag(-15), " (IV −15)");
+    assert.equal(optIvTag(5), " (IV +5)");
+});
+
+test("paper trades: saving, capping and P/L for debits and credits", () => {
+    const ctx = vm.createContext({});
+    vm.runInContext("const OPT_PAPER_MAX = 3;\n" + ["optPaperFrom", "optPaperAdd", "optPaperPnl"].map(declaration).join("\n") +
+        "\nthis.__p = { optPaperFrom, optPaperAdd, optPaperPnl };", ctx);
+    const { optPaperFrom, optPaperAdd, optPaperPnl } = ctx.__p;
+    const t = optPaperFrom({ symbol: "AAPL", expiry: "2026-12-04", net_debit: 488, spot: 342.37,
+        legs: [{ type: "call", qty: 1, strike: 340, price: 11.78, iv: 0.27 }] }, "Bull call spread", new Date("2026-11-07T15:00:00Z"));
+    assert.equal(t.name, "Bull call spread");
+    assert.deepEqual(plain(t.legs), [{ type: "call", qty: 1, strike: 340, price: 11.78 }]);   // no IV kept
+    assert.equal(t.saved_at, "2026-11-07T15:00:00.000Z");
+    let list = [];
+    for (let i = 0; i < 5; i++) list = optPaperAdd(list, { ...t, id: "t" + i });
+    assert.deepEqual(plain(list.map(x => x.id)), ["t4", "t3", "t2"]);                         // newest first, capped
+    assert.deepEqual(plain(optPaperPnl(488, 600)), { pnl: 112, pct: 112 / 488 });              // bought, now worth more
+    assert.deepEqual(plain(optPaperPnl(-245, -150)), { pnl: 95, pct: null });                   // sold for 245, 150 to close
+    assert.deepEqual(plain(optPaperPnl(-245, -400)), { pnl: -155, pct: null });
+});

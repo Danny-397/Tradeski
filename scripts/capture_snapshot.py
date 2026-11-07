@@ -196,6 +196,7 @@ def capture_eod_chains():
             if not raw:
                 continue
             out["spot"], out["dividend_yield"] = raw["spot"], raw["dividend_yield"]
+            out["earnings_ts"], out["earnings_estimated"] = raw.get("earnings_ts"), raw.get("earnings_estimated")
             out["chains"][e] = {"calls": opt.compact_rows(raw["calls"], raw["spot"]),
                                 "puts": opt.compact_rows(raw["puts"], raw["spot"])}
         if not out["chains"]:

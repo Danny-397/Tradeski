@@ -18,10 +18,10 @@ This report describes the architecture as built, the decisions worth defending, 
 
 | | |
 |---|---|
-| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 28 HTTP endpoints |
+| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 266, across 26 files, run in GitHub Actions with flake8 |
+| Tests | 276, across 26 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -178,6 +178,17 @@ appears in the scanner and the builder for the same trade. An earlier version us
 contract's own IV in one and the ATM IV in the other, and showed 73% and 76% for the same
 put.
 
+The page is built to answer "which strategy, and what happens if…?" rather than only
+"what does this strategy do?". Given a target price, `compare_strategies` prices all nine
+presets and ranks them. Positions that make money at the target come first, ordered by
+profit at the target per dollar they can lose. Positions with unlimited loss come last
+among equals, because a high payoff at one price says nothing about the tail. An
+`iv_shift` re-values the position before expiry with every option's IV moved by that many
+points. This isolates the effect beginners most often miss: around earnings, IV routinely
+falls 10 to 30 points. In the AAPL example, a straddle held over earnings that cost $4,078
+was worth $2,133 less after a 15-point drop, with the stock unchanged. The next earnings date comes from Yahoo's chain response, using its estimate of
+the next report rather than its timestamp of the last one.
+
 ---
 
 ## 5. News sentiment: why general-purpose scoring fails here
@@ -299,7 +310,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-266 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
+276 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the

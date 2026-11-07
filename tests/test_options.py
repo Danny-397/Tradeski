@@ -495,3 +495,98 @@ def test_what_if_scenarios_are_exact_pnl_at_round_moves():
     assert rows[0]["today"] == pytest.approx(opt.position_pnl(legs, S, T, R), abs=0.01)
     assert rows[0]["at_date"] == pytest.approx(opt.position_pnl(legs, S, T - 10 / 365, R), abs=0.01)
     assert "at_date" not in opt.analyze(legs, S, T, R, sigma=SIGMA)["scenarios"][0]
+
+
+def test_next_earnings_skips_reports_that_already_happened():
+    now = dt.datetime(2026, 11, 7, 15, 0, tzinfo=dt.timezone.utc)
+    last, nxt = 1793653200, 1801170000                     # 2026-11-02 (past), 2027-01-28
+    assert opt.next_earnings([last, nxt, nxt], True, now) == {"date": "2027-01-28", "estimated": True}
+    assert opt.next_earnings([last], False, now) is None
+    assert opt.next_earnings([None, "x", 0], False, now) is None
+
+
+def test_chain_flags_an_expiry_that_spans_earnings():
+    expiry, raw = raw_chain(30)
+    soon = dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=10)
+    raw.update(earnings_ts=[soon.timestamp()], earnings_estimated=False)
+    c = opt.clean_chain(raw, expiry, R)
+    assert c["earnings"]["date"] < expiry and c["earnings_before_expiry"] is True
+    raw.update(earnings_ts=[(soon + dt.timedelta(days=60)).timestamp()])
+    assert opt.clean_chain(raw, expiry, R)["earnings_before_expiry"] is False
+    assert opt.clean_chain(raw_chain(30)[1], expiry, R)["earnings"] is None
+
+
+def test_compare_ranks_strategies_for_a_target_price():
+    c = chain()
+    up = opt.compare_strategies(c, target=110.0)
+    assert {r["preset"] for r in up} == set(opt.PRESETS)
+    winners = [r for r in up if r["pnl_at_target"] > 0]
+    assert up[:len(winners)] == winners                          # money-makers at the target come first
+    assert up[0]["preset"] in ("bull_call_spread", "long_call", "long_strangle", "long_straddle", "covered_call")
+    assert all(r["preset"] not in ("long_put", "bear_put_spread") for r in winners)
+    spread = next(r for r in up if r["preset"] == "bull_call_spread")
+    assert spread["reward_risk_at_target"] == pytest.approx(spread["pnl_at_target"] / -spread["max_loss"], abs=1e-3)
+    down = opt.compare_strategies(c, target=90.0)
+    assert down[0]["preset"] in ("bear_put_spread", "long_put", "long_straddle", "long_strangle")
+    # Without a target: just the presets asked for, in that order, with curves to overlay.
+    two = opt.compare_strategies(c, ["iron_condor", "long_call", "bogus"])
+    assert [r["preset"] for r in two] == ["iron_condor", "long_call"]
+    assert "pnl_at_target" not in two[0] and len(two[0]["curve"]["prices"]) == 81
+
+
+def test_compare_endpoint(client):
+    res = client.post("/options/compare", json={"symbol": "TEST", "target": 108, "presets": ["long_call", "long_put"]})
+    data = res.get_json()
+    assert res.status_code == 200 and data["target"] == 108
+    assert [r["preset"] for r in data["strategies"]] == ["long_call", "long_put"]
+    assert data["strategies"][0]["pnl_at_target"] > 0 > data["strategies"][1]["pnl_at_target"]
+    assert client.post("/options/compare", json={"symbol": "TEST", "target": "x"}).get_json()["target"] is None
+
+
+def test_iv_shift_moves_values_before_expiry_only():
+    T = 30 / 365
+    price = opt.bs_price("call", S, 100, T, R, SIGMA)
+    legs = [_call(100, 1, price)]
+    base = opt.analyze(legs, S, T, R, sigma=SIGMA, days_forward=10)
+    crush = opt.analyze(legs, S, T, R, sigma=SIGMA, days_forward=10, iv_shift=-10)
+    assert crush["curves"]["expiry"] == base["curves"]["expiry"]            # expiry doesn't care about IV
+    now = {r["move_pct"]: r for r in crush["scenarios"]}[0]
+    assert now["today"] == pytest.approx(
+        100 * (opt.bs_price("call", S, 100, T, R, SIGMA - 0.10) - price), abs=0.01)
+    assert now["today"] < 0 and now["at_date"] < {r["move_pct"]: r for r in base["scenarios"]}[0]["at_date"]
+    assert crush["iv_shift"] == -10
+    # Never below 1% volatility, however big the drop.
+    floor = opt.analyze(legs, S, T, R, sigma=SIGMA, iv_shift=-90)
+    assert {r["move_pct"]: r for r in floor["scenarios"]}[0]["today"] == pytest.approx(
+        100 * (opt.bs_price("call", S, 100, T, R, 0.01) - price), abs=0.01)
+
+
+@pytest.mark.parametrize("kind", ["bull_put_spread", "bear_call_spread", "iron_condor"])
+def test_scanner_spreads_risk_only_their_worst_case(kind):
+    c = chain(half_spread=0.02)
+    r = opt.scan_candidate(kind, c, max_delta=0.30)
+    assert r and r["premium"] > 0 and r["kind"] == kind
+    legs = opt.legs_from_request(r["legs"], c)
+    res = opt.analyze(legs, S, c["years"], R, sigma=c["atm_iv"])
+    assert r["capital"] == pytest.approx(-res["max_loss"], abs=0.01)        # capital = worst case
+    assert r["premium"] == pytest.approx(-res["net_debit"], abs=0.01)       # a credit
+    assert r["return_pct"] == pytest.approx(r["premium"] / r["capital"] * 100, abs=0.01)
+    shorts = [leg for leg in r["legs"] if leg["qty"] < 0]
+    longs = [leg for leg in r["legs"] if leg["qty"] > 0]
+    assert len(shorts) == len(longs) == (2 if kind == "iron_condor" else 1)
+    for sh in shorts:                                                        # protection is further out
+        wing = next(lg for lg in longs if lg["type"] == sh["type"])
+        assert (wing["strike"] < sh["strike"]) if sh["type"] == "put" else (wing["strike"] > sh["strike"])
+    assert "/" in r["strikes"] and len(r["breakevens"]) == (2 if kind == "iron_condor" else 1)
+
+
+def test_scan_endpoint_can_skip_stocks_reporting_before_expiry(client, monkeypatch):
+    import app
+    soon = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=5)).timestamp()
+    real = app.get_option_chain
+    monkeypatch.setattr(app, "get_option_chain",
+                        lambda s, e: {**real(s, e), "earnings_ts": [soon]} if real(s, e) else None)
+    url = "/options/scan?symbols=TEST&kind=bull_put_spread&min_dte=20&max_dte=50&max_spread=25"
+    assert client.get(url).get_json()["results"][0]["earnings_before_expiry"] is True
+    skipped = client.get(url + "&skip_earnings=1").get_json()
+    assert skipped["results"] == [] and "earnings on" in skipped["skipped"][0]["skipped"]

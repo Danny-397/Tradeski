@@ -72,15 +72,20 @@
                     <button class="opt-intro-step" type="button" data-goto-tab="strategy">
                         <span class="opt-step-n">2</span><strong>Strategy builder</strong>
                         <span>Pick a strategy and see what it costs, the most you can make or lose, where you break even, and your profit or loss at any price.</span></button>
+                    <button class="opt-intro-step" type="button" data-goto-tab="compare">
+                        <span class="opt-step-n">3</span><strong>Compare &amp; choose</strong>
+                        <span>Say where you think the stock is going and see every strategy ranked for that view, or put two or three side by side.</span></button>
                     <button class="opt-intro-step" type="button" data-goto-tab="scan">
-                        <span class="opt-step-n">3</span><strong>Scanner</strong>
+                        <span class="opt-step-n">4</span><strong>Scanner</strong>
                         <span>Find the covered calls and cash-secured puts that pay the most for the risk you choose, across several stocks.</span></button>
                 </div>
             </section>
             <div class="opt-tabs" role="tablist">
             <button class="sidebar-tab opt-tab active" data-tab="chain" role="tab" aria-selected="true">Chain</button>
             <button class="sidebar-tab opt-tab" data-tab="strategy" role="tab" aria-selected="false">Strategy builder</button>
+            <button class="sidebar-tab opt-tab" data-tab="compare" role="tab" aria-selected="false">Compare &amp; choose</button>
             <button class="sidebar-tab opt-tab" data-tab="scan" role="tab" aria-selected="false">Scanner</button>
+            <button class="sidebar-tab opt-tab" data-tab="paper" role="tab" aria-selected="false">Paper trades <span class="badge" id="paper-count"></span></button>
             <span class="opt-status" id="opt-status" role="status"></span>
             </div>
             <div class="opt-summary" id="opt-summary"></div>
@@ -156,6 +161,7 @@
                 <div id="opt-results" hidden>
                     <h3 class="opt-step"><span class="opt-step-n">3</span> See the outcome</h3>
                     <p class="opt-strategy-summary" id="opt-strategy-summary"></p>
+                    <p class="opt-warning" id="opt-earnings-warning" role="note" hidden></p>
                     <div class="opt-outcomes" id="opt-stats"></div>
 
                     <div class="opt-chart-card">
@@ -163,10 +169,18 @@
                             <div>
                                 <strong>Profit or loss at each price</strong>
                                 <span class="opt-dim">Green: you make money. Red: you lose. Hover the chart for exact amounts.</span>
+                                <span class="opt-dim" id="opt-range-note"></span>
                             </div>
-                            <div class="opt-days">
-                                <label class="filter-label" for="opt-days">Also show it <span id="opt-days-label">today only</span></label>
-                                <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
+                            <div class="opt-sliders">
+                                <div class="opt-days">
+                                    <label class="filter-label" for="opt-days">Also show it <span id="opt-days-label">today only</span></label>
+                                    <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
+                                </div>
+                                <div class="opt-days" title="Implied volatility usually falls right after earnings (the IV crush): bought options lose value even if the stock doesn't move.">
+                                    <label class="filter-label" for="opt-ivshift">Implied volatility <span id="opt-ivshift-label">unchanged</span></label>
+                                    <input type="range" id="opt-ivshift" min="-30" max="30" step="1" value="0">
+                                    <button class="text-btn opt-crush-btn" id="opt-ivshift-crush" type="button">Try an IV crush</button>
+                                </div>
                             </div>
                         </div>
                         <div id="opt-payoff" class="opt-payoff"></div>
@@ -185,12 +199,67 @@
                     </details>
                 </div>
                 <div class="opt-builder-foot">
-                    <button class="btn-secondary" id="opt-ask-ski" hidden>Ask Ski to explain this</button>
+                    <div class="opt-foot-actions">
+                        <button class="btn-primary" id="opt-save-paper" hidden>Save as paper trade</button>
+                        <button class="btn-secondary" id="opt-ask-ski" hidden>Ask Ski to explain this</button>
+                    </div>
                     <p class="opt-note">Prices are bid/ask midpoints from delayed quotes; real fills are usually worse.
                             Values before expiry use Black-Scholes, which treats options as European, so they are approximate
                             where early exercise matters. The chance of profit is what option prices imply, not a forecast.
                             Educational tool, not investment advice.</p>
                 </div>
+            </section>
+
+            <!-- Compare & choose -->
+            <section class="opt-pane" id="opt-pane-compare" hidden>
+                <h3 class="opt-step"><span class="opt-step-n">1</span> Where do you think <span id="cmp-sym">the stock</span>
+                    will be on <span id="cmp-exp">expiry</span>?
+                    <span class="opt-step-hint">optional: rank every strategy for your view</span></h3>
+                <div class="cmp-target-row">
+                    <label class="cmp-target-wrap"><span>$</span>
+                        <input type="number" id="cmp-target" class="filter-input cmp-target" step="any" min="0"
+                               placeholder="Target price" aria-label="Target price"></label>
+                    <div class="cmp-quick" id="cmp-quick"></div>
+                    <button class="btn-primary" id="cmp-rank">Rank strategies</button>
+                    <button class="text-btn" id="cmp-clear-target" hidden>Clear target</button>
+                </div>
+                <p class="cmp-help" id="cmp-help"></p>
+
+                <h3 class="opt-step"><span class="opt-step-n">2</span> Pick up to three to compare
+                    <span class="opt-step-hint">tick the boxes; "Open" loads one into the strategy builder</span></h3>
+                <div class="opt-table-wrap">
+                    <table class="screener-table cmp-table" id="cmp-table"></table>
+                </div>
+
+                <div id="cmp-results" hidden>
+                    <h3 class="opt-step"><span class="opt-step-n">3</span> Side by side</h3>
+                    <div class="opt-chart-card">
+                        <div class="opt-chart-head"><div>
+                            <strong>Profit or loss at expiry</strong>
+                            <span class="opt-dim">One line per strategy. Above the zero line you make money; below it you lose.</span>
+                        </div></div>
+                        <div id="cmp-chart" class="opt-payoff"></div>
+                    </div>
+                    <div class="opt-table-wrap">
+                        <table class="screener-table cmp-side" id="cmp-side"></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Paper trades -->
+            <section class="opt-pane" id="opt-pane-paper" hidden>
+                <h3 class="opt-step">Your paper trades
+                    <span class="opt-step-hint">practice positions, priced against today's quotes; saved in this browser only</span></h3>
+                <div class="paper-bar">
+                    <button class="btn-secondary" id="paper-refresh">Refresh prices</button>
+                    <span class="opt-dim" id="paper-status" role="status"></span>
+                    <span class="paper-total" id="paper-total"></span>
+                </div>
+                <div class="opt-table-wrap">
+                    <table class="screener-table paper-table" id="paper-table"></table>
+                </div>
+                <p class="opt-note paper-note">P/L is what the position would be worth if you closed it now at mid prices, minus what it cost to open
+                    (or plus what it paid you). Quotes are delayed or end-of-day, and real fills are usually worse.</p>
             </section>
 
             <!-- Scanner -->
@@ -199,7 +268,10 @@
                     <div class="filter-group"><label class="filter-label" for="opt-scan-kind">Strategy</label>
                         <select id="opt-scan-kind" class="filter-select">
                             <option value="cash_secured_put">Cash-secured puts</option>
-                            <option value="covered_call">Covered calls</option></select></div>
+                            <option value="covered_call">Covered calls</option>
+                            <option value="bull_put_spread">Bull put spreads (defined risk)</option>
+                            <option value="bear_call_spread">Bear call spreads (defined risk)</option>
+                            <option value="iron_condor">Iron condors (defined risk)</option></select></div>
                     <div class="filter-group opt-scan-syms"><label class="filter-label" for="opt-scan-symbols">Symbols (up to 10)</label>
                         <input type="text" id="opt-scan-symbols" class="filter-input" autocomplete="off" spellcheck="false"></div>
                     <div class="filter-group"><label class="filter-label" for="opt-scan-delta">Max |delta|</label>
@@ -214,19 +286,21 @@
                         <input type="number" id="opt-scan-oi" class="filter-input" value="100" min="0" step="50"></div>
                     <div class="filter-group"><label class="filter-label" for="opt-scan-spread">Max spread %</label>
                         <input type="number" id="opt-scan-spread" class="filter-input" value="10" min="1" step="1"></div>
+                    <label class="opt-scan-check"><input type="checkbox" id="opt-scan-earnings" checked>
+                        Skip stocks reporting earnings before expiry</label>
                     <button class="btn-primary" id="opt-scan-run">Scan</button>
                 </div>
-                <p class="opt-hint">For each symbol: the expiry nearest the middle of the window, and the strike with the most premium whose |delta| stays under the limit. Click a row to open it in the strategy builder.</p>
+                <p class="opt-hint" id="opt-scan-hint">For each symbol: the expiry nearest the middle of the window, and the strike with the most premium whose |delta| stays under the limit. Click a row to open it in the strategy builder.</p>
                 <div class="opt-table-wrap">
                     <table class="screener-table" id="opt-scan-table">
                         <thead><tr>
                             <th class="sortable" data-col="symbol">Symbol <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="dte">Expiry <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="strike">Strike <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="strike">Strikes <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="delta">Delta <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="iv">IV <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="premium">Premium <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="capital" title="Cash to secure the put, or the cost of 100 shares">Capital <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-col="capital" title="Cash to secure the put, the cost of 100 shares, or the most a spread can lose">Capital at risk <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="return_pct">Return <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="annualized_pct">Annualised <span class="sort-icon">↓</span></th>
                             <th class="sortable" data-col="breakeven">Break-even <span class="sort-icon">↕</span></th>
@@ -236,7 +310,7 @@
                     </table>
                 </div>
                 <p class="opt-note" id="opt-scan-skipped"></p>
-                <p class="opt-note">Annualised return assumes the same trade could be repeated all year, which it usually can't; use it to compare, not as a forecast. A cash-secured put can leave you owning the stock at the strike, and a covered call caps your upside.</p>
+                <p class="opt-note">Annualised return assumes the same trade could be repeated all year, which it usually can't; use it to compare, not as a forecast. A cash-secured put can leave you owning the stock at the strike, and a covered call caps your upside. Spreads and condors buy protection further out, so the most they can lose is fixed: the capital shown.</p>
             </section>
     </main>
 

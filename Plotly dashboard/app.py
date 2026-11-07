@@ -1151,13 +1151,35 @@ def options_strategy() -> tuple:
             legs = opt.build_preset(str(body.get("preset") or ""), chain)
         days = body.get("days_forward")
         days = float(days) if isinstance(days, (int, float)) and not isinstance(days, bool) else None
+        shift = body.get("iv_shift")
+        shift = max(-50.0, min(50.0, float(shift))) if isinstance(shift, (int, float)) and not isinstance(shift, bool) else 0.0
         result = opt.analyze(legs, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
-                             sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days)
+                             sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days, iv_shift=shift)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     result.update({"symbol": sym, "expiry": expiry, "dte": chain["dte"], "spot": chain["spot"],
                    "atm_iv": chain["atm_iv"], "market_state": chain.get("market_state")})
     return jsonify(result)
+
+
+@app.route("/options/compare", methods=["POST"])
+@limiter.limit("30 per minute")
+def options_compare() -> tuple:
+    """Strategies side by side on one chain; with a target price, ranked for it."""
+    body = request.get_json(silent=True) or {}
+    sym, expiry, err = _option_args(body)
+    if err:
+        return err
+    chain = _cached_chain(sym, expiry)
+    if not chain:
+        return _chain_error(sym, expiry)
+    presets = body.get("presets")
+    presets = [p for p in presets if isinstance(p, str)][:len(opt.PRESETS)] if isinstance(presets, list) else None
+    target = body.get("target")
+    target = float(target) if isinstance(target, (int, float)) and not isinstance(target, bool) and target > 0 else None
+    rows = opt.compare_strategies(chain, presets, target, symbol=sym)
+    return jsonify({"symbol": sym, "expiry": expiry, "spot": chain["spot"], "dte": chain["dte"],
+                    "expected_move": chain.get("expected_move"), "target": target, "strategies": rows})
 
 
 @app.route("/options/scan")
@@ -1189,12 +1211,16 @@ def options_scan() -> tuple:
         chain = _cached_chain(sym, expiry)
         if not chain:
             return {"symbol": sym, "skipped": "chain unavailable"}
+        if skip_earnings and chain.get("earnings_before_expiry"):
+            return {"symbol": sym, "skipped": f"earnings on {chain['earnings']['date']}, before expiry"}
         return opt.scan_candidate(kind, chain, **filters) or {"symbol": sym, "skipped": "nothing passes the filters"}
 
+    skip_earnings = request.args.get("skip_earnings", "").lower() in ("1", "true", "yes")
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = list(pool.map(one, syms))
     found = sorted((r for r in rows if "skipped" not in r), key=lambda r: -r["annualized_pct"])
-    return jsonify({"kind": kind, "filters": {**filters, "min_dte": min_dte, "max_dte": max_dte},
+    return jsonify({"kind": kind, "filters": {**filters, "min_dte": min_dte, "max_dte": max_dte,
+                                              "skip_earnings": skip_earnings},
                     "results": found, "skipped": [r for r in rows if "skipped" in r]})
 
 

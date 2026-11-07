@@ -141,3 +141,14 @@ def test_refresh_order_fetches_missing_then_stalest_big_names_first():
     assert bs.refresh_order(["AAAA", "MSFT", "ZZZZ", "NVDA"], {}, frozenset({"MSFT", "NVDA"})) == \
         ["MSFT", "NVDA", "AAAA", "ZZZZ"]
     assert {"AAPL", "MSFT", "NVDA"} <= bs.priority_symbols()
+
+
+def test_screener_earnings_date_is_the_next_one_not_the_last():
+    import datetime as dt
+    future = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=40)).timestamp()
+    past = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=5)).timestamp()
+    fund = bs.fundamentals_from_info({"sharesOutstanding": 1, "earningsTimestamp": past,
+                                      "earningsTimestampStart": future}, "2026-11-07")
+    assert fund["earnings_date"] == dt.datetime.fromtimestamp(future, dt.timezone.utc).date().isoformat()
+    only_past = bs.fundamentals_from_info({"sharesOutstanding": 1, "earningsTimestamp": past}, "2026-11-07")
+    assert only_past["earnings_date"] is None
