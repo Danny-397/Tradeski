@@ -207,6 +207,12 @@
         .feature { padding: 28px 0; border-top: 1px solid var(--border); }
         .feature h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-strong); margin-bottom: 8px; }
         .feature p  { font-size: 15px; color: var(--muted); line-height: 1.6; }
+        .tour { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 8px 0 48px; }
+        .tour-shot { margin: 0; }
+        .tour-shot img { display: block; width: 100%; height: auto; border-radius: 10px;
+            border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35); }
+        .tour-shot figcaption { margin-top: 12px; font-size: 14px; color: var(--muted); line-height: 1.5; }
+        .tour-shot figcaption strong { color: var(--text-strong); font-weight: 600; }
 
         /* ── Comparison ──────────────────────────────────────── */
         .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin: 0 auto; }
@@ -266,6 +272,7 @@
             .hero { padding: 80px 0 72px; }
             .section, .cta { padding: 88px 0; }
             .features { grid-template-columns: 1fr 1fr; column-gap: 32px; }
+            .tour { grid-template-columns: 1fr; gap: 32px; }
             .privacy  { grid-template-columns: 1fr; gap: 28px; }
         }
         @media (max-width: 600px) {
@@ -375,7 +382,24 @@
     <div class="container">
         <div class="section-head">
             <h2>Everything in one place.</h2>
-            <p>Your portfolio, Federal Reserve data, and live charts, all connected.</p>
+            <p>Your portfolio, the market, options and Federal Reserve data, all connected.</p>
+        </div>
+        <div class="tour" aria-label="Screenshots">
+            <figure class="tour-shot">
+                <a href="img/dashboard.webp" target="_blank" rel="noopener"><img src="img/dashboard.webp" width="1440" height="900" loading="lazy"
+                     alt="The dashboard: an NVDA candlestick chart with Bollinger Bands and moving averages, the Federal Reserve ribbon, and the News tab"></a>
+                <figcaption><strong>Dashboard.</strong> Live charts with hand-built indicators, the Fed ribbon, and the day's news first.</figcaption>
+            </figure>
+            <figure class="tour-shot">
+                <a href="img/options-strategy.webp" target="_blank" rel="noopener"><img src="img/options-strategy.webp" width="1440" height="900" loading="lazy"
+                     alt="The options strategy builder: an AAPL iron condor with cost, best and worst case, break-evens, chance of profit and a payoff chart"></a>
+                <figcaption><strong>Options.</strong> Build a strategy and see the cost, worst case, break-evens and P/L at any price, date or IV.</figcaption>
+            </figure>
+            <figure class="tour-shot">
+                <a href="img/screener.webp" target="_blank" rel="noopener"><img src="img/screener.webp" width="1440" height="900" loading="lazy"
+                     alt="The screener: momentum leaders across 5,698 US stocks, with a saved screen flagging three new matches"></a>
+                <figcaption><strong>Screener.</strong> Every US-listed stock, about 40 filters, and saved screens that flag new matches.</figcaption>
+            </figure>
         </div>
         <div class="features">
             <div class="feature">
@@ -399,8 +423,20 @@
                 <p>RSI, MACD, Bollinger Bands, moving averages, Z-score, ATR, and regression, implemented from first principles.</p>
             </div>
             <div class="feature">
-                <h3>Options analysis</h3>
-                <p>Option chains with implied volatility and Greeks, a strategy builder with payoff charts and break-evens, and a scanner for covered calls and cash-secured puts.</p>
+                <h3>Options strategy lab</h3>
+                <p>Chains with IV and Greeks, nine strategies with payoff charts, an IV-crush slider and a what-if table, every strategy ranked for your price target, a premium scanner, and paper trades.</p>
+            </div>
+            <div class="feature">
+                <h3>Whole-market screener</h3>
+                <p>Every US-listed stock with about 40 filters and 13 preset screens. Save your own, and Tradeski flags the stocks that newly qualify after each close.</p>
+            </div>
+            <div class="feature">
+                <h3>News first</h3>
+                <p>Headlines about the stock you're viewing, matched on the company's name from finance outlets, with the tone of each headline scored.</p>
+            </div>
+            <div class="feature">
+                <h3>Alerts that fire</h3>
+                <p>Price, RSI, volume and Z-score alerts, checked against price history since you set them, so they catch moves that happen while you're away.</p>
             </div>
         </div>
     </div>
