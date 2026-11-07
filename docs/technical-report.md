@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 247, across 24 files, run in GitHub Actions with flake8 |
+| Tests | 251, across 25 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -182,8 +182,15 @@ scored on title plus description, aggregated to a mean compound score with bulli
 neutral / bearish counts at a ±0.05 threshold.
 
 Query construction matters too. NewsAPI searched for the bare ticker `META` returns
-articles about metadata and metaphysics; searching `"Meta stock"` does not. Each tracked
-symbol carries an explicit descriptive query string rather than its ticker.
+articles about metadata and metaphysics. The first fix, a descriptive query like
+`"Apple stock"`, was not enough: NewsAPI's default search covers the whole article body,
+and sorted by date it returned whatever mentioned Apple anywhere. One live check of AAPL
+turned up a political column, a list of iOS app deals and a history piece. The query is now
+the company's name (from the dashboard's ticker index, so any listed company has one) or
+its ticker, matched in the **title**, first on about twenty financial news sites. Only when
+those return fewer than four headlines does the search widen to any source, still by
+title. One-letter and two-letter tickers are left out of the query, because "ALL", "IT"
+and "ON" are words.
 
 **This is a hand-tuned heuristic, not a validated model.** The polarities are my judgment,
 not fitted values, and there is no labeled financial-headline set here measuring whether
@@ -277,7 +284,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-247 tests across 24 files run on every push through GitHub Actions, alongside flake8 linting.
+251 tests across 25 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the

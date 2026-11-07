@@ -1491,14 +1491,16 @@ async function submitAlert() {
 // ============================================================
 
 function initSidebarTabs() {
-    document.querySelectorAll(".sidebar-tab").forEach(btn => {
+    // Scoped to the sidebar's own tab bar: the Options window reuses the
+    // .sidebar-tab look, and its clicks must not hide the News/Indicators panes.
+    const tabs = document.querySelectorAll(".sidebar-tabs .sidebar-tab");
+    tabs.forEach(btn => {
         btn.addEventListener("click", () => {
-            const tab = btn.dataset.tab;
-            document.querySelectorAll(".sidebar-tab").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            document.querySelectorAll(".tab-pane").forEach(p => { p.style.display = "none"; });
-            const pane = document.getElementById(`tab-${tab}`);
-            if (pane) pane.style.display = "";
+            tabs.forEach(b => {
+                b.classList.toggle("active", b === btn);
+                const pane = document.getElementById(`tab-${b.dataset.tab}`);
+                if (pane) pane.style.display = b === btn ? "" : "none";
+            });
         });
     });
 }

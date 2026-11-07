@@ -1,25 +1,45 @@
 """NewsAPI client with VADER sentiment scoring."""
 
 import datetime
+import json
+import os
+import re
 import requests
+from functools import lru_cache
 from typing import Optional
 
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 NEWS_BASE = "https://newsapi.org/v2/everything"
 
-# More descriptive queries produce better headline results than bare tickers
-_COMPANY_QUERIES: dict[str, str] = {
-    "AAPL":  "Apple stock",
-    "MSFT":  "Microsoft stock",
-    "NVDA":  "NVIDIA stock",
-    "TSLA":  "Tesla stock",
-    "AMZN":  "Amazon stock",
-    "GOOGL": "Google Alphabet stock",
-    "META":  "Meta stock",
-    "SPY":   "S&P 500 market",
-    "QQQ":   "Nasdaq tech market",
+# Headlines are searched in titles only, first on financial news sites. A
+# full-text search for "Apple stock" sorted by date returned whatever mentioned
+# Apple anywhere in the body: politics, app deals, history pieces.
+FINANCE_DOMAINS = ",".join([
+    "reuters.com", "bloomberg.com", "cnbc.com", "wsj.com", "marketwatch.com", "barrons.com",
+    "ft.com", "finance.yahoo.com", "fool.com", "investors.com", "seekingalpha.com", "benzinga.com",
+    "businessinsider.com", "forbes.com", "thestreet.com", "zacks.com", "investing.com", "nasdaq.com",
+    "apnews.com", "axios.com", "fortune.com", "techcrunch.com", "theverge.com",
+])
+MIN_FINANCE_RESULTS = 4      # fewer than this from the finance sites, and the search widens
+
+# Title terms for names the company list doesn't cover well (ETFs, Alphabet's two names).
+_QUERY_TERMS: dict[str, list] = {
+    "SPY":   ["S&P 500", "stock market", "Wall Street"],
+    "QQQ":   ["Nasdaq", "tech stocks"],
+    "DIA":   ["Dow Jones", "Dow"],
+    "IWM":   ["Russell 2000", "small caps"],
+    "GOOGL": ["Alphabet", "Google"],
+    "GOOG":  ["Alphabet", "Google"],
+    "META":  ["Meta Platforms", "Meta", "Facebook"],
+    "BRK-B": ["Berkshire Hathaway", "Berkshire"],
+    "F":     ["Ford"],
 }
+
+# Suffixes dropped from a company's legal name to get the name headlines use.
+_SUFFIX = re.compile(
+    r"[,.]?\s+(Inc\.?|Incorporated|Technologies|Corp\.?|Corporation|Co\.?|Company|plc|PLC|Ltd\.?|Limited|"
+    r"Holdings?|Group|N\.V\.|S\.A\.|AG|SE|Class [A-C]|\(The\))$")
 
 _vader = SentimentIntensityAnalyzer()
 
@@ -54,8 +74,46 @@ def _label(score: float) -> str:
     return "neutral"
 
 
+@lru_cache(maxsize=1)
+def _company_names() -> dict:
+    """Ticker -> company name, from the dashboard's own search index (frontend/symbols.js)."""
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "symbols.js")
+    try:
+        text = open(path, encoding="utf-8").read()
+        pairs = json.loads(re.search(r"=\s*(\[.*\]);", text, re.S).group(1))
+        return {sym: name for sym, name in pairs}
+    except (OSError, AttributeError, ValueError):
+        return {}
+
+
+def short_name(name: str) -> str:
+    """ "Apple Inc." -> "Apple", "Arch Capital Group" -> "Arch Capital"."""
+    inverted = re.fullmatch(r"(.+) \((.+)\)", name)       # "Lilly (Eli)" -> "Eli Lilly"
+    if inverted:
+        name = f"{inverted.group(2)} {inverted.group(1)}"
+    prev = None
+    while prev != name:
+        prev, name = name, _SUFFIX.sub("", name).strip()
+    return name
+
+
 def _query_for(symbol: str) -> str:
-    return _COMPANY_QUERIES.get(symbol.upper(), f"{symbol} stock")
+    """A NewsAPI title query: the company's name(s), plus the ticker when it is
+    long enough not to be an ordinary word ("ALL", "IT" and "ON" are tickers)."""
+    sym = symbol.upper()
+    terms = list(_QUERY_TERMS.get(sym) or [])
+    if not terms:
+        name = _company_names().get(sym)
+        terms = [short_name(name)] if name else []
+    if len(sym) >= 3 or not terms:
+        terms.append(sym)
+    return " OR ".join(f'"{t}"' if " " in t or "&" in t else t for t in dict.fromkeys(terms))
+
+
+def _search(params: dict) -> list:
+    resp = requests.get(NEWS_BASE, params=params, timeout=10)
+    resp.raise_for_status()
+    return resp.json().get("articles", [])
 
 
 def fetch_news(symbol: str, api_key: str, page_size: int = 10) -> list:
@@ -66,28 +124,36 @@ def fetch_news(symbol: str, api_key: str, page_size: int = 10) -> list:
         title, url, source, published_at, sentiment (float), sentiment_label (str)
     Returns [] on any API failure.
     """
+    params = {
+        "q":        _query_for(symbol),
+        "searchIn": "title",
+        "apiKey":   api_key,
+        "language": "en",
+        "sortBy":   "publishedAt",
+        "pageSize": page_size,
+    }
+    raw_articles: list = []
     try:
-        resp = requests.get(
-            NEWS_BASE,
-            params={
-                "q":        _query_for(symbol),
-                "apiKey":   api_key,
-                "language": "en",
-                "sortBy":   "publishedAt",
-                "pageSize": page_size,
-            },
-            timeout=10,
-        )
-        resp.raise_for_status()
-        raw_articles = resp.json().get("articles", [])
+        raw_articles = _search({**params, "domains": FINANCE_DOMAINS})
     except Exception:
+        raw_articles = []
+    if len(raw_articles) < MIN_FINANCE_RESULTS:
+        # Smaller companies get little coverage on the big finance sites: widen
+        # to any source, still matching the name in the title, and top up.
+        try:
+            raw_articles = raw_articles + _search(params)
+        except Exception:
+            pass
+    if not raw_articles:
         return []
 
     result = []
+    seen = set()
     for a in raw_articles:
         title = (a.get("title") or "").strip()
-        if not title or title == "[Removed]":
+        if not title or title == "[Removed]" or title.lower() in seen:
             continue
+        seen.add(title.lower())
 
         desc  = (a.get("description") or "").strip()
         text  = f"{title}. {desc}" if desc else title
@@ -102,7 +168,7 @@ def fetch_news(symbol: str, api_key: str, page_size: int = 10) -> list:
             "sentiment_label": _label(score),
         })
 
-    return result
+    return result[:page_size]
 
 
 def aggregate_sentiment(articles: list) -> dict:

@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-247%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-251%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 247 tests across 24 files — CI on every push |
+| **Tests** | 251 tests across 25 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -96,7 +96,7 @@ A live ribbon beneath the header pulls seven Federal Reserve series from the FRE
 
 ### News Feed & Sentiment Analysis
 
-Recent headlines per symbol are fetched from NewsAPI and scored with VADER sentiment analysis. The standard VADER lexicon is augmented with ~30 financial-domain terms (`"beats" → +2.0`, `"bankruptcy" → −3.0`, `"downgraded" → −1.8`) to correct systematic under-scoring of financial jargon. Each article shows a BULLISH / BEARISH / NEUTRAL chip with its numeric score, and an aggregate sentiment badge summarizes the overall tone.
+News is the sidebar's first tab, open when the dashboard loads. Recent headlines per symbol are fetched from NewsAPI, matched on the company's name (or the ticker) **in the title**, first from about twenty financial news sites (Reuters, Bloomberg, CNBC, WSJ, MarketWatch...), widening to any source only when those have fewer than four. The name comes from the dashboard's own ticker index, so every listed company gets a real query, not "XYZ stock". Headlines are then scored with VADER sentiment analysis. The standard VADER lexicon is augmented with ~30 financial-domain terms (`"beats" → +2.0`, `"bankruptcy" → −3.0`, `"downgraded" → −1.8`) to correct systematic under-scoring of financial jargon. Each article shows a BULLISH / BEARISH / NEUTRAL chip with its numeric score, and an aggregate sentiment badge summarizes the overall tone.
 
 ### Portfolio Tracker & Risk Analytics
 
@@ -172,7 +172,7 @@ Tradeski/
 │   ├── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │   └── options.js             # Options window: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 247 tests across 24 files
+├── tests/                     # pytest suite — 251 tests across 25 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -255,7 +255,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (247 tests) |
+| Testing | pytest (251 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -584,7 +584,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-247 tests across 24 files:
+251 tests across 25 files:
 
 | File | What it covers |
 |:---|:---|
@@ -611,6 +611,7 @@ python -m pytest -v
 | `test_sec_fundamentals.py` | Fundamentals from SEC filings: derived fourth quarters, gaps refused, restatements, share classes, P/E and margin; the screener fill never waits on EDGAR |
 | `test_ski_grounding.py` | Figure-vs-data matching rules, eval graders, and the eval harness end to end with a scripted model |
 | `test_ski_briefing.py` | Prompt-cache placement, and `/briefing` running the tool loop |
+| `test_dashboard_layout.py` | Layout choices that are easy to undo by accident: News is the first sidebar tab and open on load |
 | `test_options.py` | Black-Scholes against textbook values and put-call parity, Greeks against finite differences, IV round trips and stale quotes, payoffs, break-evens and chance of profit for each strategy shape, preset strike rules, the scanner's filters, the `/options` endpoints and Ski's options tools |
 
 ```bash
