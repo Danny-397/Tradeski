@@ -379,6 +379,7 @@ function initOptions() {
         optRenderChain();
     });
     document.getElementById("opt-chain-body").addEventListener("click", optChainClick);
+    document.getElementById("opt-chain-cards").addEventListener("click", optChainClick);
 
     const presets = document.getElementById("opt-presets");
     presets.innerHTML = OPT_PRESETS.map(([k, label]) => {
@@ -1015,7 +1016,35 @@ function optRenderChain() {
         return line + `<tr class="opt-row${itmC}${itmP}">${optCells(r.call, "call")}
             <td class="opt-strike">${r.strike}</td>${optCells(r.put, "put")}</tr>`;
     }).join("") + (spotDone ? "" : `<tr class="opt-spot-row"><td colspan="13">Stock $${c.spot.toFixed(2)}</td></tr>`);
+    optRenderChainCards(rows, c);
     if (optState.tab === "chain") optDrawSmile(c);
+}
+
+// Phones: one card per strike instead of a 13-column table (CSS shows one or the other).
+function optRenderChainCards(rows, c) {
+    const el = document.getElementById("opt-chain-cards");
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = `<p class="feed-empty">No contracts match the filters</p>`; return; }
+    const side = (x, kind) => {
+        if (!x) return `<div class="opt-card-side opt-card-empty"><span class="opt-dim">filtered out</span></div>`;
+        const q = (v, act) => v === null || v === undefined ? `<span class="opt-dim">—</span>`
+            : `<button class="opt-quote opt-card-quote opt-${act === "buy" ? "ask" : "bid"}" type="button" data-side="${kind}"
+                 data-strike="${x.strike}" data-act="${act}">${act === "buy" ? "Buy" : "Sell"} ${v.toFixed(2)}</button>`;
+        return `<div class="opt-card-side">
+            <div class="opt-card-quotes">${q(x.bid, "sell")}${q(x.ask, "buy")}</div>
+            <div class="opt-card-meta">Δ ${x.delta === null ? "—" : x.delta.toFixed(2)} · IV ${optPct(x.iv, 0)} · OI ${x.open_interest.toLocaleString()}</div>
+        </div>`;
+    };
+    let spotDone = false;
+    const spotLine = `<div class="opt-card-spot">Stock $${c.spot.toFixed(2)}</div>`;
+    el.innerHTML = `<div class="opt-card-head"><span>Calls</span><span>Puts</span></div>` + rows.map(r => {
+        let line = "";
+        if (!spotDone && r.strike >= c.spot) { spotDone = true; line = spotLine; }
+        return line + `<div class="opt-card">
+            <div class="opt-card-strike">$${r.strike}</div>
+            <div class="opt-card-sides${r.strike < c.spot ? " itm-call" : ""}${r.strike > c.spot ? " itm-put" : ""}">
+                ${side(r.call, "call")}${side(r.put, "put")}</div></div>`;
+    }).join("") + (spotDone ? "" : spotLine);
 }
 
 function optPlotTheme(extra) {

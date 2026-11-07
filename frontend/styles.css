@@ -1765,3 +1765,30 @@ select.form-input {
 .paper-progress .opt-meter span { background: #4ADE80; }
 .paper-take { display: inline-block; margin-top: 3px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 700;
     color: #052E16; background: #4ADE80; }
+
+
+/* ===== OPTIONS PAGE: chain as cards on phones ===== */
+.opt-chain-cards { display: none; }
+@media (max-width: 700px) {
+    .opt-chain-wrap { display: none; }
+    .opt-chain-cards { display: flex; flex-direction: column; gap: var(--s-3); padding: 0 var(--s-5) var(--s-7); }
+    .opt-card-head { display: grid; grid-template-columns: 1fr 1fr; padding: 0 var(--s-2); font-size: var(--fs-xs);
+        font-weight: 600; color: #AEB4BD; text-transform: uppercase; letter-spacing: 0.04em; }
+    .opt-card-head span:last-child { text-align: right; }
+    .opt-card { border: 1px solid var(--border); border-radius: var(--radius-md, 10px); background: var(--bg-raised); overflow: hidden; }
+    .opt-card-strike { padding: var(--s-2) var(--s-4); font-family: var(--data); font-weight: 700; color: var(--text-strong);
+        background: var(--bg-sunken); text-align: center; }
+    .opt-card-sides { display: grid; grid-template-columns: 1fr 1fr; }
+    .opt-card-side { padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-2); }
+    .opt-card-side + .opt-card-side { border-left: 1px solid var(--border-subtle); text-align: right; align-items: flex-end; }
+    .itm-call .opt-card-side:first-child, .itm-put .opt-card-side:last-child { background: rgba(59, 130, 246, 0.07); }
+    .opt-card-quotes { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+    .opt-card-quote { min-height: 32px; padding: 0 var(--s-3); border-radius: 8px; border: 1px solid var(--border);
+        background: transparent; color: var(--text-strong); font-family: var(--data); font-size: var(--fs-sm); }
+    .opt-card-quote.opt-bid { border-color: rgba(239, 68, 68, 0.4); }
+    .opt-card-quote.opt-ask { border-color: rgba(22, 163, 74, 0.45); }
+    .opt-card-meta { font-size: var(--fs-xs); color: #AEB4BD; font-family: var(--data); }
+    .opt-card-empty { justify-content: center; }
+    .opt-card-spot { text-align: center; font-size: var(--fs-xs); font-weight: 600; color: #8DB8FF; padding: var(--s-2);
+        background: rgba(59, 130, 246, 0.12); border-radius: 8px; }
+}
