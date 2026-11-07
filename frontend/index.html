@@ -83,13 +83,13 @@
                      stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1.8 2.6h12.4L9.4 8.2v4.6l-2.8 1.6V8.2z"/>
                 </svg><span class="btn-text">Screener</span></button>
-            <button class="screener-btn" id="open-options-btn"
+            <a class="screener-btn" id="open-options-btn" href="/options"
                     title="Options chain, strategies and scanner" aria-label="Options">
                 <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"
                      fill="none" stroke="currentColor" stroke-width="1.5"
                      stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1.5 12.5h4l5-9h4"/><path d="M1.5 3.5h4l1.8 3.2"/><path d="M9.2 9.3l1.8 3.2h3.5"/>
-                </svg><span class="btn-text">Options</span></button>
+                </svg><span class="btn-text">Options</span></a>
             <div class="auth-area" id="auth-area">
                 <button class="screener-btn auth-signin-btn" id="signin-btn" title="Sign in to save your portfolio">Sign in</button>
                 <div class="auth-user" id="auth-user" style="display:none">
@@ -423,150 +423,6 @@
         </div>
     </div>
 
-    <!-- ===== OPTIONS MODAL (options.js) ===== -->
-    <div class="modal-overlay" id="options-modal" style="display:none">
-        <div class="modal modal-wide opt-modal" role="dialog" aria-modal="true" aria-labelledby="opt-title">
-            <div class="modal-header">
-                <span class="panel-title" id="opt-title">Options</span>
-                <div class="opt-head-controls">
-                    <input type="text" id="opt-symbol" class="filter-input opt-symbol" maxlength="10"
-                           autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Ticker">
-                    <button class="btn-secondary" id="opt-symbol-go">Load</button>
-                    <select id="opt-expiry" class="filter-select" aria-label="Expiry"></select>
-                </div>
-                <button class="btn-icon" id="close-options-btn" aria-label="Close">✕</button>
-            </div>
-            <div class="opt-tabs" role="tablist">
-                <button class="sidebar-tab opt-tab active" data-tab="chain" role="tab" aria-selected="true">Chain</button>
-                <button class="sidebar-tab opt-tab" data-tab="strategy" role="tab" aria-selected="false">Strategy builder</button>
-                <button class="sidebar-tab opt-tab" data-tab="scan" role="tab" aria-selected="false">Scanner</button>
-                <span class="opt-status" id="opt-status" role="status"></span>
-            </div>
-            <div class="opt-scroll">
-                <div class="opt-summary" id="opt-summary"></div>
-
-                <!-- Chain -->
-                <section class="opt-pane" id="opt-pane-chain">
-                    <div class="screener-filters opt-filters">
-                        <div class="filter-group"><label class="filter-label" for="opt-f-window">Strikes</label>
-                            <select id="opt-f-window" class="filter-select">
-                                <option value="5">Within 5%</option><option value="10" selected>Within 10%</option>
-                                <option value="20">Within 20%</option><option value="all">All</option></select></div>
-                        <div class="filter-group"><label class="filter-label" for="opt-f-side">Show</label>
-                            <select id="opt-f-side" class="filter-select">
-                                <option value="both">Calls and puts</option><option value="calls">Calls</option>
-                                <option value="puts">Puts</option></select></div>
-                        <div class="filter-group"><label class="filter-label">|Delta|</label>
-                            <div class="filter-range">
-                                <input type="number" id="opt-f-dmin" class="filter-input" placeholder="Min" min="0" max="1" step="0.05" aria-label="Minimum delta">
-                                <span class="filter-sep">–</span>
-                                <input type="number" id="opt-f-dmax" class="filter-input" placeholder="Max" min="0" max="1" step="0.05" aria-label="Maximum delta">
-                            </div></div>
-                        <div class="filter-group"><label class="filter-label" for="opt-f-oi">Min open interest</label>
-                            <input type="number" id="opt-f-oi" class="filter-input" placeholder="Any" min="0" step="50"></div>
-                        <div class="filter-group"><label class="filter-label" for="opt-f-vol">Min volume</label>
-                            <input type="number" id="opt-f-vol" class="filter-input" placeholder="Any" min="0" step="10"></div>
-                        <div class="filter-group"><label class="filter-label" for="opt-f-spread">Max spread %</label>
-                            <input type="number" id="opt-f-spread" class="filter-input" placeholder="Any" min="0" step="1"></div>
-                        <button class="btn-secondary filter-reset" id="opt-f-reset">Reset</button>
-                    </div>
-                    <div class="opt-smile-wrap">
-                        <span class="filter-label">Implied volatility by strike <span class="badge" id="opt-chain-count"></span></span>
-                        <div id="opt-smile" class="opt-smile"></div>
-                    </div>
-                    <p class="opt-hint">Click an <strong>ask</strong> to buy or a <strong>bid</strong> to sell; the contract is added to the strategy builder. Shaded rows are in the money.</p>
-                    <div class="opt-table-wrap">
-                        <table class="screener-table opt-chain-table">
-                            <thead>
-                                <tr class="opt-group-head"><th colspan="6">Calls</th><th></th><th colspan="6">Puts</th></tr>
-                                <tr><th>OI</th><th>Vol</th><th>IV</th><th>Delta</th><th>Bid</th><th>Ask</th>
-                                    <th class="opt-strike">Strike</th>
-                                    <th>Bid</th><th>Ask</th><th>Delta</th><th>IV</th><th>Vol</th><th>OI</th></tr>
-                            </thead>
-                            <tbody id="opt-chain-body"></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- Strategy -->
-                <section class="opt-pane" id="opt-pane-strategy" hidden>
-                    <div class="opt-builder-bar">
-                        <select id="opt-preset" class="filter-select" aria-label="Strategy"></select>
-                        <button class="btn-secondary" id="opt-add-leg">Add leg</button>
-                        <button class="text-btn" id="opt-clear-legs">Clear</button>
-                        <span class="opt-dim" id="opt-strategy-msg" role="status"></span>
-                    </div>
-                    <div class="opt-table-wrap opt-legs-wrap">
-                        <table class="screener-table opt-legs-table">
-                            <thead><tr><th>Action</th><th>Qty</th><th>Type</th><th>Strike</th><th>Mid price</th><th>IV</th><th></th></tr></thead>
-                            <tbody id="opt-legs"></tbody>
-                        </table>
-                    </div>
-                    <p class="opt-strategy-summary" id="opt-strategy-summary"></p>
-                    <div class="opt-stats" id="opt-stats"></div>
-                    <div class="opt-days">
-                        <label class="filter-label" for="opt-days">Also show P/L <span id="opt-days-label">today only</span></label>
-                        <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
-                    </div>
-                    <div id="opt-payoff" class="opt-payoff"></div>
-                    <div class="opt-builder-foot">
-                        <button class="btn-secondary" id="opt-ask-ski" hidden>Ask Ski to explain this</button>
-                        <p class="opt-note">Prices are bid/ask midpoints from delayed quotes; real fills are usually worse.
-                            Values before expiry use Black-Scholes, which treats options as European, so they are approximate
-                            where early exercise matters. The chance of profit is what option prices imply, not a forecast.
-                            Educational tool, not investment advice.</p>
-                    </div>
-                </section>
-
-                <!-- Scanner -->
-                <section class="opt-pane" id="opt-pane-scan" hidden>
-                    <div class="screener-filters opt-filters">
-                        <div class="filter-group"><label class="filter-label" for="opt-scan-kind">Strategy</label>
-                            <select id="opt-scan-kind" class="filter-select">
-                                <option value="cash_secured_put">Cash-secured puts</option>
-                                <option value="covered_call">Covered calls</option></select></div>
-                        <div class="filter-group opt-scan-syms"><label class="filter-label" for="opt-scan-symbols">Symbols (up to 10)</label>
-                            <input type="text" id="opt-scan-symbols" class="filter-input" autocomplete="off" spellcheck="false"></div>
-                        <div class="filter-group"><label class="filter-label" for="opt-scan-delta">Max |delta|</label>
-                            <input type="number" id="opt-scan-delta" class="filter-input" value="0.30" min="0.05" max="0.6" step="0.05"></div>
-                        <div class="filter-group"><label class="filter-label">Days to expiry</label>
-                            <div class="filter-range">
-                                <input type="number" id="opt-scan-dmin" class="filter-input" value="20" min="0" step="5" aria-label="Minimum days to expiry">
-                                <span class="filter-sep">–</span>
-                                <input type="number" id="opt-scan-dmax" class="filter-input" value="50" min="1" step="5" aria-label="Maximum days to expiry">
-                            </div></div>
-                        <div class="filter-group"><label class="filter-label" for="opt-scan-oi">Min open interest</label>
-                            <input type="number" id="opt-scan-oi" class="filter-input" value="100" min="0" step="50"></div>
-                        <div class="filter-group"><label class="filter-label" for="opt-scan-spread">Max spread %</label>
-                            <input type="number" id="opt-scan-spread" class="filter-input" value="10" min="1" step="1"></div>
-                        <button class="btn-primary" id="opt-scan-run">Scan</button>
-                    </div>
-                    <p class="opt-hint">For each symbol: the expiry nearest the middle of the window, and the strike with the most premium whose |delta| stays under the limit. Click a row to open it in the strategy builder.</p>
-                    <div class="opt-table-wrap">
-                        <table class="screener-table" id="opt-scan-table">
-                            <thead><tr>
-                                <th class="sortable" data-col="symbol">Symbol <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="dte">Expiry <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="strike">Strike <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="delta">Delta <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="iv">IV <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="premium">Premium <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="capital" title="Cash to secure the put, or the cost of 100 shares">Capital <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="return_pct">Return <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="annualized_pct">Annualised <span class="sort-icon">↓</span></th>
-                                <th class="sortable" data-col="breakeven">Break-even <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="prob_profit">Chance of profit <span class="sort-icon">↕</span></th>
-                            </tr></thead>
-                            <tbody id="opt-scan-body"><tr><td colspan="11" class="feed-empty">Set the filters and press Scan.</td></tr></tbody>
-                        </table>
-                    </div>
-                    <p class="opt-note" id="opt-scan-skipped"></p>
-                    <p class="opt-note">Annualised return assumes the same trade could be repeated all year, which it usually can't; use it to compare, not as a forecast. A cash-secured put can leave you owning the stock at the strike, and a covered call caps your upside.</p>
-                </section>
-            </div>
-        </div>
-    </div>
-
     <!-- ===== STATUS BAR ===== -->
     <footer class="status-bar">
         <span id="status-msg">Starting…</span>
@@ -624,7 +480,6 @@
     <script src="symbols.js" defer></script>
     <script src="dashboard.js" defer></script>
     <script src="screener.js" defer></script>
-    <script src="options.js" defer></script>
 <script src="scroll-focus.js" defer></script>
 </body>
 </html>

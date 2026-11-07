@@ -112,3 +112,14 @@ test("leg descriptions for Ski", () => {
     assert.equal(optLegText({ type: "call", qty: 2, strike: 350 }, "AAPL"), "buy 2 AAPL 350 calls");
     assert.equal(optLegText({ type: "stock", qty: 1, strike: null }, "AAPL"), "buy 100 AAPL shares");
 });
+
+test("the Options page reads its starting state from the URL", () => {
+    const ctx = vm.createContext({ URLSearchParams });
+    vm.runInContext('const OPT_TABS = ["chain", "strategy", "scan"];\n' + declaration("optParseQuery") +
+        "\nthis.__p = optParseQuery;", ctx);
+    const parse = ctx.__p;
+    assert.deepEqual(plain(parse("?symbol=nvda&tab=strategy&expiry=2026-12-18")),
+                     { symbol: "NVDA", tab: "strategy", expiry: "2026-12-18" });
+    assert.deepEqual(plain(parse("")), { symbol: "AAPL", tab: "chain", expiry: "" });
+    assert.deepEqual(plain(parse("?symbol=<b>&tab=evil&expiry=soon")), { symbol: "AAPL", tab: "chain", expiry: "" });
+});

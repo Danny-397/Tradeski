@@ -297,6 +297,14 @@ document.addEventListener("DOMContentLoaded", () => {
     initIndicatorToggles();
     initAlertModal();
     initSidebarTabs();
+    // /app?symbol=NVDA (the Options page links back this way) opens on that symbol.
+    const linked = symbolFromQuery(location.search);
+    if (linked) {
+        state.symbol = linked;
+        const input = document.getElementById("symbol-input");
+        if (input) input.value = linked;
+    }
+    updateOptionsLink(state.symbol);
     loadDashboard(state.symbol);
     buildTickerTape();
     setInterval(() => { if (!pageIdle()) buildTickerTape(); }, CFG.TICKER_REFRESH_MS);
@@ -549,8 +557,22 @@ function initSymbolSelect() {
     btn.addEventListener("click", go);
 }
 
+// A ticker from the query string (?symbol=nvda -> "NVDA"), or null if absent or malformed.
+function symbolFromQuery(search) {
+    const raw = new URLSearchParams(search || "").get("symbol");
+    const sym = (raw || "").trim().toUpperCase();
+    return /^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) ? sym : null;
+}
+
+// The header's Options link opens the Options page on the charted symbol.
+function updateOptionsLink(sym) {
+    const link = document.getElementById("open-options-btn");
+    if (link && sym) link.href = `/options?symbol=${encodeURIComponent(sym)}`;
+}
+
 function switchSymbol(sym) {
     state.symbol = sym;
+    updateOptionsLink(sym);
     const symInput = document.getElementById("symbol-input");
     if (symInput && document.activeElement !== symInput) symInput.value = sym;
     const badge = document.getElementById("current-symbol-badge");
@@ -2063,7 +2085,24 @@ async function skiSend() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => { initSki(); });
+// The Options page's "Ask Ski" leaves its question here and comes to the
+// dashboard: open Ski with it filled in, not sent, so it can be edited first.
+const SKI_HANDOFF_KEY = "tradeski-ski-prompt";
+
+function takeSkiHandoff() {
+    let prompt = null;
+    try {
+        prompt = sessionStorage.getItem(SKI_HANDOFF_KEY);
+        sessionStorage.removeItem(SKI_HANDOFF_KEY);
+    } catch (_) { return; }
+    if (!prompt) return;
+    skiToggle(true);
+    const input = document.getElementById("ski-input");
+    input.value = prompt;
+    input.focus();
+}
+
+document.addEventListener("DOMContentLoaded", () => { initSki(); takeSkiHandoff(); });
 
 // ============================================================
 // MACRO RIBBON (FRED data)

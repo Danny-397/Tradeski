@@ -1422,7 +1422,6 @@ select.form-input {
 }
 
 /* ===== OPTIONS (options.js) ===== */
-.opt-modal { width: min(96vw, 1180px); max-height: 90vh; }
 .opt-head-controls { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 .opt-symbol { width: 92px; text-transform: uppercase; }
 .opt-tabs {
@@ -1434,7 +1433,6 @@ select.form-input {
 .opt-tab { flex: 0 0 auto; padding: 0 var(--s-6); font-size: var(--fs-sm); height: 30px; }
 .opt-status { margin-left: auto; font-size: var(--fs-xs); color: var(--text-secondary); }
 .opt-status.opt-error { color: #FCA5A5; }
-.opt-scroll { flex: 1; min-height: 0; overflow: auto; }
 .opt-pane[hidden] { display: none; }
 .opt-summary {
     display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-8);
@@ -1494,7 +1492,6 @@ select.form-input {
 .opt-scan-row { cursor: pointer; }
 
 @media (max-width: 768px) {
-    .opt-modal { width: 100vw; max-height: none; }
     .opt-tabs, .opt-summary, .opt-hint, .opt-smile-wrap, .opt-builder-bar, .opt-strategy-summary,
     .opt-stats, .opt-days, .opt-builder-foot { padding-left: var(--s-5); padding-right: var(--s-5); }
     .opt-scan-syms .filter-input { width: 100%; }
@@ -1577,4 +1574,39 @@ select.form-input {
     .scr-search { width: 100%; }
     .scr-toolbar .filter-select { min-width: 0; flex: 1; }
     .scr-toolbar { padding-left: var(--s-5); padding-right: var(--s-5); }
+
+/* ===== OPTIONS PAGE (options.html) =====
+   The body never scrolls (the dashboard is a fixed layout), so the page's main
+   area does, between the header and the status bar. */
+.opt-page-header .logo { text-decoration: none; color: inherit; }
+.opt-crumb { color: var(--text-muted); font-size: var(--fs-lg); }
+.opt-page-title { font-size: var(--fs-lg); font-weight: 600; color: var(--text-strong); margin: 0; }
+.opt-page-header #opt-back { text-decoration: none; }
+.opt-page { flex: 1; min-height: 0; overflow-y: auto; outline: none; }
+.opt-page > * { max-width: 1440px; margin-left: auto; margin-right: auto; }
+.opt-page-controls {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-5); flex-wrap: wrap;
+    padding: var(--s-7) var(--s-7) var(--s-4);
+}
+.opt-page .opt-symbol { width: 110px; height: 36px; font-size: var(--fs-base); }
+.opt-page .opt-head-controls .filter-select { height: 36px; }
+.opt-quick { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.opt-quick-btn {
+    height: 28px; padding: 0 var(--s-4); border-radius: 999px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); font-family: var(--data); font-size: var(--fs-xs);
+    transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.opt-quick-btn:hover { color: var(--text-strong); border-color: rgba(255, 255, 255, 0.2); }
+.opt-quick-btn.active { color: #BFD5FF; border-color: rgba(59, 130, 246, 0.5); background: rgba(59, 130, 246, 0.12); }
+.opt-page .opt-tabs { border-top: 1px solid var(--border); }
+.opt-page .opt-payoff { height: 420px; }
+.opt-page .opt-smile { height: 200px; }
+.opt-page #opt-pane-scan .opt-note:last-child { padding-bottom: var(--s-9, 32px); }
+
+@media (max-width: 768px) {
+    .opt-page-controls { padding: var(--s-5) var(--s-5) var(--s-3); }
+    .opt-quick { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: var(--s-2); }
+    .opt-quick-btn { flex-shrink: 0; }
+    .opt-page .opt-payoff { height: 300px; }
+    .opt-page-header .opt-crumb { display: none; }
 }

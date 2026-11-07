@@ -449,3 +449,35 @@ def test_ski_strategy_tool_and_missing_data():
                     _ski(lambda s, d: c))
     assert st.describe_call("analyze_option_strategy", {"symbol": "nvda", "strategy": "iron_condor"}) \
         == "NVDA iron condor"
+
+
+# ── the Options page ───────────────────────────────────────
+
+def _frontend(name):
+    return open(os.path.join(ROOT, "frontend", name), encoding="utf-8").read()
+
+
+def test_options_is_its_own_page_not_a_popup():
+    index, page = _frontend("index.html"), _frontend("options.html")
+    assert 'id="options-modal"' not in index and "options.js" not in index
+    assert '<a class="screener-btn" id="open-options-btn" href="/options"' in index
+    for pane in ("opt-pane-chain", "opt-pane-strategy", "opt-pane-scan"):
+        assert f'id="{pane}"' in page
+    assert 'id="opt-back" href="/app"' in page
+
+
+def test_options_page_works_offline_like_the_dashboard():
+    page = _frontend("options.html")
+    # demo-mode.js must be synchronous and come before options.js, so its fetch wrapper is in place.
+    demo, opts = page.index('<script src="demo-mode.js"></script>'), page.index('<script src="options.js" defer>')
+    assert demo < opts
+    assert "TRADESKI_EARLY_BANNER" in page
+
+
+def test_vercel_routes_the_options_page():
+    import json
+    routes = json.load(open(os.path.join(ROOT, "vercel.json"), encoding="utf-8"))["routes"]
+    assert {"src": "/options", "dest": "/frontend/options.html"} in routes
+    # Before the catch-all, or /options would 404 as a missing file.
+    assert routes.index({"src": "/options", "dest": "/frontend/options.html"}) < \
+        next(i for i, r in enumerate(routes) if r.get("src") == "/(.*)")

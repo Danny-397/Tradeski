@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-261%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-264%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 261 tests across 26 files — CI on every push |
+| **Tests** | 264 tests across 26 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -138,10 +138,10 @@ The data is built after each US close by a GitHub Actions workflow ([`scripts/bu
 
 ### Options
 
-An **Options** window ([`tracker/options.py`](tracker/options.py), [`frontend/options.js`](frontend/options.js)) for any optionable ticker, in three tabs:
+**Options has its own page** at `/options` ([`options.html`](frontend/options.html), [`options.js`](frontend/options.js), maths in [`tracker/options.py`](tracker/options.py)), opened from the dashboard header on the charted symbol. Its state (symbol, expiry, tab) lives in the address bar, so any view can be linked to, and quick-pick chips switch between the symbols with saved chains. Three tabs:
 
 - **Chain.** Calls and puts side by side for any expiry, with bid/ask, volume, open interest, implied volatility and delta. Filters for strike distance from the spot, |delta|, minimum open interest and volume, and maximum bid/ask spread hide the illiquid strikes. Above the chain: the at-the-money IV next to the stock's 30-day realised volatility, the market-implied expected move by expiry, put/call ratios, and the volatility curve across strikes.
-- **Strategy builder.** Nine presets (long call/put, covered call, cash-secured put, bull call and bear put spreads, straddle, strangle, iron condor), or any combination of up to six legs, built by clicking bids and asks in the chain. For each: a payoff chart at expiry, today and at a chosen date, break-evens, max profit and loss, the market-implied chance of profit, net Greeks, what crossing the spread would cost, and a plain-English summary ("Makes money if AAPL closes between $317.55 and $367.45 on 2026-12-04"). One click hands the position to Ski to explain.
+- **Strategy builder.** Nine presets (long call/put, covered call, cash-secured put, bull call and bear put spreads, straddle, strangle, iron condor), or any combination of up to six legs, built by clicking bids and asks in the chain. For each: a payoff chart at expiry, today and at a chosen date, break-evens, max profit and loss, the market-implied chance of profit, net Greeks, what crossing the spread would cost, and a plain-English summary ("Makes money if AAPL closes between $317.55 and $367.45 on 2026-12-04"). "Ask Ski" takes you back to the dashboard with Ski open and the question filled in.
 - **Scanner.** Cash-secured puts or covered calls across up to ten symbols: for each, the strike with the most premium under a delta limit, filtered by days to expiry, open interest and spread, ranked by annualised return on capital.
 
 The data source's own IV is often stale out of hours, so Tradeski solves IV from each bid/ask midpoint itself and computes the Greeks with Black-Scholes (written on `math.erf`, no SciPy), using the 3-month Treasury yield from FRED. The window states the model's limits next to the numbers: quotes are delayed, prices are midpoints, Black-Scholes treats options as European, and the chance of profit is what option prices imply, not a forecast.
@@ -187,9 +187,10 @@ Tradeski/
 │   ├── styles.css             # Terminal dark theme — CSS custom properties, mobile-responsive
 │   ├── dashboard.js           # WebSocket, Plotly, Ski, health indicator
 │   ├── screener.js            # Stock screener: every US-listed stock, filters, presets, CSV
-│   └── options.js             # Options window: chain filters, strategy builder, scanner
+│   ├── options.html           # The Options page (/options)
+│   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 261 tests across 26 files
+├── tests/                     # pytest suite — 264 tests across 26 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -272,7 +273,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (261 tests) |
+| Testing | pytest (264 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -389,7 +390,7 @@ used to render its own raw fetch failure and the page read as broken.
   real error rather than inventing a success.
 - A banner states plainly that the data is a dated snapshot and that streaming,
   news and accounts need the backend.
-- The Options window shows the default symbol's chain from the snapshot. The
+- The Options page shows the default symbol's chain from the snapshot. The
   strategy builder and scanner compute on the server, so offline they say they
   need the live backend instead of showing an error.
 
@@ -601,7 +602,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-261 tests across 26 files:
+264 tests across 26 files:
 
 | File | What it covers |
 |:---|:---|
