@@ -60,6 +60,23 @@
             </div>
             <div class="opt-quick" id="opt-quick" aria-label="Quick picks"></div>
         </div>
+            <section class="opt-intro" id="opt-intro" aria-label="What you can do here">
+                <div class="opt-intro-head">
+                    <h2>Analyse options without the guesswork</h2>
+                    <button class="text-btn" id="opt-intro-close" type="button">Hide</button>
+                </div>
+                <div class="opt-intro-steps">
+                    <button class="opt-intro-step" type="button" data-goto-tab="chain">
+                        <span class="opt-step-n">1</span><strong>Chain</strong>
+                        <span>Every call and put for an expiry: price, implied volatility, and delta (roughly the chance it ends in the money).</span></button>
+                    <button class="opt-intro-step" type="button" data-goto-tab="strategy">
+                        <span class="opt-step-n">2</span><strong>Strategy builder</strong>
+                        <span>Pick a strategy and see what it costs, the most you can make or lose, where you break even, and your profit or loss at any price.</span></button>
+                    <button class="opt-intro-step" type="button" data-goto-tab="scan">
+                        <span class="opt-step-n">3</span><strong>Scanner</strong>
+                        <span>Find the covered calls and cash-secured puts that pay the most for the risk you choose, across several stocks.</span></button>
+                </div>
+            </section>
             <div class="opt-tabs" role="tablist">
             <button class="sidebar-tab opt-tab active" data-tab="chain" role="tab" aria-selected="true">Chain</button>
             <button class="sidebar-tab opt-tab" data-tab="strategy" role="tab" aria-selected="false">Strategy builder</button>
@@ -101,10 +118,15 @@
                 <div class="opt-table-wrap">
                     <table class="screener-table opt-chain-table">
                         <thead>
-                            <tr class="opt-group-head"><th colspan="6">Calls</th><th></th><th colspan="6">Puts</th></tr>
-                            <tr><th>OI</th><th>Vol</th><th>IV</th><th>Delta</th><th>Bid</th><th>Ask</th>
+                            <tr class="opt-group-head"><th colspan="6">Calls <span class="opt-dim">· gain if the stock rises</span></th><th></th><th colspan="6">Puts <span class="opt-dim">· gain if the stock falls</span></th></tr>
+                            <tr><th title="Open interest: contracts that exist">OI</th><th title="Contracts traded today">Vol</th>
+                                <th title="Implied volatility: how much movement the price assumes">IV</th>
+                                <th title="Roughly the chance it ends in the money; also how much it moves per $1 in the stock">Delta</th>
+                                <th title="What buyers pay. Click to sell at it">Bid</th><th title="What sellers ask. Click to buy at it">Ask</th>
                                 <th class="opt-strike">Strike</th>
-                                <th>Bid</th><th>Ask</th><th>Delta</th><th>IV</th><th>Vol</th><th>OI</th></tr>
+                                <th title="What buyers pay. Click to sell at it">Bid</th><th title="What sellers ask. Click to buy at it">Ask</th>
+                                <th title="Roughly the chance it ends in the money (negative for puts)">Delta</th>
+                                <th title="Implied volatility">IV</th><th title="Contracts traded today">Vol</th><th title="Open interest">OI</th></tr>
                         </thead>
                         <tbody id="opt-chain-body"></tbody>
                     </table>
@@ -113,25 +135,55 @@
 
             <!-- Strategy -->
             <section class="opt-pane" id="opt-pane-strategy" hidden>
+                <h3 class="opt-step"><span class="opt-step-n">1</span> Pick a strategy
+                    <span class="opt-step-hint">or click a bid (sell) or ask (buy) in the Chain tab to build your own</span></h3>
+                <div class="opt-presets" id="opt-presets"></div>
+
+                <h3 class="opt-step"><span class="opt-step-n">2</span> Check the legs
+                    <span class="opt-step-hint">change any strike, quantity or side and everything below updates</span></h3>
                 <div class="opt-builder-bar">
-                    <select id="opt-preset" class="filter-select" aria-label="Strategy"></select>
                     <button class="btn-secondary" id="opt-add-leg">Add leg</button>
                     <button class="text-btn" id="opt-clear-legs">Clear</button>
                     <span class="opt-dim" id="opt-strategy-msg" role="status"></span>
                 </div>
                 <div class="opt-table-wrap opt-legs-wrap">
                     <table class="screener-table opt-legs-table">
-                        <thead><tr><th>Action</th><th>Qty</th><th>Type</th><th>Strike</th><th>Mid price</th><th>IV</th><th></th></tr></thead>
+                        <thead><tr><th>Action</th><th>Qty</th><th>Type</th><th>Strike</th><th class="opt-num">Price</th><th>What it means</th><th></th></tr></thead>
                         <tbody id="opt-legs"></tbody>
                     </table>
                 </div>
-                <p class="opt-strategy-summary" id="opt-strategy-summary"></p>
-                <div class="opt-stats" id="opt-stats"></div>
-                <div class="opt-days">
-                    <label class="filter-label" for="opt-days">Also show P/L <span id="opt-days-label">today only</span></label>
-                    <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
+
+                <div id="opt-results" hidden>
+                    <h3 class="opt-step"><span class="opt-step-n">3</span> See the outcome</h3>
+                    <p class="opt-strategy-summary" id="opt-strategy-summary"></p>
+                    <div class="opt-outcomes" id="opt-stats"></div>
+
+                    <div class="opt-chart-card">
+                        <div class="opt-chart-head">
+                            <div>
+                                <strong>Profit or loss at each price</strong>
+                                <span class="opt-dim">Green: you make money. Red: you lose. Hover the chart for exact amounts.</span>
+                            </div>
+                            <div class="opt-days">
+                                <label class="filter-label" for="opt-days">Also show it <span id="opt-days-label">today only</span></label>
+                                <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
+                            </div>
+                        </div>
+                        <div id="opt-payoff" class="opt-payoff"></div>
+                    </div>
+
+                    <div id="opt-scenarios-block">
+                        <h3 class="opt-step">What if the stock moves?</h3>
+                        <div class="opt-table-wrap">
+                            <table class="screener-table opt-scenarios" id="opt-scenarios"></table>
+                        </div>
+                    </div>
+
+                    <details class="opt-advanced">
+                        <summary>Advanced: the Greeks and trading costs</summary>
+                        <div class="opt-greeks" id="opt-greeks"></div>
+                    </details>
                 </div>
-                <div id="opt-payoff" class="opt-payoff"></div>
                 <div class="opt-builder-foot">
                     <button class="btn-secondary" id="opt-ask-ski" hidden>Ask Ski to explain this</button>
                     <p class="opt-note">Prices are bid/ask midpoints from delayed quotes; real fills are usually worse.

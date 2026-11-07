@@ -297,6 +297,9 @@ PRESETS = {
 }
 
 
+SCENARIO_MOVES = (-20, -10, -5, 0, 5, 10, 20)   # % moves in the stock for the "what if" table
+
+
 def _leg_value(leg: dict, x: float, T: float, r: float, q: float) -> float:
     if leg["type"] == "stock":
         return x
@@ -432,6 +435,18 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
         curves["at_date"] = [round(position_pnl(legs, x, t_left, r, q), 2) for x in grid]
         curves["at_date_days"] = days_forward
 
+    # "What if the stock moves X%?": exact P/L at a few round moves, plus the
+    # break-evens, for the table under the chart (easier to read than a curve).
+    t_at = T - days_forward / 365.0 if "at_date" in curves else None
+    scenarios = []
+    for move in SCENARIO_MOVES:
+        x = S * (1 + move / 100.0)
+        row = {"move_pct": move, "price": round(x, 2), "expiry": round(position_pnl(legs, x), 2),
+               "today": round(position_pnl(legs, x, T, r, q), 2)}
+        if t_at is not None:
+            row["at_date"] = round(position_pnl(legs, x, t_at, r, q), 2)
+        scenarios.append(row)
+
     when = f" on {expiry}" if expiry else " at expiry"
     lines = [f"{'Costs' if debit > 0 else 'Collects'} {_money(debit)} up front (at mid prices)."]
     if zones:
@@ -460,6 +475,7 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
         "spread_cost": round(spread_cost, 2),
         "greeks": {k: round(v, 4) for k, v in net.items()},
         "curves": curves,
+        "scenarios": scenarios,
         "summary": " ".join(lines),
     }
 

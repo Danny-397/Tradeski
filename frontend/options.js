@@ -14,6 +14,20 @@ const OPT_PRESETS = [
     ["iron_condor", "Iron condor"],
 ];
 
+// What each preset is for, in plain words, shown on its card.
+const OPT_PRESET_INFO = {
+    long_call:        { view: "Bullish",            kind: "bull",  text: "Profit if the stock rises past the strike plus what you paid.", risk: "Most you can lose: what you pay" },
+    long_put:         { view: "Bearish",            kind: "bear",  text: "Profit if the stock falls below the strike minus what you paid.", risk: "Most you can lose: what you pay" },
+    bull_call_spread: { view: "Moderately bullish", kind: "bull",  text: "Buy a call, sell a higher one. Cheaper than a call; profit is capped.", risk: "Limited risk, limited reward" },
+    bear_put_spread:  { view: "Moderately bearish", kind: "bear",  text: "Buy a put, sell a lower one. Cheaper than a put; profit is capped.", risk: "Limited risk, limited reward" },
+    covered_call:     { view: "Neutral to bullish", kind: "neutral", text: "Own 100 shares and sell a call: collect income, give up gains above the strike.", risk: "Risk: the stock falling" },
+    cash_secured_put: { view: "Neutral to bullish", kind: "neutral", text: "Sell a put with cash set aside: get paid now, maybe buy the stock cheaper.", risk: "Risk: buying the stock as it falls" },
+    iron_condor:      { view: "Neutral",            kind: "neutral", text: "Collect premium if the stock stays inside a range until expiry.", risk: "Limited risk, limited reward" },
+    long_straddle:    { view: "Big move, either way", kind: "move", text: "Buy a call and a put at one strike: profit from a large move up or down.", risk: "Most you can lose: both premiums" },
+    long_strangle:    { view: "Big move, either way", kind: "move", text: "Like a straddle but cheaper; the stock has to move further.", risk: "Most you can lose: both premiums" },
+};
+const OPT_INTRO_KEY = "tradeski-options-intro-hidden";
+
 const OPT_SCAN_DEFAULT = "AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, JPM, SPY, QQQ";
 const OPT_API = "https://tradeski.onrender.com";
 // Quick picks: the symbols whose closing chains are always saved (see capture_snapshot.py).
@@ -126,6 +140,32 @@ function optIvRank(rows, current, today, minDays) {
     return out;
 }
 
+// Where a position makes money at expiry, from analyze()'s profit_zones:
+// [[348.7, null]] -> "above $348.70"; [[0, 94], [106, null]] -> "below $94.00 or above $106.00".
+function optZoneText(zones) {
+    if (!zones || !zones.length) return "at no price";
+    const usd = v => "$" + Number(v).toFixed(2);
+    return zones.map(([lo, hi]) => {
+        if (lo <= 0 && hi === null) return "at any price";
+        if (lo <= 0) return `below ${usd(hi)}`;
+        if (hi === null) return `above ${usd(lo)}`;
+        return `between ${usd(lo)} and ${usd(hi)}`;
+    }).join(" or ");
+}
+
+// One leg as a sentence: "Buy 1 AAPL $340 call at $11.78 a share: you pay $1,178".
+function optLegPlain(leg, symbol) {
+    const n = Math.abs(leg.qty);
+    const buy = leg.qty > 0;
+    const total = n * 100 * leg.price;
+    const money = optMoney(total);
+    if (leg.type === "stock") {
+        return `${buy ? "Buy" : "Sell"} ${n * 100} ${symbol} shares at $${leg.price.toFixed(2)}: ${buy ? "you pay" : "you receive"} ${money}`;
+    }
+    return `${buy ? "Buy" : "Sell"} ${n} ${symbol} $${leg.strike} ${leg.type}${n > 1 ? "s" : ""} at $${leg.price.toFixed(2)} a share: ` +
+        `${buy ? "you pay" : "you collect"} ${money}`;
+}
+
 // "Buy 1 AAPL 350 call" etc., for the Ski prompt and leg list.
 function optLegText(leg, symbol) {
     const n = Math.abs(leg.qty);
@@ -199,10 +239,29 @@ function initOptions() {
     });
     document.getElementById("opt-chain-body").addEventListener("click", optChainClick);
 
-    const presetSel = document.getElementById("opt-preset");
-    presetSel.innerHTML = `<option value="">Choose a strategy…</option>` +
-        OPT_PRESETS.map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
-    presetSel.addEventListener("change", () => { if (presetSel.value) optBuildPreset(presetSel.value); });
+    const presets = document.getElementById("opt-presets");
+    presets.innerHTML = OPT_PRESETS.map(([k, label]) => {
+        const info = OPT_PRESET_INFO[k];
+        return `<button class="opt-preset-card" data-preset="${k}" type="button">
+            <span class="opt-view opt-view-${info.kind}">${escapeHtml(info.view)}</span>
+            <span class="opt-preset-name">${escapeHtml(label)}</span>
+            <span class="opt-preset-text">${escapeHtml(info.text)}</span>
+            <span class="opt-preset-risk">${escapeHtml(info.risk)}</span></button>`;
+    }).join("");
+    presets.addEventListener("click", e => {
+        const card = e.target.closest("[data-preset]");
+        if (card) optBuildPreset(card.dataset.preset);
+    });
+    const intro = document.getElementById("opt-intro");
+    let introHidden = false;
+    try { introHidden = localStorage.getItem(OPT_INTRO_KEY) === "1"; } catch (_) { introHidden = false; }
+    intro.hidden = introHidden;
+    document.getElementById("opt-intro-close").addEventListener("click", () => {
+        intro.hidden = true;
+        try { localStorage.setItem(OPT_INTRO_KEY, "1"); } catch (_) { /* storage blocked */ }
+    });
+    document.querySelectorAll("[data-goto-tab]").forEach(b =>
+        b.addEventListener("click", () => optShowTab(b.dataset.gotoTab)));
     document.getElementById("opt-add-leg").addEventListener("click", () => {
         const c = optState.chain;
         if (!c) return;
@@ -214,7 +273,7 @@ function initOptions() {
     document.getElementById("opt-clear-legs").addEventListener("click", () => {
         optState.legs = [];
         optState.analysis = null;
-        presetSel.value = "";
+        optSetPreset(null);
         optRenderStrategy();
     });
     document.getElementById("opt-legs").addEventListener("change", optLegEdit);
@@ -276,7 +335,7 @@ async function optLoadSymbol(sym) {
     optState.legs = [];
     optState.analysis = null;
     document.getElementById("opt-symbol").value = sym;
-    document.getElementById("opt-preset").value = "";
+    optSetPreset(null);
     optRenderStrategy();
     const sel = document.getElementById("opt-expiry");
     sel.innerHTML = "<option>Loading…</option>";
@@ -456,7 +515,7 @@ function optRenderChain() {
 }
 
 function optPlotTheme(extra) {
-    const font = { color: "#9BA2AD", size: 11, family: "-apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', system-ui, sans-serif" };
+    const font = { color: "#C9CED6", size: 12, family: "-apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', system-ui, sans-serif" };
     return Object.assign({
         paper_bgcolor: "#1C1E22", plot_bgcolor: "#1C1E22", font,
         margin: { l: 56, r: 16, t: 12, b: 36 },
@@ -493,16 +552,22 @@ function optChainClick(e) {
     optState.legs.push({ type: cell.dataset.side, qty: cell.dataset.act === "buy" ? 1 : -1,
                          strike: Number(cell.dataset.strike) });
     optState.preset = null;
-    document.getElementById("opt-preset").value = "";
+    optSetPreset(null);
     optShowTab("strategy");
     optAnalyze();
 }
 
 // ---------- strategy builder ----------
 
+// The highlighted strategy card (null when the legs are custom).
+function optSetPreset(name) {
+    optState.preset = name;
+    document.querySelectorAll(".opt-preset-card").forEach(c => c.classList.toggle("active", c.dataset.preset === name));
+}
+
 async function optBuildPreset(preset) {
     if (!optState.chain) return;
-    optState.preset = preset;
+    optSetPreset(preset);
     await optAnalyze({ preset });
 }
 
@@ -555,40 +620,70 @@ function optRenderStrategy() {
                     t === "stock" ? "100 shares" : t}</option>`).join("")}</select></td>
             <td>${strikeSel}</td>
             <td class="opt-num">${p ? "$" + p.price.toFixed(2) : "—"}</td>
-            <td class="opt-num opt-dim">${p && p.iv ? optPct(p.iv) : "—"}</td>
+            <td class="opt-leg-plain">${p ? escapeHtml(optLegPlain(p, a.symbol)) : ""}</td>
             <td><button class="btn-icon" data-remove="${i}" aria-label="Remove leg">✕</button></td></tr>`;
-    }).join("") : `<tr><td colspan="7" class="feed-empty">Pick a strategy above, or click a bid (sell) or ask (buy) in the chain.</td></tr>`;
+    }).join("") : `<tr><td colspan="7" class="feed-empty">Pick a strategy above, or click a bid (sell) or ask (buy) in the Chain tab.</td></tr>`;
 
     const stats = document.getElementById("opt-stats");
     const sum = document.getElementById("opt-strategy-summary");
+    const results = document.getElementById("opt-results");
     document.getElementById("opt-ask-ski").hidden = !a;
+    results.hidden = !a;
     if (!a) {
         stats.innerHTML = "";
         sum.textContent = "";
+        document.getElementById("opt-scenarios").innerHTML = "";
+        document.getElementById("opt-greeks").innerHTML = "";
         const chart = document.getElementById("opt-payoff");
         if (typeof Plotly !== "undefined") Plotly.purge(chart);
         chart.innerHTML = "";
         return;
     }
     const g = a.greeks;
-    const stat = (label, val, title, cls) =>
-        `<div class="opt-stat"${title ? ` title="${title}"` : ""}><span class="opt-stat-label">${label}</span>
-         <span class="opt-stat-val ${cls || ""}">${val}</span></div>`;
+    const card = (label, val, sub, cls) => `<div class="opt-outcome ${cls || ""}">
+        <span class="opt-outcome-label">${label}</span>
+        <span class="opt-outcome-val">${val}</span>
+        <span class="opt-outcome-sub">${sub}</span></div>`;
+    const pop = a.prob_profit === null ? null : Math.round(a.prob_profit * 100);
+    const debit = a.net_debit >= 0;
     stats.innerHTML =
-        stat(a.net_debit >= 0 ? "Net cost" : "Net credit", optMoney(Math.abs(a.net_debit)), "At bid/ask midpoints") +
-        stat("Max profit", a.unlimited_profit ? "Unlimited" : optMoney(a.max_profit, true), "", "positive") +
-        stat("Max loss", a.unlimited_loss ? "Unlimited" : optMoney(a.max_loss, true), "", "negative") +
-        stat("Break-even", a.breakevens.length ? a.breakevens.map(b => "$" + b.toFixed(2)).join(" · ") : "—") +
-        stat("Chance of profit", optPct(a.prob_profit, 0),
-             "At expiry, from a lognormal at the ATM implied vol: what option prices imply, not a forecast") +
-        stat("Reward / risk", a.return_on_risk === null ? "—" : a.return_on_risk.toFixed(2) + "×",
-             "Max profit ÷ max loss") +
-        stat("Delta", `${g.delta.toFixed(0)} sh`, "Moves like this many shares of the stock") +
-        stat("Theta", `${optMoney(g.theta, true)}/day`, "P/L from one day passing, all else equal") +
-        stat("Vega", `${optMoney(g.vega, true)}/vol pt`, "P/L if implied vol rises one percentage point") +
-        stat("Spread cost", optMoney(a.spread_cost),
-             "Extra paid if you buy at the ask and sell at the bid instead of the midpoint");
-    sum.textContent = a.summary;
+        card(debit ? "You pay" : "You collect", optMoney(Math.abs(a.net_debit)),
+             debit ? "up front, at mid prices" : "up front, yours to keep if it works", "") +
+        card("Best case", a.unlimited_profit ? "Unlimited" : optMoney(a.max_profit, true),
+             a.unlimited_profit ? "keeps growing the further the stock moves" : `at expiry, ${optZoneText(a.profit_zones)}`, "good") +
+        card("Worst case", a.unlimited_loss ? "Unlimited" : optMoney(a.max_loss, true),
+             a.unlimited_loss ? "losses grow without a cap" : "the most this position can lose", "bad") +
+        card("Break-even", a.breakevens.length ? a.breakevens.map(b => "$" + b.toFixed(2)).join(" / ") : "—",
+             `${escapeHtml(a.symbol)} at expiry (now $${a.spot.toFixed(2)})`, "") +
+        `<div class="opt-outcome" title="What option prices imply (a lognormal at the at-the-money implied volatility), not a forecast">
+            <span class="opt-outcome-label">Chance of profit</span>
+            <span class="opt-outcome-val">${pop === null ? "—" : pop + "%"}</span>
+            <span class="opt-meter" aria-hidden="true"><span style="width:${pop || 0}%"></span></span>
+            <span class="opt-outcome-sub">implied by option prices, not a forecast</span></div>`;
+    sum.innerHTML = `<strong>In plain words:</strong> ${escapeHtml(a.summary)}`;
+
+    // What if the stock moves X%? (An older backend has no scenarios: hide the table.)
+    const scenarios = a.scenarios || [];
+    document.getElementById("opt-scenarios-block").hidden = !scenarios.length;
+    const atDate = scenarios.length > 0 && scenarios[0].at_date !== undefined;
+    const pl = v => `<td class="opt-num ${v > 0 ? "positive" : v < 0 ? "negative" : ""}">${optMoney(v, true)}</td>`;
+    document.getElementById("opt-scenarios").innerHTML = `<thead><tr>
+            <th>If ${escapeHtml(a.symbol)} moves</th><th class="opt-num">Price</th>
+            <th class="opt-num">P/L at expiry</th>${atDate ? `<th class="opt-num">P/L in ${a.curves.at_date_days} days</th>` : ""}
+            <th class="opt-num">P/L today</th></tr></thead><tbody>${scenarios.map(s => `
+        <tr class="${s.move_pct === 0 ? "opt-scn-now" : ""}">
+            <td>${s.move_pct === 0 ? "No change" : (s.move_pct > 0 ? "Up " : "Down ") + Math.abs(s.move_pct) + "%"}</td>
+            <td class="opt-num">$${s.price.toFixed(2)}</td>${pl(s.expiry)}${atDate ? pl(s.at_date) : ""}${pl(s.today)}</tr>`).join("")}</tbody>`;
+
+    document.getElementById("opt-greeks").innerHTML = [
+        ["Delta", `${g.delta.toFixed(0)} shares`, "The position moves like this many shares of the stock right now."],
+        ["Theta", `${optMoney(g.theta, true)} a day`, "What one day passing does to its value, all else equal (time decay)."],
+        ["Vega", `${optMoney(g.vega, true)} per vol point`, "What a 1-point rise in implied volatility does to its value."],
+        ["Gamma", `${g.gamma.toFixed(2)}`, "How fast delta changes as the stock moves."],
+        ["Spread cost", optMoney(a.spread_cost), "Extra paid if you buy at the ask and sell at the bid instead of the midpoint."],
+        ["Reward / risk", a.return_on_risk === null ? "—" : a.return_on_risk.toFixed(2) + "×", "Best case divided by worst case."],
+    ].map(([k, v, d]) => `<div class="opt-greek"><span class="opt-outcome-label">${k}</span>
+        <span class="opt-greek-val">${v}</span><span class="opt-greek-text">${d}</span></div>`).join("");
     if (optState.tab === "strategy") optDrawPayoff(a);
 }
 
@@ -609,7 +704,7 @@ function optLegEdit(e) {
     }
     if (e.target.classList.contains("opt-leg-strike")) leg.strike = Number(e.target.value);
     optState.preset = null;
-    document.getElementById("opt-preset").value = "";
+    optSetPreset(null);
     optAnalyze();
 }
 
@@ -623,28 +718,43 @@ function optDrawPayoff(a) {
         { x: cv.prices, y: pos, type: "scatter", mode: "none", fill: "tozeroy", fillcolor: "rgba(22,163,74,0.18)", hoverinfo: "skip", showlegend: false },
         { x: cv.prices, y: neg, type: "scatter", mode: "none", fill: "tozeroy", fillcolor: "rgba(239,68,68,0.18)", hoverinfo: "skip", showlegend: false },
         { x: cv.prices, y: cv.expiry, name: `At expiry (${a.expiry})`, type: "scatter", mode: "lines",
-          line: { color: "#E5E7EB", width: 2 }, hovertemplate: "At expiry: %{y:$,.0f}<extra></extra>" },
-        { x: cv.prices, y: cv.today, name: "Today", type: "scatter", mode: "lines",
-          line: { color: "#60A5FA", width: 1.5, dash: "dash" }, hovertemplate: "Today: %{y:$,.0f}<extra></extra>" },
+          line: { color: "#F3F4F6", width: 2.5 }, hovertemplate: "At expiry: %{y:$,.0f}<extra></extra>" },
+        { x: cv.prices, y: cv.today, name: "If it moved today", type: "scatter", mode: "lines",
+          line: { color: "#60A5FA", width: 2, dash: "dash" }, hovertemplate: "Today: %{y:$,.0f}<extra></extra>" },
     ];
     if (cv.at_date) traces.push({ x: cv.prices, y: cv.at_date, name: `In ${cv.at_date_days} days`, type: "scatter",
-        mode: "lines", line: { color: "#F59E0B", width: 1.5, dash: "dot" },
+        mode: "lines", line: { color: "#F59E0B", width: 2, dash: "dot" },
         hovertemplate: `In ${cv.at_date_days}d: %{y:$,.0f}<extra></extra>` });
     const shapes = [
         { type: "line", xref: "x", x0: a.spot, x1: a.spot, yref: "paper", y0: 0, y1: 1,
           line: { color: "rgba(255,255,255,0.35)", width: 1, dash: "dot" } },
         { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: "rgba(255,255,255,0.25)", width: 1 } },
     ];
+    // Narrow screens: legend under the chart, so it can't collide with the "Now" and break-even labels.
+    const narrow = el.clientWidth < 640;
     Plotly.react(el, traces, optPlotTheme({
-        showlegend: true, legend: { orientation: "h", y: 1.08, x: 0, font: { size: 11, color: "#9BA2AD" } },
-        margin: { l: 64, r: 16, t: 28, b: 40 },
-        xaxis: { title: { text: `${a.symbol} price`, font: { size: 11 } }, gridcolor: "rgba(255,255,255,0.05)",
+        showlegend: true,
+        legend: narrow ? { orientation: "h", y: -0.32, x: 0, font: { size: 11, color: "#E5E7EB" } }
+                       : { orientation: "h", y: 1.1, x: 0, font: { size: 12, color: "#E5E7EB" } },
+        hovermode: "x unified",
+        hoverlabel: { bgcolor: "#111214", bordercolor: "#3B4048", font: { color: "#F3F4F6", size: 13 } },
+        margin: narrow ? { l: 56, r: 12, t: 30, b: 96 } : { l: 70, r: 20, t: 52, b: 48 },
+        xaxis: { title: { text: `${a.symbol} price at expiry`, font: { size: 12, color: "#C9CED6" } }, gridcolor: "rgba(255,255,255,0.06)",
+                 tickfont: { size: 12, color: "#C9CED6" },
                  zeroline: false, tickprefix: "$", hoverformat: "$.2f" },
-        yaxis: { title: { text: "Profit / loss", font: { size: 11 } }, gridcolor: "rgba(255,255,255,0.05)",
+        yaxis: { title: { text: "Your profit or loss", font: { size: 12, color: "#C9CED6" } }, gridcolor: "rgba(255,255,255,0.06)",
+                 tickfont: { size: 12, color: "#C9CED6" },
                  zeroline: false, tickprefix: "$", tickformat: ",.0f" },
         shapes,
-        annotations: [{ x: a.spot, y: 1, yref: "paper", text: "now", showarrow: false, yanchor: "bottom",
-                        font: { size: 10, color: "#9BA2AD" } }],
+        annotations: [
+            { x: a.spot, y: 1, yref: "paper", text: narrow ? "Now" : `Now $${a.spot.toFixed(2)}`, showarrow: false,
+              yanchor: "bottom", font: { size: 12, color: "#E5E7EB" } },
+            // Alternate heights so two close break-evens don't print on top of each other.
+            ...a.breakevens.map((be, i) => ({ x: be, y: 0, text: narrow ? `$${be.toFixed(2)}` : `Break-even $${be.toFixed(2)}`,
+              showarrow: true, arrowhead: 0, ax: 0, ay: i % 2 ? -58 : -32, arrowcolor: "#FBBF24",
+              font: { size: narrow ? 11 : 12, color: "#FBBF24" },
+              bgcolor: "rgba(17,18,20,0.85)", borderpad: 3 })),
+        ],
     }), { responsive: true, displayModeBar: false });
 }
 
@@ -733,7 +843,7 @@ async function optScanClick(e) {
         ? [{ type: "stock", qty: 1, strike: null }, { type: "call", qty: -1, strike: r.strike }]
         : [{ type: "put", qty: -1, strike: r.strike }];
     optState.preset = null;
-    document.getElementById("opt-preset").value = "";
+    optSetPreset(null);
     optShowTab("strategy");
     optAnalyze();
 }
