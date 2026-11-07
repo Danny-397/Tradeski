@@ -22,7 +22,8 @@ S, R, Q, SIGMA = 100.0, 0.04, 0.0, 0.25
 
 
 def _expiry(days=30):
-    return (dt.date.today() + dt.timedelta(days=days)).isoformat()
+    # Days count in New York, as the code does: in the evening there, UTC is already tomorrow.
+    return (dt.datetime.now(opt._ET).date() + dt.timedelta(days=days)).isoformat()
 
 
 def raw_chain(days=30, sigma=SIGMA, spot=S, half_spread=0.05, oi=500):
@@ -311,6 +312,7 @@ def client(monkeypatch):
     chains = {e: raw_chain(d)[1] for e, d in zip(expiries, (3, 30, 60))}
     monkeypatch.setattr(app, "get_option_expirations", lambda s: list(expiries) if s == "TEST" else [])
     monkeypatch.setattr(app, "get_option_chain", lambda s, e: chains.get(e) if s == "TEST" else None)
+    monkeypatch.setattr(app, "get_eod_options", lambda s, base: None)
     monkeypatch.setattr(app, "_cached_bars", lambda s, p: [])
     app.app.config["TESTING"] = True
     app.limiter.enabled = False
@@ -360,6 +362,58 @@ def test_scan_endpoint(client):
     assert data["skipped"][0]["symbol"] == "NONE"
     assert client.get("/options/scan?symbols=TEST&kind=naked").status_code == 400
     assert client.get("/options/scan?kind=covered_call").status_code == 400
+
+
+def _eod_file(days=(30,)):
+    """A saved end-of-day file, as capture_snapshot.capture_eod_chains writes it."""
+    # Saved an hour ago, so a clock measured from "now" would differ measurably.
+    saved_at = dt.datetime.now(dt.timezone.utc).replace(microsecond=0) - dt.timedelta(hours=1)
+    out = {"symbol": "EODX", "captured_at": saved_at.isoformat(), "chains": {}}
+    for d in days:
+        expiry, raw = raw_chain(d)
+        out["spot"], out["dividend_yield"] = raw["spot"], raw["dividend_yield"]
+        out["chains"][expiry] = {"calls": opt.compact_rows(raw["calls"], raw["spot"]),
+                                 "puts": opt.compact_rows(raw["puts"], raw["spot"])}
+    return out
+
+
+def test_compact_rows_keeps_the_band_and_the_fields_the_maths_needs():
+    _, raw = raw_chain()
+    rows = opt.compact_rows(raw["calls"], S, band=0.10)
+    assert [r["strike"] for r in rows] == [90.0, 92.5, 95.0, 97.5, 100.0, 102.5, 105.0, 107.5, 110.0]
+    assert set(rows[0]) == {"strike", "bid", "ask", "lastPrice", "volume", "openInterest", "impliedVolatility"}
+    assert opt.compact_rows([{"strike": float("nan")}], S) == []
+
+
+def test_eod_raw_chain_prices_the_same_as_a_live_chain():
+    eod = _eod_file()
+    expiry = next(iter(eod["chains"]))
+    live = chain()
+    saved = opt.clean_chain(opt.eod_raw_chain(eod, expiry), expiry, R)
+    assert saved["atm_iv"] == pytest.approx(live["atm_iv"], abs=1e-6)
+    assert opt.eod_raw_chain(eod, "1999-01-01") is None
+    assert opt.eod_raw_chain({"chains": eod["chains"]}, expiry) is None    # no spot saved
+
+
+def test_endpoints_fall_back_to_end_of_day_chains_when_the_live_source_is_empty(client, monkeypatch):
+    import app
+    eod = _eod_file(days=(10, 30))
+    calls = []
+    monkeypatch.setattr(app, "get_eod_options", lambda s, base: (calls.append(s), eod)[1] if s == "EODX" else None)
+    exp = client.get("/options/expirations?symbol=EODX").get_json()
+    assert [e["date"] for e in exp["expirations"]] == list(eod["chains"])
+    data = client.get("/options/chain?symbol=EODX").get_json()
+    assert data["source"] == "end_of_day" and data["quotes_as_of"] == eod["captured_at"]
+    assert data["atm_iv"] == pytest.approx(SIGMA, abs=0.01)
+    # Time to expiry runs from when the quotes were saved, not from now.
+    saved = dt.datetime.fromisoformat(eod["captured_at"])
+    assert data["years"] == pytest.approx(opt.year_fraction(data["expiry"], saved), abs=1e-9)
+    res = client.post("/options/strategy", json={"symbol": "EODX", "preset": "iron_condor"})
+    assert res.status_code == 200 and len(res.get_json()["legs"]) == 4
+    assert calls == ["EODX"]                                    # the file is fetched once and cached
+    assert client.get("/options/chain?symbol=TEST").get_json()["source"] == "live"
+    missing = client.get("/options/chain?symbol=NOPE")
+    assert missing.status_code == 404 and "not answering" in missing.get_json()["error"]
 
 
 # ── Ski tools ───────────────────────────────────────────────

@@ -133,7 +133,8 @@ def fixture_expirations(symbol: str) -> list:
     """Five expiries, one week to two months out, for any symbol with fixture prices."""
     if symbol not in _SHAPES:
         return []
-    today = datetime.date.today()
+    from tracker import options as opt
+    today = datetime.datetime.now(opt._ET).date()   # expiries count in New York time
     return [(today + datetime.timedelta(days=d)).isoformat() for d in (7, 14, 28, 35, 63)]
 
 
@@ -184,6 +185,7 @@ def install_fixtures(set_attr=setattr):
     set_attr(app, "fetch_fred_observations", fixture_fred)
     set_attr(app, "get_option_expirations", fixture_expirations)
     set_attr(app, "get_option_chain", fixture_option_chain)
+    set_attr(app, "get_eod_options", lambda s, base: None)
     set_attr(app, "_get_macro_context", lambda: MACRO_CONTEXT)
     return app
 

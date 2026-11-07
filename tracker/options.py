@@ -246,6 +246,38 @@ def realized_vol(closes: Iterable[float], window: int = 30) -> Optional[float]:
 
 
 # ─────────────────────────────────────────────────────────────
+# End-of-day chains (the fallback when the live source refuses the server)
+# ─────────────────────────────────────────────────────────────
+# Yahoo serves option chains to GitHub's runners but not to Render, so the
+# snapshot workflow saves each day's closing chains as static files and the
+# backend falls back to them. Rows keep the data source's column names, so
+# clean_contract reads them unchanged.
+
+_EOD_FIELDS = ("strike", "bid", "ask", "lastPrice", "volume", "openInterest", "impliedVolatility")
+
+
+def compact_rows(rows: list, spot: float, band: float = 0.30) -> list:
+    """Rows within ``band`` of the spot, keeping only the fields the maths uses."""
+    out = []
+    for row in rows:
+        k = _num(row.get("strike"))
+        if k is None or abs(k / spot - 1) > band + 1e-9:
+            continue
+        out.append({f: _num(row.get(f)) for f in _EOD_FIELDS})
+    return out
+
+
+def eod_raw_chain(eod: dict, expiry: str) -> Optional[dict]:
+    """One expiry from a saved end-of-day file, in get_option_chain's raw shape."""
+    chain = (eod.get("chains") or {}).get(expiry)
+    if not chain or not eod.get("spot"):
+        return None
+    return {"symbol": eod.get("symbol"), "spot": float(eod["spot"]),
+            "dividend_yield": float(eod.get("dividend_yield") or 0.0), "market_state": "CLOSED",
+            "calls": chain.get("calls", []), "puts": chain.get("puts", [])}
+
+
+# ─────────────────────────────────────────────────────────────
 # Strategies
 # ─────────────────────────────────────────────────────────────
 # A leg is {"type": "call"|"put"|"stock", "qty": int, "strike": float,

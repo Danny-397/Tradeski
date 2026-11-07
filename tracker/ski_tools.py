@@ -456,7 +456,8 @@ def _options_tool(name: str, args: dict, data: SkiData) -> dict:
     dte = max(1, min(730, int(dte))) if isinstance(dte, (int, float)) else 30
     chain = data.options(sym, dte)
     if not chain:
-        return {"symbol": sym, "error": "no listed options found for this symbol"}
+        return {"symbol": sym, "error": "no option data came back: the symbol may have no listed options, or the "
+                                        "data source may be refusing requests right now. Say which is unknown."}
     base = {"symbol": sym, "expiry": chain["expiry"], "days_to_expiry": chain["dte"], "spot": _r(chain["spot"])}
     if name == "get_options_overview":
         iv, hv = chain.get("atm_iv"), chain.get("realized_vol_30d")
@@ -476,7 +477,9 @@ def _options_tool(name: str, args: dict, data: SkiData) -> dict:
                 "put_call_open_interest_ratio": chain.get("put_call_oi"),
                 "most_open_interest_calls": top(chain["calls"]),
                 "most_open_interest_puts": top(chain["puts"]),
-                "quotes": "delayed; outside market hours they are the last session's"}
+                "quotes": (f"end-of-day quotes saved at {chain.get('quotes_as_of')}"
+                           if chain.get("source") == "end_of_day"
+                           else "delayed; outside market hours they are the last session's")}
     strategy = args.get("strategy")
     if strategy not in opt.PRESETS:
         raise ValueError(f"strategy must be one of {list(opt.PRESETS)}")
