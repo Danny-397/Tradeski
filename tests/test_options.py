@@ -481,3 +481,17 @@ def test_vercel_routes_the_options_page():
     # Before the catch-all, or /options would 404 as a missing file.
     assert routes.index({"src": "/options", "dest": "/frontend/options.html"}) < \
         next(i for i, r in enumerate(routes) if r.get("src") == "/(.*)")
+
+
+def test_what_if_scenarios_are_exact_pnl_at_round_moves():
+    T = 30 / 365
+    legs = [_call(100, 1, 4.0), _call(110, -1, 1.0)]          # bull call spread, $300 debit
+    res = opt.analyze(legs, S, T, R, sigma=SIGMA, days_forward=10)
+    rows = {r["move_pct"]: r for r in res["scenarios"]}
+    assert sorted(rows) == [-20, -10, -5, 0, 5, 10, 20]
+    assert rows[-20]["price"] == 80.0 and rows[-20]["expiry"] == -300      # both calls expire worthless
+    assert rows[5]["expiry"] == 200                                        # 105: (5 - 3) x 100
+    assert rows[20]["expiry"] == 700                                       # capped at the 110 strike
+    assert rows[0]["today"] == pytest.approx(opt.position_pnl(legs, S, T, R), abs=0.01)
+    assert rows[0]["at_date"] == pytest.approx(opt.position_pnl(legs, S, T - 10 / 365, R), abs=0.01)
+    assert "at_date" not in opt.analyze(legs, S, T, R, sigma=SIGMA)["scenarios"][0]

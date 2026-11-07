@@ -123,3 +123,22 @@ test("the Options page reads its starting state from the URL", () => {
     assert.deepEqual(plain(parse("")), { symbol: "AAPL", tab: "chain", expiry: "" });
     assert.deepEqual(plain(parse("?symbol=<b>&tab=evil&expiry=soon")), { symbol: "AAPL", tab: "chain", expiry: "" });
 });
+
+test("where a position makes money, in words", () => {
+    const { optZoneText } = load(["optZoneText"]);
+    assert.equal(optZoneText([[348.7, null]]), "above $348.70");
+    assert.equal(optZoneText([[0, 335.1]]), "below $335.10");
+    assert.equal(optZoneText([[317.55, 367.45]]), "between $317.55 and $367.45");
+    assert.equal(optZoneText([[0, 94], [106, null]]), "below $94.00 or above $106.00");
+    assert.equal(optZoneText([]), "at no price");
+});
+
+test("each leg as a sentence", () => {
+    const { optLegPlain } = load(["optMoney", "optLegPlain"]);
+    assert.equal(optLegPlain({ type: "call", qty: 1, strike: 340, price: 11.78 }, "AAPL"),
+                 "Buy 1 AAPL $340 call at $11.78 a share: you pay $1,178");
+    assert.equal(optLegPlain({ type: "put", qty: -2, strike: 320, price: 3.25 }, "AAPL"),
+                 "Sell 2 AAPL $320 puts at $3.25 a share: you collect $650");
+    assert.equal(optLegPlain({ type: "stock", qty: 1, strike: null, price: 342.37 }, "AAPL"),
+                 "Buy 100 AAPL shares at $342.37: you pay $34,237");
+});
