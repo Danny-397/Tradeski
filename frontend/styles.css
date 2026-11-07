@@ -1725,3 +1725,8 @@ select.form-input {
     .cmp-target-row, .cmp-help { padding-left: var(--s-5); padding-right: var(--s-5); }
     .cmp-side { margin: 0 var(--s-5); width: calc(100% - 2 * var(--s-5)); }
 }
+
+.opt-sliders { display: flex; flex-direction: column; gap: var(--s-3); align-items: flex-end; }
+.opt-sliders .opt-days { justify-content: flex-end; }
+.opt-crush-btn { font-size: var(--fs-xs); white-space: nowrap; }
+@media (max-width: 768px) { .opt-sliders { align-items: stretch; width: 100%; } .opt-sliders .opt-days { justify-content: flex-start; flex-wrap: wrap; } }

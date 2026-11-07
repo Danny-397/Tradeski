@@ -170,9 +170,16 @@
                                 <span class="opt-dim">Green: you make money. Red: you lose. Hover the chart for exact amounts.</span>
                                 <span class="opt-dim" id="opt-range-note"></span>
                             </div>
-                            <div class="opt-days">
-                                <label class="filter-label" for="opt-days">Also show it <span id="opt-days-label">today only</span></label>
-                                <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
+                            <div class="opt-sliders">
+                                <div class="opt-days">
+                                    <label class="filter-label" for="opt-days">Also show it <span id="opt-days-label">today only</span></label>
+                                    <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
+                                </div>
+                                <div class="opt-days" title="Implied volatility usually falls right after earnings (the IV crush): bought options lose value even if the stock doesn't move.">
+                                    <label class="filter-label" for="opt-ivshift">Implied volatility <span id="opt-ivshift-label">unchanged</span></label>
+                                    <input type="range" id="opt-ivshift" min="-30" max="30" step="1" value="0">
+                                    <button class="text-btn opt-crush-btn" id="opt-ivshift-crush" type="button">Try an IV crush</button>
+                                </div>
                             </div>
                         </div>
                         <div id="opt-payoff" class="opt-payoff"></div>

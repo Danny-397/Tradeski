@@ -49,6 +49,7 @@ const optState = {
     legs: [],          // [{type, qty, strike}]
     preset: null,
     daysForward: 0,
+    ivShift: 0,             // volatility points added to every option's IV before expiry
     analysis: null,
     scan: null,
     scanSort: { col: "annualized_pct", dir: -1 },
@@ -174,6 +175,17 @@ function optIvRank(rows, current, today, minDays) {
     out.high = Math.max(...ivs);
     if (past.length >= minDays) out.pct = Math.round(ivs.filter(v => v < current).length / ivs.length * 100);
     return out;
+}
+
+// The IV slider's label: 0 -> "unchanged", -15 -> "15 points lower".
+function optIvShiftLabel(shift) {
+    if (!shift) return "unchanged";
+    return `${Math.abs(shift)} point${Math.abs(shift) === 1 ? "" : "s"} ${shift < 0 ? "lower" : "higher"}`;
+}
+
+// "(IV -15)" after a line or column name when the slider is off zero.
+function optIvTag(shift) {
+    return shift ? ` (IV ${shift > 0 ? "+" : "−"}${Math.abs(shift)})` : "";
 }
 
 // "Jan 28, 2027" from "2027-01-28" (no time-zone shift).
@@ -344,6 +356,17 @@ function initOptions() {
         document.getElementById("opt-days-label").textContent = optDaysLabel();
     });
     days.addEventListener("change", () => { if (optState.legs.length) optAnalyze(); });
+    const iv = document.getElementById("opt-ivshift");
+    iv.addEventListener("input", () => {
+        optState.ivShift = Number(iv.value);
+        document.getElementById("opt-ivshift-label").textContent = optIvShiftLabel(optState.ivShift);
+    });
+    iv.addEventListener("change", () => { if (optState.legs.length) optAnalyze(); });
+    document.getElementById("opt-ivshift-crush").addEventListener("click", () => {
+        iv.value = -15;
+        iv.dispatchEvent(new Event("input"));
+        iv.dispatchEvent(new Event("change"));
+    });
     document.getElementById("opt-ask-ski").addEventListener("click", optAskSki);
 
     document.getElementById("opt-scan-symbols").value = OPT_SCAN_DEFAULT;
@@ -853,7 +876,8 @@ async function optBuildPreset(preset) {
 async function optAnalyze(extra) {
     if (!optState.chain) return;
     const id = ++optState.reqId;
-    const body = { symbol: optState.symbol, expiry: optState.expiry, days_forward: optState.daysForward || null };
+    const body = { symbol: optState.symbol, expiry: optState.expiry, days_forward: optState.daysForward || null,
+                   iv_shift: optState.ivShift || 0 };
     if (extra && extra.preset) body.preset = extra.preset;
     else body.legs = optState.legs;
     document.getElementById("opt-strategy-msg").textContent = "Calculating…";
@@ -963,8 +987,8 @@ function optRenderStrategy() {
     const pl = v => `<td class="opt-num ${v > 0 ? "positive" : v < 0 ? "negative" : ""}">${optMoney(v, true)}</td>`;
     document.getElementById("opt-scenarios").innerHTML = `<thead><tr>
             <th>If ${escapeHtml(a.symbol)} moves</th><th class="opt-num">Price</th>
-            <th class="opt-num">P/L at expiry</th>${atDate ? `<th class="opt-num">P/L in ${a.curves.at_date_days} days</th>` : ""}
-            <th class="opt-num">P/L today</th></tr></thead><tbody>${scenarios.map(s => `
+            <th class="opt-num">P/L at expiry</th>${atDate ? `<th class="opt-num">P/L in ${a.curves.at_date_days} days${optIvTag(a.iv_shift)}</th>` : ""}
+            <th class="opt-num">P/L today${optIvTag(a.iv_shift)}</th></tr></thead><tbody>${scenarios.map(s => `
         <tr class="${s.move_pct === 0 ? "opt-scn-now" : ""}">
             <td>${s.move_pct === 0 ? "No change" : (s.move_pct > 0 ? "Up " : "Down ") + Math.abs(s.move_pct) + "%"}</td>
             <td class="opt-num">$${s.price.toFixed(2)}</td>${pl(s.expiry)}${atDate ? pl(s.at_date) : ""}${pl(s.today)}</tr>`).join("")}</tbody>`;
@@ -1013,10 +1037,10 @@ function optDrawPayoff(a) {
         { x: cv.prices, y: neg, type: "scatter", mode: "none", fill: "tozeroy", fillcolor: "rgba(239,68,68,0.18)", hoverinfo: "skip", showlegend: false },
         { x: cv.prices, y: cv.expiry, name: `At expiry (${a.expiry})`, type: "scatter", mode: "lines",
           line: { color: "#F3F4F6", width: 2.5 }, hovertemplate: "At expiry: %{y:$,.0f}<extra></extra>" },
-        { x: cv.prices, y: cv.today, name: "If it moved today", type: "scatter", mode: "lines",
+        { x: cv.prices, y: cv.today, name: "If it moved today" + optIvTag(a.iv_shift), type: "scatter", mode: "lines",
           line: { color: "#60A5FA", width: 2, dash: "dash" }, hovertemplate: "Today: %{y:$,.0f}<extra></extra>" },
     ];
-    if (cv.at_date) traces.push({ x: cv.prices, y: cv.at_date, name: `In ${cv.at_date_days} days`, type: "scatter",
+    if (cv.at_date) traces.push({ x: cv.prices, y: cv.at_date, name: `In ${cv.at_date_days} days` + optIvTag(a.iv_shift), type: "scatter",
         mode: "lines", line: { color: "#F59E0B", width: 2, dash: "dot" },
         hovertemplate: `In ${cv.at_date_days}d: %{y:$,.0f}<extra></extra>` });
     const range = optExpectedRange(optState.chain && optState.chain.expiry === a.expiry ? optState.chain : null);

@@ -175,3 +175,13 @@ test("the comparison chart's window, and curves clipped to it", () => {
     const c = optClipCurve([0, 10, 20, 30], [0, 100, 200, 300], 5, 25);
     assert.deepEqual(plain(c), { x: [5, 10, 20, 25], y: [50, 100, 200, 250] });
 });
+
+test("IV slider labels", () => {
+    const { optIvShiftLabel, optIvTag } = load(["optIvShiftLabel", "optIvTag"]);
+    assert.equal(optIvShiftLabel(0), "unchanged");
+    assert.equal(optIvShiftLabel(-15), "15 points lower");
+    assert.equal(optIvShiftLabel(1), "1 point higher");
+    assert.equal(optIvTag(0), "");
+    assert.equal(optIvTag(-15), " (IV −15)");
+    assert.equal(optIvTag(5), " (IV +5)");
+});

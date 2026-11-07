@@ -1151,8 +1151,10 @@ def options_strategy() -> tuple:
             legs = opt.build_preset(str(body.get("preset") or ""), chain)
         days = body.get("days_forward")
         days = float(days) if isinstance(days, (int, float)) and not isinstance(days, bool) else None
+        shift = body.get("iv_shift")
+        shift = max(-50.0, min(50.0, float(shift))) if isinstance(shift, (int, float)) and not isinstance(shift, bool) else 0.0
         result = opt.analyze(legs, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
-                             sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days)
+                             sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days, iv_shift=shift)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     result.update({"symbol": sym, "expiry": expiry, "dte": chain["dte"], "spot": chain["spot"],

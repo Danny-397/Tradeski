@@ -415,8 +415,15 @@ def _describe_zones(zones: list, symbol: str) -> str:
 
 def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Optional[float] = None,
             symbol: str = "the stock", expiry: str = "", days_forward: Optional[float] = None,
-            points: int = 121) -> dict:
-    """Everything the strategy builder shows for one set of legs."""
+            points: int = 121, iv_shift: float = 0.0) -> dict:
+    """Everything the strategy builder shows for one set of legs.
+
+    ``iv_shift`` (volatility points, e.g. -10) moves every option's implied
+    volatility for the values before expiry: "what if IV drops 10 points
+    after earnings?". The at-expiry payoff does not depend on volatility.
+    """
+    shifted = [dict(leg, iv=max(leg["iv"] + iv_shift / 100.0, 0.01)) if leg.get("iv") else leg
+               for leg in legs] if iv_shift else legs
     if not legs:
         raise ValueError("add at least one leg")
     debit = sum(leg["qty"] * MULTIPLIER * leg["price"] for leg in legs)
@@ -448,11 +455,11 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
     curves = {
         "prices": [round(x, 2) for x in grid],
         "expiry": [round(position_pnl(legs, x), 2) for x in grid],
-        "today": [round(position_pnl(legs, x, T, r, q), 2) for x in grid],
+        "today": [round(position_pnl(shifted, x, T, r, q), 2) for x in grid],
     }
     if days_forward is not None and 0 < days_forward < T * 365:
         t_left = T - days_forward / 365.0
-        curves["at_date"] = [round(position_pnl(legs, x, t_left, r, q), 2) for x in grid]
+        curves["at_date"] = [round(position_pnl(shifted, x, t_left, r, q), 2) for x in grid]
         curves["at_date_days"] = days_forward
 
     # "What if the stock moves X%?": exact P/L at a few round moves, plus the
@@ -462,9 +469,9 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
     for move in SCENARIO_MOVES:
         x = S * (1 + move / 100.0)
         row = {"move_pct": move, "price": round(x, 2), "expiry": round(position_pnl(legs, x), 2),
-               "today": round(position_pnl(legs, x, T, r, q), 2)}
+               "today": round(position_pnl(shifted, x, T, r, q), 2)}
         if t_at is not None:
-            row["at_date"] = round(position_pnl(legs, x, t_at, r, q), 2)
+            row["at_date"] = round(position_pnl(shifted, x, t_at, r, q), 2)
         scenarios.append(row)
 
     when = f" on {expiry}" if expiry else " at expiry"
@@ -496,6 +503,7 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
         "greeks": {k: round(v, 4) for k, v in net.items()},
         "curves": curves,
         "scenarios": scenarios,
+        "iv_shift": iv_shift,
         "summary": " ".join(lines),
     }
 

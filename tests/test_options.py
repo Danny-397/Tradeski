@@ -541,3 +541,21 @@ def test_compare_endpoint(client):
     assert [r["preset"] for r in data["strategies"]] == ["long_call", "long_put"]
     assert data["strategies"][0]["pnl_at_target"] > 0 > data["strategies"][1]["pnl_at_target"]
     assert client.post("/options/compare", json={"symbol": "TEST", "target": "x"}).get_json()["target"] is None
+
+
+def test_iv_shift_moves_values_before_expiry_only():
+    T = 30 / 365
+    price = opt.bs_price("call", S, 100, T, R, SIGMA)
+    legs = [_call(100, 1, price)]
+    base = opt.analyze(legs, S, T, R, sigma=SIGMA, days_forward=10)
+    crush = opt.analyze(legs, S, T, R, sigma=SIGMA, days_forward=10, iv_shift=-10)
+    assert crush["curves"]["expiry"] == base["curves"]["expiry"]            # expiry doesn't care about IV
+    now = {r["move_pct"]: r for r in crush["scenarios"]}[0]
+    assert now["today"] == pytest.approx(
+        100 * (opt.bs_price("call", S, 100, T, R, SIGMA - 0.10) - price), abs=0.01)
+    assert now["today"] < 0 and now["at_date"] < {r["move_pct"]: r for r in base["scenarios"]}[0]["at_date"]
+    assert crush["iv_shift"] == -10
+    # Never below 1% volatility, however big the drop.
+    floor = opt.analyze(legs, S, T, R, sigma=SIGMA, iv_shift=-90)
+    assert {r["move_pct"]: r for r in floor["scenarios"]}[0]["today"] == pytest.approx(
+        100 * (opt.bs_price("call", S, 100, T, R, 0.01) - price), abs=0.01)
