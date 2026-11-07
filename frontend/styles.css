@@ -1730,3 +1730,24 @@ select.form-input {
 .opt-sliders .opt-days { justify-content: flex-end; }
 .opt-crush-btn { font-size: var(--fs-xs); white-space: nowrap; }
 @media (max-width: 768px) { .opt-sliders { align-items: stretch; width: 100%; } .opt-sliders .opt-days { justify-content: flex-start; flex-wrap: wrap; } }
+
+
+/* ===== OPTIONS PAGE: paper trades ===== */
+.paper-bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-4); padding: 0 var(--s-7) var(--s-4); }
+.paper-total { margin-left: auto; color: #C9CED6; font-size: var(--fs-sm); }
+.paper-total .positive { color: #4ADE80; }
+.paper-total .negative { color: #F87171; }
+.paper-table td { vertical-align: top; font-size: var(--fs-sm); }
+.paper-table th.opt-num { text-align: right; }
+.paper-table td.positive { color: #4ADE80; font-weight: 600; }
+.paper-table td.negative { color: #F87171; font-weight: 600; }
+.paper-legs, .paper-sub { display: block; color: #AEB4BD; font-size: var(--fs-xs); margin-top: 2px; white-space: normal; }
+.paper-actions { white-space: nowrap; }
+.paper-actions .btn-secondary { min-height: 28px; padding: 0 var(--s-4); }
+.paper-note { padding: var(--s-4) var(--s-7) var(--s-7); }
+.opt-foot-actions { display: flex; gap: var(--s-4); flex-wrap: wrap; }
+@media (max-width: 768px) { .paper-bar, .paper-note { padding-left: var(--s-5); padding-right: var(--s-5); } .paper-total { margin-left: 0; } }
+.opt-intro-steps { grid-template-columns: repeat(4, 1fr); }
+.paper-actions { display: flex; align-items: center; gap: var(--s-3); }
+@media (max-width: 1100px) { .opt-intro-steps { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .opt-intro-steps { grid-template-columns: 1fr; } }

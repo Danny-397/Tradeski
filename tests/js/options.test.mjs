@@ -185,3 +185,21 @@ test("IV slider labels", () => {
     assert.equal(optIvTag(-15), " (IV −15)");
     assert.equal(optIvTag(5), " (IV +5)");
 });
+
+test("paper trades: saving, capping and P/L for debits and credits", () => {
+    const ctx = vm.createContext({});
+    vm.runInContext("const OPT_PAPER_MAX = 3;\n" + ["optPaperFrom", "optPaperAdd", "optPaperPnl"].map(declaration).join("\n") +
+        "\nthis.__p = { optPaperFrom, optPaperAdd, optPaperPnl };", ctx);
+    const { optPaperFrom, optPaperAdd, optPaperPnl } = ctx.__p;
+    const t = optPaperFrom({ symbol: "AAPL", expiry: "2026-12-04", net_debit: 488, spot: 342.37,
+        legs: [{ type: "call", qty: 1, strike: 340, price: 11.78, iv: 0.27 }] }, "Bull call spread", new Date("2026-11-07T15:00:00Z"));
+    assert.equal(t.name, "Bull call spread");
+    assert.deepEqual(plain(t.legs), [{ type: "call", qty: 1, strike: 340, price: 11.78 }]);   // no IV kept
+    assert.equal(t.saved_at, "2026-11-07T15:00:00.000Z");
+    let list = [];
+    for (let i = 0; i < 5; i++) list = optPaperAdd(list, { ...t, id: "t" + i });
+    assert.deepEqual(plain(list.map(x => x.id)), ["t4", "t3", "t2"]);                         // newest first, capped
+    assert.deepEqual(plain(optPaperPnl(488, 600)), { pnl: 112, pct: 112 / 488 });              // bought, now worth more
+    assert.deepEqual(plain(optPaperPnl(-245, -150)), { pnl: 95, pct: null });                   // sold for 245, 150 to close
+    assert.deepEqual(plain(optPaperPnl(-245, -400)), { pnl: -155, pct: null });
+});

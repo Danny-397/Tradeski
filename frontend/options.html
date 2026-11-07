@@ -85,6 +85,7 @@
             <button class="sidebar-tab opt-tab" data-tab="strategy" role="tab" aria-selected="false">Strategy builder</button>
             <button class="sidebar-tab opt-tab" data-tab="compare" role="tab" aria-selected="false">Compare &amp; choose</button>
             <button class="sidebar-tab opt-tab" data-tab="scan" role="tab" aria-selected="false">Scanner</button>
+            <button class="sidebar-tab opt-tab" data-tab="paper" role="tab" aria-selected="false">Paper trades <span class="badge" id="paper-count"></span></button>
             <span class="opt-status" id="opt-status" role="status"></span>
             </div>
             <div class="opt-summary" id="opt-summary"></div>
@@ -198,7 +199,10 @@
                     </details>
                 </div>
                 <div class="opt-builder-foot">
-                    <button class="btn-secondary" id="opt-ask-ski" hidden>Ask Ski to explain this</button>
+                    <div class="opt-foot-actions">
+                        <button class="btn-primary" id="opt-save-paper" hidden>Save as paper trade</button>
+                        <button class="btn-secondary" id="opt-ask-ski" hidden>Ask Ski to explain this</button>
+                    </div>
                     <p class="opt-note">Prices are bid/ask midpoints from delayed quotes; real fills are usually worse.
                             Values before expiry use Black-Scholes, which treats options as European, so they are approximate
                             where early exercise matters. The chance of profit is what option prices imply, not a forecast.
@@ -240,6 +244,22 @@
                         <table class="screener-table cmp-side" id="cmp-side"></table>
                     </div>
                 </div>
+            </section>
+
+            <!-- Paper trades -->
+            <section class="opt-pane" id="opt-pane-paper" hidden>
+                <h3 class="opt-step">Your paper trades
+                    <span class="opt-step-hint">practice positions, priced against today's quotes; saved in this browser only</span></h3>
+                <div class="paper-bar">
+                    <button class="btn-secondary" id="paper-refresh">Refresh prices</button>
+                    <span class="opt-dim" id="paper-status" role="status"></span>
+                    <span class="paper-total" id="paper-total"></span>
+                </div>
+                <div class="opt-table-wrap">
+                    <table class="screener-table paper-table" id="paper-table"></table>
+                </div>
+                <p class="opt-note paper-note">P/L is what the position would be worth if you closed it now at mid prices, minus what it cost to open
+                    (or plus what it paid you). Quotes are delayed or end-of-day, and real fills are usually worse.</p>
             </section>
 
             <!-- Scanner -->

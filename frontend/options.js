@@ -32,7 +32,9 @@ const OPT_SCAN_DEFAULT = "AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, JPM, SPY, Q
 const OPT_API = "https://tradeski.onrender.com";
 // Quick picks: the symbols whose closing chains are always saved (see capture_snapshot.py).
 const OPT_QUICK = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "SPY", "QQQ", "JPM", "SOFI", "RDW"];
-const OPT_TABS = ["chain", "strategy", "compare", "scan"];
+const OPT_TABS = ["chain", "strategy", "compare", "scan", "paper"];
+const OPT_PAPER_KEY = "tradeski-paper-trades";
+const OPT_PAPER_MAX = 50;
 const OPT_COMPARE_COLORS = ["#60A5FA", "#F59E0B", "#C084FC"];
 const OPT_COMPARE_DEFAULT = ["long_call", "bull_call_spread", "covered_call"];
 const OPT_COMPARE_MAX = 3;
@@ -175,6 +177,43 @@ function optIvRank(rows, current, today, minDays) {
     out.high = Math.max(...ivs);
     if (past.length >= minDays) out.pct = Math.round(ivs.filter(v => v < current).length / ivs.length * 100);
     return out;
+}
+
+// ---- paper trades: pure helpers ----
+
+// A saved trade from a strategy analysis (prices are the entry mids).
+function optPaperFrom(analysis, presetName, now) {
+    return {
+        id: `${now.getTime().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        symbol: analysis.symbol, expiry: analysis.expiry, name: presetName || "Custom",
+        legs: analysis.legs.map(l => ({ type: l.type, qty: l.qty, strike: l.strike, price: l.price })),
+        entry: analysis.net_debit, spot: analysis.spot, saved_at: now.toISOString(),
+    };
+}
+
+// Newest first, at most OPT_PAPER_MAX.
+function optPaperAdd(list, trade) {
+    return [trade, ...(list || []).filter(t => t.id !== trade.id)].slice(0, OPT_PAPER_MAX);
+}
+
+// P/L of closing now: today's value of the legs (net debit to open them now)
+// minus what they cost when saved. Works for debits and credits alike.
+function optPaperPnl(entry, nowDebit) {
+    const pnl = Math.round((nowDebit - entry) * 100) / 100;
+    return { pnl, pct: entry > 0 ? pnl / entry : null };
+}
+
+function optPaperLoad() {
+    try {
+        const list = JSON.parse(localStorage.getItem(OPT_PAPER_KEY) || "[]");
+        return Array.isArray(list) ? list : [];
+    } catch (_) { return []; }
+}
+
+function optPaperStore(list) {
+    try { localStorage.setItem(OPT_PAPER_KEY, JSON.stringify(list)); } catch (_) { /* storage full or blocked */ }
+    const n = document.getElementById("paper-count");
+    if (n) n.textContent = list.length ? String(list.length) : "";
 }
 
 // The IV slider's label: 0 -> "unchanged", -15 -> "15 points lower".
@@ -368,6 +407,10 @@ function initOptions() {
         iv.dispatchEvent(new Event("change"));
     });
     document.getElementById("opt-ask-ski").addEventListener("click", optAskSki);
+    document.getElementById("opt-save-paper").addEventListener("click", optSavePaper);
+    document.getElementById("paper-refresh").addEventListener("click", optRefreshPaper);
+    document.getElementById("paper-table").addEventListener("click", optPaperClick);
+    optPaperStore(optPaperLoad());
 
     document.getElementById("opt-scan-symbols").value = OPT_SCAN_DEFAULT;
     document.getElementById("opt-scan-run").addEventListener("click", optRunScan);
@@ -408,6 +451,110 @@ function optShowTab(tab) {
     if (tab === "strategy" && optState.analysis) optDrawPayoff(optState.analysis);
     if (tab === "chain" && optState.chain) optDrawSmile(optState.chain);
     if (tab === "compare") optEnsureCompare();
+    if (tab === "paper") optRenderPaper();
+}
+
+// ---------- paper trades ----------
+
+function optSavePaper() {
+    const a = optState.analysis;
+    if (!a) return;
+    const name = optState.preset ? (OPT_PRESETS.find(([k]) => k === optState.preset) || [])[1] : null;
+    const list = optPaperAdd(optPaperLoad(), optPaperFrom(a, name, new Date()));
+    optPaperStore(list);
+    document.getElementById("opt-strategy-msg").textContent =
+        `Saved. Track it under Paper trades (${list.length} saved in this browser).`;
+}
+
+function optRenderPaper() {
+    const list = optPaperLoad();
+    const table = document.getElementById("paper-table");
+    const today = new Date().toISOString().slice(0, 10);
+    if (!list.length) {
+        table.innerHTML = `<tbody><tr><td class="feed-empty">No paper trades yet. Build a strategy, then press "Save as paper trade" to
+            follow how it would have done.</td></tr></tbody>`;
+        document.getElementById("paper-total").textContent = "";
+        return;
+    }
+    let total = 0, priced = 0;
+    table.innerHTML = `<thead><tr><th>Position</th><th>Opened</th><th>Expiry</th><th class="opt-num">At open</th>
+        <th class="opt-num">Now</th><th class="opt-num">P/L</th><th></th></tr></thead><tbody>${list.map(t => {
+        const left = optDaysBetween(today, t.expiry);
+        const expired = left < 0;
+        const has = !expired && t.now !== undefined && t.now !== null;
+        const r = has ? optPaperPnl(t.entry, t.now) : null;
+        if (r) { total += r.pnl; priced++; }
+        const legs = t.legs.map(l => optLegText(l, t.symbol)).join(", ");
+        return `<tr>
+            <td><span class="cmp-name">${escapeHtml(t.symbol)} · ${escapeHtml(t.name)}</span>
+                <span class="paper-legs">${escapeHtml(legs)}</span></td>
+            <td>${optDate(t.saved_at.slice(0, 10))}<span class="paper-sub">stock $${Number(t.spot).toFixed(2)}</span></td>
+            <td>${optDate(t.expiry)}<span class="paper-sub">${expired ? "expired" : left === 0 ? "today" : left + " days left"}</span></td>
+            <td class="opt-num">${t.entry >= 0 ? "paid " + optMoney(t.entry) : "collected " + optMoney(-t.entry)}</td>
+            <td class="opt-num">${has ? (t.now >= 0 ? "worth " + optMoney(t.now) : "costs " + optMoney(-t.now) + " to close")
+                : expired ? "—" : (t.error ? `<span class="opt-dim">${escapeHtml(t.error)}</span>` : "—")}</td>
+            <td class="opt-num ${r ? (r.pnl > 0 ? "positive" : r.pnl < 0 ? "negative" : "") : ""}">${r
+                ? `${optMoney(r.pnl, true)}${r.pct !== null ? `<span class="paper-sub">${r.pct >= 0 ? "+" : ""}${(r.pct * 100).toFixed(1)}%</span>` : ""}`
+                : expired ? `<span class="opt-dim">Expired: the result depends on the ${optDate(t.expiry)} close</span>` : "—"}</td>
+            <td class="paper-actions"><button class="btn-secondary" data-open="${t.id}" type="button"${expired ? " disabled" : ""}>Open</button>
+                <button class="btn-icon" data-remove-paper="${t.id}" aria-label="Remove">✕</button></td></tr>`;
+    }).join("")}</tbody>`;
+    document.getElementById("paper-total").innerHTML = priced
+        ? `Total P/L on ${priced} open trade${priced === 1 ? "" : "s"}: <strong class="${total >= 0 ? "positive" : "negative"}">${optMoney(total, true)}</strong>`
+        : "";
+    if (list.some(t => t.now === undefined && optDaysBetween(today, t.expiry) >= 0) && !optState.paperBusy) optRefreshPaper();
+}
+
+// Price every open trade at today's mids (three at a time).
+async function optRefreshPaper() {
+    if (optState.paperBusy) return;
+    optState.paperBusy = true;
+    const status = document.getElementById("paper-status");
+    const today = new Date().toISOString().slice(0, 10);
+    const list = optPaperLoad();
+    const open = list.filter(t => optDaysBetween(today, t.expiry) >= 0);
+    let done = 0;
+    status.textContent = open.length ? `Pricing ${open.length} trade${open.length === 1 ? "" : "s"}…` : "";
+    const work = open.map(t => async () => {
+        try {
+            const res = await optFetch("/options/strategy", { symbol: t.symbol, expiry: t.expiry,
+                legs: t.legs.map(l => ({ type: l.type, qty: l.qty, strike: l.strike })) });
+            t.now = res.net_debit;
+            t.error = null;
+        } catch (e) {
+            t.now = null;
+            t.error = optOffline() ? "needs the live backend" : "can't be priced right now";
+        }
+        t.checked_at = new Date().toISOString();
+        status.textContent = `Priced ${++done} of ${open.length}…`;
+    });
+    for (let i = 0; i < work.length; i += 3) await Promise.all(work.slice(i, i + 3).map(f => f()));
+    optPaperStore(list);
+    optState.paperBusy = false;
+    status.textContent = open.length ? `Prices as of ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "";
+    if (optState.tab === "paper") optRenderPaper();
+}
+
+async function optPaperClick(e) {
+    const rm = e.target.closest("[data-remove-paper]");
+    if (rm) {
+        optPaperStore(optPaperLoad().filter(t => t.id !== rm.dataset.removePaper));
+        optRenderPaper();
+        return;
+    }
+    const open = e.target.closest("[data-open]");
+    if (!open) return;
+    const t = optPaperLoad().find(x => x.id === open.dataset.open);
+    if (!t) return;
+    if (optState.symbol !== t.symbol) await optLoadSymbol(t.symbol);
+    if (optState.expiry !== t.expiry) {
+        document.getElementById("opt-expiry").value = t.expiry;
+        await optLoadChain(t.expiry);
+    }
+    optState.legs = t.legs.map(l => ({ type: l.type, qty: l.qty, strike: l.strike }));
+    optSetPreset(null);
+    optShowTab("strategy");
+    optAnalyze();
 }
 
 // ---------- compare & choose ----------
@@ -931,6 +1078,7 @@ function optRenderStrategy() {
     const sum = document.getElementById("opt-strategy-summary");
     const results = document.getElementById("opt-results");
     document.getElementById("opt-ask-ski").hidden = !a;
+    document.getElementById("opt-save-paper").hidden = !a;
     results.hidden = !a;
     if (!a) {
         stats.innerHTML = "";
