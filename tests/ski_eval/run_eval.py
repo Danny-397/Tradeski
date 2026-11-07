@@ -133,7 +133,8 @@ def fixture_expirations(symbol: str) -> list:
     """Five expiries, one week to two months out, for any symbol with fixture prices."""
     if symbol not in _SHAPES:
         return []
-    today = datetime.date.today()
+    from tracker import options as opt
+    today = datetime.datetime.now(opt._ET).date()   # expiries count in New York time
     return [(today + datetime.timedelta(days=d)).isoformat() for d in (7, 14, 28, 35, 63)]
 
 

@@ -22,7 +22,8 @@ S, R, Q, SIGMA = 100.0, 0.04, 0.0, 0.25
 
 
 def _expiry(days=30):
-    return (dt.date.today() + dt.timedelta(days=days)).isoformat()
+    # Days count in New York, as the code does: in the evening there, UTC is already tomorrow.
+    return (dt.datetime.now(opt._ET).date() + dt.timedelta(days=days)).isoformat()
 
 
 def raw_chain(days=30, sigma=SIGMA, spot=S, half_spread=0.05, oi=500):
