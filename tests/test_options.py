@@ -365,7 +365,9 @@ def test_scan_endpoint(client):
 
 def _eod_file(days=(30,)):
     """A saved end-of-day file, as capture_snapshot.capture_eod_chains writes it."""
-    out = {"symbol": "EODX", "captured_at": "2026-11-06T21:40:00+00:00", "chains": {}}
+    # Saved an hour ago, so a clock measured from "now" would differ measurably.
+    saved_at = dt.datetime.now(dt.timezone.utc).replace(microsecond=0) - dt.timedelta(hours=1)
+    out = {"symbol": "EODX", "captured_at": saved_at.isoformat(), "chains": {}}
     for d in days:
         expiry, raw = raw_chain(d)
         out["spot"], out["dividend_yield"] = raw["spot"], raw["dividend_yield"]
@@ -402,6 +404,9 @@ def test_endpoints_fall_back_to_end_of_day_chains_when_the_live_source_is_empty(
     data = client.get("/options/chain?symbol=EODX").get_json()
     assert data["source"] == "end_of_day" and data["quotes_as_of"] == eod["captured_at"]
     assert data["atm_iv"] == pytest.approx(SIGMA, abs=0.01)
+    # Time to expiry runs from when the quotes were saved, not from now.
+    saved = dt.datetime.fromisoformat(eod["captured_at"])
+    assert data["years"] == pytest.approx(opt.year_fraction(data["expiry"], saved), abs=1e-9)
     res = client.post("/options/strategy", json={"symbol": "EODX", "preset": "iron_condor"})
     assert res.status_code == 200 and len(res.get_json()["legs"]) == 4
     assert calls == ["EODX"]                                    # the file is fetched once and cached

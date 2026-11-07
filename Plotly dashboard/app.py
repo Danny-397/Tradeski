@@ -1060,7 +1060,16 @@ def _cached_chain(symbol: str, expiry: str) -> Optional[dict]:
         if not raw:
             return None
         rate, rate_source = _options_rate()
-        chain = opt.clean_chain(raw, expiry, rate)
+        # Saved quotes are priced at the moment they were saved: measuring time to
+        # expiry from now would read Friday's prices against a shorter clock over a
+        # weekend and overstate every IV.
+        when = None
+        if eod:
+            try:
+                when = datetime.datetime.fromisoformat(eod.get("captured_at"))
+            except (TypeError, ValueError):
+                when = None
+        chain = opt.clean_chain(raw, expiry, rate, now=when)
         chain["rate_source"] = rate_source
         chain["source"] = "end_of_day" if eod else "live"
         chain["quotes_as_of"] = eod.get("captured_at") if eod else None
