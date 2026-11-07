@@ -649,8 +649,14 @@ def compare_strategies(chain: dict, presets: Optional[list] = None, target: Opti
     return out
 
 
-def legs_from_request(specs: list, chain: dict, max_legs: int = 6) -> list:
-    """Price user-chosen legs [{type, qty, strike}] from the chain."""
+def legs_from_request(specs: list, chain: dict, max_legs: int = 6, entry: bool = False) -> list:
+    """Price user-chosen legs [{type, qty, strike}] from the chain.
+
+    With ``entry``, a leg's own ``price`` (what was paid or received when the
+    position was opened) is kept instead of today's mid, so the analysis is of
+    the position as held: break-evens, best and worst case and the chance of
+    profit measured from the entry cost. IV still comes from today's chain.
+    """
     if not isinstance(specs, list) or not specs:
         raise ValueError("legs must be a non-empty list")
     if len(specs) > max_legs:
@@ -677,8 +683,16 @@ def legs_from_request(specs: list, chain: dict, max_legs: int = 6) -> list:
             raise ValueError(f"no {kind} at strike {strike} for {chain['expiry']}")
         if not c.get("mid") or not c.get("iv"):
             raise ValueError(f"the {strike:g} {kind} has no usable quote right now")
-        legs.append(_leg(c, qty))
+        leg = _leg(c, qty)
+        if entry and _num((s or {}).get("price")) is not None:
+            leg["price"] = _num(s["price"])
+        legs.append(leg)
     return legs
+
+
+def value_now(legs: list) -> float:
+    """What the legs are worth at today's mids (the net debit to open them now)."""
+    return round(sum(leg["qty"] * MULTIPLIER * leg["price"] for leg in legs), 2)
 
 
 # ─────────────────────────────────────────────────────────────

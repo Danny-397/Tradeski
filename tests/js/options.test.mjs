@@ -227,3 +227,11 @@ test("thin-market reasons for a leg", () => {
     assert.equal(thin({ type: "put", strike: 90 }, chain), "no two-sided quote");
     assert.equal(thin({ type: "stock", strike: null }, chain), "");
 });
+
+test("paper-trade progress toward a capped best case", () => {
+    const { optPaperProgress } = load(["optPaperProgress"]);
+    assert.deepEqual(plain(optPaperProgress(120, 245)), { pct: 120 / 245, close: false });
+    assert.deepEqual(plain(optPaperProgress(130, 245)), { pct: 130 / 245, close: true });
+    assert.equal(optPaperProgress(50, null), null);          // unlimited profit: no progress bar
+    assert.equal(optPaperProgress(50, 0), null);
+});

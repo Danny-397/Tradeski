@@ -1145,8 +1145,12 @@ def options_strategy() -> tuple:
     if not chain:
         return _chain_error(sym, expiry)
     try:
+        current = None
         if body.get("legs"):
-            legs = opt.legs_from_request(body["legs"], chain)
+            entry = bool(body.get("entry_prices"))
+            legs = opt.legs_from_request(body["legs"], chain, entry=entry)
+            if entry:   # a held position: also what it is worth at today's mids
+                current = opt.value_now(opt.legs_from_request(body["legs"], chain))
         else:
             legs = opt.build_preset(str(body.get("preset") or ""), chain)
         days = body.get("days_forward")
@@ -1157,6 +1161,8 @@ def options_strategy() -> tuple:
                              sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days, iv_shift=shift)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
+    if current is not None:
+        result["value_now"] = current
     result.update({"symbol": sym, "expiry": expiry, "dte": chain["dte"], "spot": chain["spot"],
                    "atm_iv": chain["atm_iv"], "market_state": chain.get("market_state")})
     return jsonify(result)

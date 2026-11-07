@@ -191,6 +191,14 @@ function optPaperFrom(analysis, presetName, now) {
     };
 }
 
+// How much of a capped best case is locked in: {pct, close: pct >= 50%}, or null
+// when the profit has no cap or isn't known.
+function optPaperProgress(pnl, maxProfit) {
+    if (maxProfit === null || maxProfit === undefined || !(maxProfit > 0)) return null;
+    const pct = pnl / maxProfit;
+    return { pct, close: pct >= 0.5 };
+}
+
 // Newest first, at most OPT_PAPER_MAX.
 function optPaperAdd(list, trade) {
     return [trade, ...(list || []).filter(t => t.id !== trade.id)].slice(0, OPT_PAPER_MAX);
@@ -506,7 +514,10 @@ function optRenderPaper() {
     }
     let total = 0, priced = 0;
     table.innerHTML = `<thead><tr><th>Position</th><th>Opened</th><th>Expiry</th><th class="opt-num">At open</th>
-        <th class="opt-num">Now</th><th class="opt-num">P/L</th><th></th></tr></thead><tbody>${list.map(t => {
+        <th class="opt-num">Now</th><th class="opt-num">P/L</th>
+        <th title="How much of the best case you have locked in, if you closed now">Progress</th>
+        <th class="opt-num" title="Chance the position ends profitable from what you paid, implied by today's option prices">Chance now</th>
+        <th></th></tr></thead><tbody>${list.map(t => {
         const left = optDaysBetween(today, t.expiry);
         const expired = left < 0;
         const has = !expired && t.now !== undefined && t.now !== null;
@@ -524,6 +535,14 @@ function optRenderPaper() {
             <td class="opt-num ${r ? (r.pnl > 0 ? "positive" : r.pnl < 0 ? "negative" : "") : ""}">${r
                 ? `${optMoney(r.pnl, true)}${r.pct !== null ? `<span class="paper-sub">${r.pct >= 0 ? "+" : ""}${(r.pct * 100).toFixed(1)}%</span>` : ""}`
                 : expired ? `<span class="opt-dim">Expired: the result depends on the ${optDate(t.expiry)} close</span>` : "—"}</td>
+            <td class="paper-progress">${(() => {
+                const pr = r ? optPaperProgress(r.pnl, t.max_profit) : null;
+                if (!pr) return `<span class="opt-dim">${r && t.max_profit === null ? "no cap on profit" : "—"}</span>`;
+                return `<span class="opt-meter"><span style="width:${Math.max(0, Math.min(100, pr.pct * 100))}%"></span></span>
+                    <span class="paper-sub">${Math.round(pr.pct * 100)}% of max profit</span>${pr.close
+                    ? `<span class="paper-take" title="A common rule of thumb for trades with capped profit">Many traders close at 50%+</span>` : ""}`;
+            })()}</td>
+            <td class="opt-num">${r && t.pop !== undefined && t.pop !== null ? optPct(t.pop, 0) : "—"}</td>
             <td class="paper-actions"><button class="btn-secondary" data-open="${t.id}" type="button"${expired ? " disabled" : ""}>Open</button>
                 <button class="btn-icon" data-remove-paper="${t.id}" aria-label="Remove">✕</button></td></tr>`;
     }).join("")}</tbody>`;
@@ -546,8 +565,12 @@ async function optRefreshPaper() {
     const work = open.map(t => async () => {
         try {
             const res = await optFetch("/options/strategy", { symbol: t.symbol, expiry: t.expiry,
-                legs: t.legs.map(l => ({ type: l.type, qty: l.qty, strike: l.strike })) });
-            t.now = res.net_debit;
+                legs: t.legs.map(l => ({ type: l.type, qty: l.qty, strike: l.strike, price: l.price })),
+                entry_prices: true });
+            // Analysed as held: from the entry prices, with today's value alongside.
+            t.now = res.value_now !== undefined ? res.value_now : res.net_debit;
+            t.pop = res.prob_profit;
+            t.max_profit = res.unlimited_profit ? null : res.max_profit;
             t.error = null;
         } catch (e) {
             t.now = null;

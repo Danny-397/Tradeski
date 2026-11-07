@@ -1760,3 +1760,8 @@ select.form-input {
 .opt-decay-card { margin-top: var(--s-6); }
 .opt-decay { width: 100%; height: 220px; }
 .opt-thin { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #FCD34D; background: rgba(245, 158, 11, 0.16); cursor: help; }
+
+.paper-progress { min-width: 150px; }
+.paper-progress .opt-meter span { background: #4ADE80; }
+.paper-take { display: inline-block; margin-top: 3px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    color: #052E16; background: #4ADE80; }

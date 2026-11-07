@@ -615,3 +615,20 @@ def test_time_decay_series_runs_to_expiry_at_todays_price():
     assert all(a["pnl"] >= b["pnl"] for a, b in zip(d, d[1:]))    # a bought option only decays
     short = opt.analyze([_call(100, -1, price)], S, T, R, sigma=SIGMA)["decay"]
     assert short[-1]["pnl"] == pytest.approx(price * 100, abs=0.01)   # time works for the seller
+
+
+def test_held_positions_are_analysed_from_their_entry_prices(client):
+    c = chain()
+    call = next(x for x in c["calls"] if x["strike"] == 100)
+    spec = [{"type": "call", "qty": 1, "strike": 100, "price": 1.00}]          # bought cheap
+    held = opt.legs_from_request(spec, c, entry=True)
+    assert held[0]["price"] == 1.00 and held[0]["iv"] == call["iv"]
+    assert opt.legs_from_request(spec, c)[0]["price"] == call["mid"]           # default: today's mid
+    assert opt.value_now(opt.legs_from_request(spec, c)) == pytest.approx(call["mid"] * 100, abs=0.01)
+    res = client.post("/options/strategy", json={"symbol": "TEST", "expiry": client.expiries[1],
+                                                 "legs": spec, "entry_prices": True}).get_json()
+    assert res["net_debit"] == 100 and res["breakevens"] == [101.0]            # from the entry cost
+    assert res["value_now"] > 100                                              # worth more now
+    plain = client.post("/options/strategy", json={"symbol": "TEST", "expiry": client.expiries[1],
+                                                   "legs": spec}).get_json()
+    assert "value_now" not in plain
