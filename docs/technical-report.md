@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 261, across 26 files, run in GitHub Actions with flake8 |
+| Tests | 264, across 26 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -152,7 +152,7 @@ correlation for any two assets that both drift upward.
 
 ### Options: priced here, not taken from the feed
 
-The Options window ([`tracker/options.py`](../tracker/options.py)) shows a chain, builds
+The Options page (`/options`, maths in [`tracker/options.py`](../tracker/options.py)) shows a chain, builds
 strategies and scans for cash-secured puts and covered calls. Its numbers follow the same
 rule as Ski's tools: the code computes them, and nothing is taken on trust from the feed.
 
@@ -297,7 +297,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-261 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
+264 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the

@@ -138,3 +138,12 @@ test("the page counts as idle when hidden or after 15 minutes untouched", () => 
     assert.equal(isIdle(false, now - IDLE_AFTER_MS + 1, now), false);
     assert.equal(isIdle(false, now - IDLE_AFTER_MS, now), true);
 });
+
+test("?symbol= opens the dashboard on that ticker, and junk is ignored", () => {
+    const { symbolFromQuery } = load(["function symbolFromQuery("], { URLSearchParams });
+    assert.equal(symbolFromQuery("?symbol=nvda"), "NVDA");
+    assert.equal(symbolFromQuery("?symbol=BRK-B&x=1"), "BRK-B");
+    assert.equal(symbolFromQuery(""), null);
+    assert.equal(symbolFromQuery("?symbol=<script>"), null);
+    assert.equal(symbolFromQuery("?symbol=TOOLONGSYMBOL1"), null);
+});

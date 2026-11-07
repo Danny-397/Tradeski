@@ -1,8 +1,10 @@
-// options.js — the Options window: chain with filters, strategy builder, scanner.
+// options.js — the Options page (/options): chain with filters, strategy
+// builder, scanner.
 //
 // Every number (IV, Greeks, P/L, probabilities) is computed by the backend
-// (tracker/options.py); this file only filters, lays out and charts it.
-// Uses globals from dashboard.js: CFG, state, escapeHtml, skiToggle.
+// (tracker/options.py); this file only filters, lays out and charts it. It
+// runs on its own page, so it depends on nothing from dashboard.js. The page
+// state (symbol, expiry, tab) lives in the URL, so a view can be linked to.
 
 const OPT_PRESETS = [
     ["long_call", "Long call"], ["long_put", "Long put"],
@@ -13,6 +15,11 @@ const OPT_PRESETS = [
 ];
 
 const OPT_SCAN_DEFAULT = "AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, JPM, SPY, QQQ";
+const OPT_API = "https://tradeski.onrender.com";
+// Quick picks: the symbols whose closing chains are always saved (see capture_snapshot.py).
+const OPT_QUICK = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "SPY", "QQQ", "JPM", "SOFI", "RDW"];
+const OPT_TABS = ["chain", "strategy", "scan"];
+const OPT_SKI_KEY = "tradeski-ski-prompt";   // read by dashboard.js on load
 // Fewer daily readings than this and a percentile says more about the sample than the stock.
 const OPT_IV_MIN_DAYS = 20;
 
@@ -33,6 +40,23 @@ const optState = {
 };
 
 // ---------- pure helpers (unit-tested in tests/js/options.test.mjs) ----------
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// The page's starting state from its query string: ?symbol=NVDA&expiry=2026-12-18&tab=strategy.
+function optParseQuery(search) {
+    const q = new URLSearchParams(search || "");
+    const sym = (q.get("symbol") || "").trim().toUpperCase();
+    const tab = q.get("tab");
+    const expiry = q.get("expiry") || "";
+    return {
+        symbol: /^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) ? sym : "AAPL",
+        tab: OPT_TABS.includes(tab) ? tab : "chain",
+        expiry: /^\d{4}-\d{2}-\d{2}$/.test(expiry) ? expiry : "",
+    };
+}
 
 function optNum(v) {
     if (v === "" || v === null || v === undefined) return null;
@@ -118,7 +142,7 @@ function optOffline() {
 }
 
 async function optFetch(path, body) {
-    const res = await fetch(`${CFG.API}${path}`, body ? {
+    const res = await fetch(`${OPT_API}${path}`, body ? {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     } : undefined);
     let data = null;
@@ -127,16 +151,28 @@ async function optFetch(path, body) {
     return data;
 }
 
-// ---------- window ----------
+// ---------- page ----------
+
+// Keep the address bar in step with what is on screen, without adding history entries.
+function optSyncUrl() {
+    const q = new URLSearchParams();
+    if (optState.symbol) q.set("symbol", optState.symbol);
+    if (optState.expiry) q.set("expiry", optState.expiry);
+    if (optState.tab && optState.tab !== "chain") q.set("tab", optState.tab);
+    history.replaceState(null, "", `${location.pathname}?${q}`);
+    const back = document.getElementById("opt-back");
+    if (back && optState.symbol) back.href = `/app?symbol=${encodeURIComponent(optState.symbol)}`;
+    document.title = `${optState.symbol ? optState.symbol + " options" : "Options"} · Tradeski`;
+}
 
 function initOptions() {
-    const modal = document.getElementById("options-modal");
-    if (!modal) return;
-    document.getElementById("open-options-btn").addEventListener("click", () => openOptions());
-    document.getElementById("close-options-btn").addEventListener("click", closeOptions);
-    modal.addEventListener("click", e => { if (e.target.id === "options-modal") closeOptions(); });
-    document.addEventListener("keydown", e => {
-        if (e.key === "Escape" && modal.style.display === "flex") closeOptions();
+    const page = document.getElementById("options-page");
+    if (!page) return;
+    const quick = document.getElementById("opt-quick");
+    quick.innerHTML = OPT_QUICK.map(s => `<button class="opt-quick-btn" data-symbol="${s}">${s}</button>`).join("");
+    quick.addEventListener("click", e => {
+        const b = e.target.closest("[data-symbol]");
+        if (b) optLoadSymbol(b.dataset.symbol);
     });
 
     document.querySelectorAll(".opt-tab").forEach(b => b.addEventListener("click", () => optShowTab(b.dataset.tab)));
@@ -207,16 +243,11 @@ function initOptions() {
             optRenderScan();
         }));
     document.getElementById("opt-scan-body").addEventListener("click", optScanClick);
-}
 
-function openOptions(symbol) {
-    document.getElementById("options-modal").style.display = "flex";
-    const sym = symbol || (typeof state !== "undefined" && state.symbol) || "AAPL";
-    if (sym !== optState.symbol || !optState.chain) optLoadSymbol(sym);
-}
-
-function closeOptions() {
-    document.getElementById("options-modal").style.display = "none";
+    const start = optParseQuery(location.search);
+    optState.wantExpiry = start.expiry;
+    optShowTab(start.tab);
+    optLoadSymbol(start.symbol);
 }
 
 function optShowTab(tab) {
@@ -227,6 +258,7 @@ function optShowTab(tab) {
         b.setAttribute("aria-selected", on ? "true" : "false");
     });
     document.querySelectorAll(".opt-pane").forEach(p => { p.hidden = p.id !== `opt-pane-${tab}`; });
+    optSyncUrl();
     if (tab === "strategy" && optState.analysis) optDrawPayoff(optState.analysis);
     if (tab === "chain" && optState.chain) optDrawSmile(optState.chain);
 }
@@ -239,6 +271,7 @@ function optStatus(msg, isError) {
 
 async function optLoadSymbol(sym) {
     optState.symbol = sym;
+    document.querySelectorAll(".opt-quick-btn").forEach(b => b.classList.toggle("active", b.dataset.symbol === sym));
     optState.chain = null;
     optState.legs = [];
     optState.analysis = null;
@@ -259,8 +292,12 @@ async function optLoadSymbol(sym) {
         }
         sel.innerHTML = data.expirations.map(e =>
             `<option value="${e.date}">${e.date} (${e.dte}d)</option>`).join("");
-        sel.value = data.default;
-        await optLoadChain(data.default);
+        // An expiry from a shared link wins if it is still listed (only once, for the first symbol).
+        const wanted = optState.wantExpiry;
+        optState.wantExpiry = "";
+        const expiry = wanted && data.expirations.some(e => e.date === wanted) ? wanted : data.default;
+        sel.value = expiry;
+        await optLoadChain(expiry);
     } catch (e) {
         sel.innerHTML = "";
         optStatus(`Options are unavailable right now (${e.message}). They need the live backend.`, true);
@@ -270,6 +307,7 @@ async function optLoadSymbol(sym) {
 async function optLoadChain(expiry) {
     const id = ++optState.reqId;
     optState.expiry = expiry;
+    optSyncUrl();
     optStatus(`Loading the ${expiry} chain…`);
     document.getElementById("opt-chain-body").innerHTML =
         `<tr><td colspan="13" class="screener-loading"><div class="loading-spinner"></div> Fetching quotes…</td></tr>`;
@@ -610,16 +648,17 @@ function optDrawPayoff(a) {
     }), { responsive: true, displayModeBar: false });
 }
 
+// Ski lives on the dashboard: hand the question over and go there; dashboard.js
+// opens Ski with it filled in (not sent, so the user can edit it first).
 function optAskSki() {
     const a = optState.analysis;
-    if (!a || typeof skiToggle !== "function") return;
+    if (!a) return;
     const legs = a.legs.map(l => optLegText(l, a.symbol)).join(", ");
-    closeOptions();
-    skiToggle(true);
-    const input = document.getElementById("ski-input");
-    input.value = `I'm looking at this ${a.symbol} options position expiring ${a.expiry}: ${legs}. ` +
-        "Explain how it makes and loses money, and what the main risks are.";
-    input.focus();
+    try {
+        sessionStorage.setItem(OPT_SKI_KEY, `I'm looking at this ${a.symbol} options position expiring ${a.expiry}: ` +
+            `${legs}. Explain how it makes and loses money, and what the main risks are.`);
+    } catch (_) { /* storage blocked: still go to the dashboard */ }
+    location.href = `/app?symbol=${encodeURIComponent(a.symbol)}`;
 }
 
 // ---------- scanner ----------
