@@ -58,7 +58,6 @@
                 <button class="btn-primary" id="opt-symbol-go">Load</button>
                 <select id="opt-expiry" class="filter-select" aria-label="Expiry"></select>
             </div>
-            <div class="opt-quick" id="opt-quick" aria-label="Quick picks"></div>
         </div>
             <section class="opt-intro" id="opt-intro" aria-label="What you can do here">
                 <div class="opt-intro-head">
@@ -68,16 +67,16 @@
                 <div class="opt-intro-steps">
                     <button class="opt-intro-step" type="button" data-goto-tab="chain">
                         <span class="opt-step-n">1</span><strong>Chain</strong>
-                        <span>Every call and put for an expiry: price, implied volatility, and delta (roughly the chance it ends in the money).</span></button>
+                        <span>Every call and put for an expiry, with IV, delta, volume and open interest, plus the volatility smile.</span></button>
                     <button class="opt-intro-step" type="button" data-goto-tab="strategy">
                         <span class="opt-step-n">2</span><strong>Strategy builder</strong>
-                        <span>Pick a strategy and see what it costs, the most you can make or lose, where you break even, and your profit or loss at any price.</span></button>
+                        <span>Cost, max profit and loss, break-evens, chance of profit and P/L at any price, date or IV.</span></button>
                     <button class="opt-intro-step" type="button" data-goto-tab="compare">
                         <span class="opt-step-n">3</span><strong>Compare &amp; choose</strong>
-                        <span>Say where you think the stock is going and see every strategy ranked for that view, or put two or three side by side.</span></button>
+                        <span>Rank every strategy for your price target, or put two or three side by side.</span></button>
                     <button class="opt-intro-step" type="button" data-goto-tab="scan">
                         <span class="opt-step-n">4</span><strong>Scanner</strong>
-                        <span>Find the covered calls and cash-secured puts that pay the most for the risk you choose, across several stocks.</span></button>
+                        <span>Covered calls, cash-secured puts, credit spreads and iron condors across up to 10 stocks.</span></button>
                 </div>
             </section>
             <div class="opt-tabs" role="tablist">
@@ -119,20 +118,17 @@
                     <span class="filter-label">Implied volatility by strike <span class="badge" id="opt-chain-count"></span></span>
                     <div id="opt-smile" class="opt-smile"></div>
                 </div>
-                <p class="opt-hint">Click an <strong>ask</strong> to buy or a <strong>bid</strong> to sell; the contract is added to the strategy builder. Shaded rows are in the money.</p>
+                <p class="opt-hint">Click an <strong>ask</strong> to buy or a <strong>bid</strong> to sell; it goes into the strategy builder. Shaded = in the money.</p>
                 <div class="opt-chain-cards" id="opt-chain-cards" aria-label="Option chain"></div>
                 <div class="opt-table-wrap opt-chain-wrap">
                     <table class="screener-table opt-chain-table">
                         <thead>
-                            <tr class="opt-group-head"><th colspan="6">Calls <span class="opt-dim">· gain if the stock rises</span></th><th></th><th colspan="6">Puts <span class="opt-dim">· gain if the stock falls</span></th></tr>
-                            <tr><th title="Open interest: contracts that exist">OI</th><th title="Contracts traded today">Vol</th>
-                                <th title="Implied volatility: how much movement the price assumes">IV</th>
-                                <th title="Roughly the chance it ends in the money; also how much it moves per $1 in the stock">Delta</th>
-                                <th title="What buyers pay. Click to sell at it">Bid</th><th title="What sellers ask. Click to buy at it">Ask</th>
+                            <tr class="opt-group-head"><th colspan="6">Calls</th><th></th><th colspan="6">Puts</th></tr>
+                            <tr><th>OI</th><th>Vol</th><th>IV</th><th>Delta</th>
+                                <th title="Click to sell">Bid</th><th title="Click to buy">Ask</th>
                                 <th class="opt-strike">Strike</th>
-                                <th title="What buyers pay. Click to sell at it">Bid</th><th title="What sellers ask. Click to buy at it">Ask</th>
-                                <th title="Roughly the chance it ends in the money (negative for puts)">Delta</th>
-                                <th title="Implied volatility">IV</th><th title="Contracts traded today">Vol</th><th title="Open interest">OI</th></tr>
+                                <th title="Click to sell">Bid</th><th title="Click to buy">Ask</th>
+                                <th>Delta</th><th>IV</th><th>Vol</th><th>OI</th></tr>
                         </thead>
                         <tbody id="opt-chain-body"></tbody>
                     </table>
@@ -154,7 +150,7 @@
                 </div>
                 <div class="opt-table-wrap opt-legs-wrap">
                     <table class="screener-table opt-legs-table">
-                        <thead><tr><th>Action</th><th>Qty</th><th>Type</th><th>Strike</th><th class="opt-num">Price</th><th>What it means</th><th></th></tr></thead>
+                        <thead><tr><th>Action</th><th>Qty</th><th>Type</th><th>Strike</th><th class="opt-num">Price</th><th>Cash</th><th></th></tr></thead>
                         <tbody id="opt-legs"></tbody>
                     </table>
                 </div>
@@ -170,7 +166,7 @@
                         <div class="opt-chart-head">
                             <div>
                                 <strong>Profit or loss at each price</strong>
-                                <span class="opt-dim">Green: you make money. Red: you lose. Hover the chart for exact amounts.</span>
+                                <span class="opt-dim">Hover for exact amounts.</span>
                                 <span class="opt-dim" id="opt-range-note"></span>
                             </div>
                             <div class="opt-sliders">
@@ -178,7 +174,7 @@
                                     <label class="filter-label" for="opt-days">Also show it <span id="opt-days-label">today only</span></label>
                                     <input type="range" id="opt-days" min="0" max="30" step="1" value="0">
                                 </div>
-                                <div class="opt-days" title="Implied volatility usually falls right after earnings (the IV crush): bought options lose value even if the stock doesn't move.">
+                                <div class="opt-days">
                                     <label class="filter-label" for="opt-ivshift">Implied volatility <span id="opt-ivshift-label">unchanged</span></label>
                                     <input type="range" id="opt-ivshift" min="-30" max="30" step="1" value="0">
                                     <button class="text-btn opt-crush-btn" id="opt-ivshift-crush" type="button">Try an IV crush</button>
@@ -246,7 +242,6 @@
                     <div class="opt-chart-card">
                         <div class="opt-chart-head"><div>
                             <strong>Profit or loss at expiry</strong>
-                            <span class="opt-dim">One line per strategy. Above the zero line you make money; below it you lose.</span>
                         </div></div>
                         <div id="cmp-chart" class="opt-payoff"></div>
                     </div>
@@ -268,8 +263,7 @@
                 <div class="opt-table-wrap">
                     <table class="screener-table paper-table" id="paper-table"></table>
                 </div>
-                <p class="opt-note paper-note">P/L is what the position would be worth if you closed it now at mid prices, minus what it cost to open
-                    (or plus what it paid you). Quotes are delayed or end-of-day, and real fills are usually worse.</p>
+                <p class="opt-note paper-note">P/L is marked at mid prices from delayed or end-of-day quotes; real fills are usually worse.</p>
             </section>
 
             <!-- Scanner -->
@@ -320,7 +314,7 @@
                     </table>
                 </div>
                 <p class="opt-note" id="opt-scan-skipped"></p>
-                <p class="opt-note">Annualised return assumes the same trade could be repeated all year, which it usually can't; use it to compare, not as a forecast. A cash-secured put can leave you owning the stock at the strike, and a covered call caps your upside. Spreads and condors buy protection further out, so the most they can lose is fixed: the capital shown.</p>
+                <p class="opt-note">Annualised return assumes the trade could be repeated all year, which it usually can't; use it to compare, not as a forecast.</p>
             </section>
     </main>
 

@@ -15,23 +15,22 @@ const OPT_PRESETS = [
 ];
 
 // What each preset is for, in plain words, shown on its card.
+// How each preset picks its strikes (mirrors build_preset in tracker/options.py).
 const OPT_PRESET_INFO = {
-    long_call:        { view: "Bullish",            kind: "bull",  text: "Profit if the stock rises past the strike plus what you paid.", risk: "Most you can lose: what you pay" },
-    long_put:         { view: "Bearish",            kind: "bear",  text: "Profit if the stock falls below the strike minus what you paid.", risk: "Most you can lose: what you pay" },
-    bull_call_spread: { view: "Moderately bullish", kind: "bull",  text: "Buy a call, sell a higher one. Cheaper than a call; profit is capped.", risk: "Limited risk, limited reward" },
-    bear_put_spread:  { view: "Moderately bearish", kind: "bear",  text: "Buy a put, sell a lower one. Cheaper than a put; profit is capped.", risk: "Limited risk, limited reward" },
-    covered_call:     { view: "Neutral to bullish", kind: "neutral", text: "Own 100 shares and sell a call: collect income, give up gains above the strike.", risk: "Risk: the stock falling" },
-    cash_secured_put: { view: "Neutral to bullish", kind: "neutral", text: "Sell a put with cash set aside: get paid now, maybe buy the stock cheaper.", risk: "Risk: buying the stock as it falls" },
-    iron_condor:      { view: "Neutral",            kind: "neutral", text: "Collect premium if the stock stays inside a range until expiry.", risk: "Limited risk, limited reward" },
-    long_straddle:    { view: "Big move, either way", kind: "move", text: "Buy a call and a put at one strike: profit from a large move up or down.", risk: "Most you can lose: both premiums" },
-    long_strangle:    { view: "Big move, either way", kind: "move", text: "Like a straddle but cheaper; the stock has to move further.", risk: "Most you can lose: both premiums" },
+    long_call:        { view: "Bullish",            kind: "bull",    text: "ATM call" },
+    long_put:         { view: "Bearish",            kind: "bear",    text: "ATM put" },
+    bull_call_spread: { view: "Moderately bullish", kind: "bull",    text: "Long ATM call, short call ~5% OTM" },
+    bear_put_spread:  { view: "Moderately bearish", kind: "bear",    text: "Long ATM put, short put ~5% OTM" },
+    covered_call:     { view: "Neutral to bullish", kind: "neutral", text: "100 shares, short 0.30-delta call" },
+    cash_secured_put: { view: "Neutral to bullish", kind: "neutral", text: "Short 0.30-delta put" },
+    iron_condor:      { view: "Neutral",            kind: "neutral", text: "Short 0.20-delta strangle, wings ~2.5% out" },
+    long_straddle:    { view: "Big move, either way", kind: "move",  text: "ATM call + ATM put" },
+    long_strangle:    { view: "Big move, either way", kind: "move",  text: "0.25-delta call + 0.25-delta put" },
 };
 const OPT_INTRO_KEY = "tradeski-options-intro-hidden";
 
 const OPT_SCAN_DEFAULT = "AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, JPM, SPY, QQQ";
 const OPT_API = "https://tradeski.onrender.com";
-// Quick picks: the symbols whose closing chains are always saved (see capture_snapshot.py).
-const OPT_QUICK = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "SPY", "QQQ", "JPM", "SOFI", "RDW"];
 const OPT_TABS = ["chain", "strategy", "compare", "scan", "paper"];
 const OPT_PAPER_KEY = "tradeski-paper-trades";
 const OPT_PAPER_MAX = 50;
@@ -295,16 +294,9 @@ function optZoneText(zones) {
 }
 
 // One leg as a sentence: "Buy 1 AAPL $340 call at $11.78 a share: you pay $1,178".
-function optLegPlain(leg, symbol) {
-    const n = Math.abs(leg.qty);
-    const buy = leg.qty > 0;
-    const total = n * 100 * leg.price;
-    const money = optMoney(total);
-    if (leg.type === "stock") {
-        return `${buy ? "Buy" : "Sell"} ${n * 100} ${symbol} shares at $${leg.price.toFixed(2)}: ${buy ? "you pay" : "you receive"} ${money}`;
-    }
-    return `${buy ? "Buy" : "Sell"} ${n} ${symbol} $${leg.strike} ${leg.type}${n > 1 ? "s" : ""} at $${leg.price.toFixed(2)} a share: ` +
-        `${buy ? "you pay" : "you collect"} ${money}`;
+// Cash for one leg: what it costs to open (pay) or brings in (collect).
+function optLegPlain(leg) {
+    return `${leg.qty > 0 ? "Pay" : "Collect"} ${optMoney(Math.abs(leg.qty) * 100 * leg.price)}`;
 }
 
 // "Buy 1 AAPL 350 call" etc., for the Ski prompt and leg list.
@@ -349,13 +341,6 @@ function optSyncUrl() {
 function initOptions() {
     const page = document.getElementById("options-page");
     if (!page) return;
-    const quick = document.getElementById("opt-quick");
-    quick.innerHTML = OPT_QUICK.map(s => `<button class="opt-quick-btn" data-symbol="${s}">${s}</button>`).join("");
-    quick.addEventListener("click", e => {
-        const b = e.target.closest("[data-symbol]");
-        if (b) optLoadSymbol(b.dataset.symbol);
-    });
-
     document.querySelectorAll(".opt-tab").forEach(b => b.addEventListener("click", () => optShowTab(b.dataset.tab)));
     const symInput = document.getElementById("opt-symbol");
     const go = () => {
@@ -387,8 +372,7 @@ function initOptions() {
         return `<button class="opt-preset-card" data-preset="${k}" type="button">
             <span class="opt-view opt-view-${info.kind}">${escapeHtml(info.view)}</span>
             <span class="opt-preset-name">${escapeHtml(label)}</span>
-            <span class="opt-preset-text">${escapeHtml(info.text)}</span>
-            <span class="opt-preset-risk">${escapeHtml(info.risk)}</span></button>`;
+            <span class="opt-preset-text">${escapeHtml(info.text)}</span></button>`;
     }).join("");
     presets.addEventListener("click", e => {
         const card = e.target.closest("[data-preset]");
@@ -810,7 +794,6 @@ async function optLoadSymbol(sym) {
     optState.compareTarget = null;        // a target price belongs to one stock
     const t = document.getElementById("cmp-target");
     if (t) t.value = "";
-    document.querySelectorAll(".opt-quick-btn").forEach(b => b.classList.toggle("active", b.dataset.symbol === sym));
     optState.chain = null;
     optState.legs = [];
     optState.analysis = null;
@@ -1155,7 +1138,7 @@ function optRenderStrategy() {
                     t === "stock" ? "100 shares" : t}</option>`).join("")}</select></td>
             <td>${strikeSel}</td>
             <td class="opt-num">${p ? "$" + p.price.toFixed(2) : "—"}</td>
-            <td class="opt-leg-plain">${p ? escapeHtml(optLegPlain(p, a.symbol)) : ""}${
+            <td class="opt-leg-plain">${p ? escapeHtml(optLegPlain(p)) : ""}${
                 thinLegs[i] ? ` <span class="opt-thin" title="${escapeHtml(thinLegs[i])}">thin market</span>` : ""}</td>
             <td><button class="btn-icon" data-remove="${i}" aria-label="Remove leg">✕</button></td></tr>`;
     }).join("") : `<tr><td colspan="7" class="feed-empty">Pick a strategy above, or click a bid (sell) or ask (buy) in the Chain tab.</td></tr>`;
@@ -1235,14 +1218,14 @@ function optRenderStrategy() {
             <td class="opt-num">$${s.price.toFixed(2)}</td>${pl(s.expiry)}${atDate ? pl(s.at_date) : ""}${pl(s.today)}</tr>`).join("")}</tbody>`;
 
     document.getElementById("opt-greeks").innerHTML = [
-        ["Delta", `${g.delta.toFixed(0)} shares`, "The position moves like this many shares of the stock right now."],
-        ["Theta", `${optMoney(g.theta, true)} a day`, "What one day passing does to its value, all else equal (time decay)."],
-        ["Vega", `${optMoney(g.vega, true)} per vol point`, "What a 1-point rise in implied volatility does to its value."],
-        ["Gamma", `${g.gamma.toFixed(2)}`, "How fast delta changes as the stock moves."],
-        ["Spread cost", optMoney(a.spread_cost), "Extra paid if you buy at the ask and sell at the bid instead of the midpoint."],
-        ["Reward / risk", a.return_on_risk === null ? "—" : a.return_on_risk.toFixed(2) + "×", "Best case divided by worst case."],
+        ["Delta", `${g.delta.toFixed(0)} shares`, ""],
+        ["Theta", `${optMoney(g.theta, true)} a day`, ""],
+        ["Vega", `${optMoney(g.vega, true)} per vol point`, ""],
+        ["Gamma", `${g.gamma.toFixed(2)}`, ""],
+        ["Spread cost", optMoney(a.spread_cost), "Paying the ask and selling the bid instead of mid."],
+        ["Reward / risk", a.return_on_risk === null ? "—" : a.return_on_risk.toFixed(2) + "×", ""],
     ].map(([k, v, d]) => `<div class="opt-greek"><span class="opt-outcome-label">${k}</span>
-        <span class="opt-greek-val">${v}</span><span class="opt-greek-text">${d}</span></div>`).join("");
+        <span class="opt-greek-val">${v}</span>${d ? `<span class="opt-greek-text">${d}</span>` : ""}</div>`).join("");
     document.getElementById("opt-decay-note").textContent =
         optDecayNote(a.decay, a.greeks.theta, a.symbol, a.spot);
     if (optState.tab === "strategy") { optDrawPayoff(a); optDrawDecay(a); }
