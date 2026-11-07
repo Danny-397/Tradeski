@@ -191,6 +191,14 @@ function optPaperFrom(analysis, presetName, now) {
     };
 }
 
+// How much of a capped best case is locked in: {pct, close: pct >= 50%}, or null
+// when the profit has no cap or isn't known.
+function optPaperProgress(pnl, maxProfit) {
+    if (maxProfit === null || maxProfit === undefined || !(maxProfit > 0)) return null;
+    const pct = pnl / maxProfit;
+    return { pct, close: pct >= 0.5 };
+}
+
 // Newest first, at most OPT_PAPER_MAX.
 function optPaperAdd(list, trade) {
     return [trade, ...(list || []).filter(t => t.id !== trade.id)].slice(0, OPT_PAPER_MAX);
@@ -214,6 +222,34 @@ function optPaperStore(list) {
     try { localStorage.setItem(OPT_PAPER_KEY, JSON.stringify(list)); } catch (_) { /* storage full or blocked */ }
     const n = document.getElementById("paper-count");
     if (n) n.textContent = list.length ? String(list.length) : "";
+}
+
+// Why a priced leg is hard to trade near its mid, or "" if it isn't:
+// a bid-ask spread over 10% of the mid, or fewer than 100 contracts open.
+const OPT_THIN_SPREAD = 10;
+const OPT_THIN_OI = 100;
+function optThinReason(leg, chain) {
+    if (!leg || leg.type === "stock" || !chain) return "";
+    const side = leg.type === "call" ? chain.calls : chain.puts;
+    const c = (side || []).find(x => x.strike === leg.strike);
+    if (!c) return "";
+    const why = [];
+    if (c.spread_pct === null || c.spread_pct === undefined) why.push("no two-sided quote");
+    else if (c.spread_pct > OPT_THIN_SPREAD) why.push(`bid-ask spread ${c.spread_pct.toFixed(0)}% of the price`);
+    if (c.open_interest < OPT_THIN_OI) why.push(`only ${c.open_interest} contracts open`);
+    return why.join("; ");
+}
+
+// The time-decay verdict: does waiting help or hurt if the stock stays put?
+function optDecayNote(decay, thetaPerDay, symbol, spot) {
+    if (!decay || decay.length < 2) return "";
+    const total = decay[decay.length - 1].pnl - decay[0].pnl;
+    const day = optMoney(Math.abs(thetaPerDay));
+    const at = `if ${symbol} stays at $${spot.toFixed(2)}`;
+    if (Math.abs(total) < 1) return `Time barely matters here: ${at}, the value hardly changes by expiry.`;
+    return total > 0
+        ? `Time is on your side: ${at}, this position gains about ${optMoney(total)} by expiry (about ${day} a day now).`
+        : `Time works against you: ${at}, this position loses about ${optMoney(-total)} by expiry (about ${day} a day now).`;
 }
 
 // The IV slider's label: 0 -> "unchanged", -15 -> "15 points lower".
@@ -343,6 +379,7 @@ function initOptions() {
         optRenderChain();
     });
     document.getElementById("opt-chain-body").addEventListener("click", optChainClick);
+    document.getElementById("opt-chain-cards").addEventListener("click", optChainClick);
 
     const presets = document.getElementById("opt-presets");
     presets.innerHTML = OPT_PRESETS.map(([k, label]) => {
@@ -448,7 +485,7 @@ function optShowTab(tab) {
     });
     document.querySelectorAll(".opt-pane").forEach(p => { p.hidden = p.id !== `opt-pane-${tab}`; });
     optSyncUrl();
-    if (tab === "strategy" && optState.analysis) optDrawPayoff(optState.analysis);
+    if (tab === "strategy" && optState.analysis) { optDrawPayoff(optState.analysis); optDrawDecay(optState.analysis); }
     if (tab === "chain" && optState.chain) optDrawSmile(optState.chain);
     if (tab === "compare") optEnsureCompare();
     if (tab === "paper") optRenderPaper();
@@ -478,7 +515,10 @@ function optRenderPaper() {
     }
     let total = 0, priced = 0;
     table.innerHTML = `<thead><tr><th>Position</th><th>Opened</th><th>Expiry</th><th class="opt-num">At open</th>
-        <th class="opt-num">Now</th><th class="opt-num">P/L</th><th></th></tr></thead><tbody>${list.map(t => {
+        <th class="opt-num">Now</th><th class="opt-num">P/L</th>
+        <th title="How much of the best case you have locked in, if you closed now">Progress</th>
+        <th class="opt-num" title="Chance the position ends profitable from what you paid, implied by today's option prices">Chance now</th>
+        <th></th></tr></thead><tbody>${list.map(t => {
         const left = optDaysBetween(today, t.expiry);
         const expired = left < 0;
         const has = !expired && t.now !== undefined && t.now !== null;
@@ -496,6 +536,14 @@ function optRenderPaper() {
             <td class="opt-num ${r ? (r.pnl > 0 ? "positive" : r.pnl < 0 ? "negative" : "") : ""}">${r
                 ? `${optMoney(r.pnl, true)}${r.pct !== null ? `<span class="paper-sub">${r.pct >= 0 ? "+" : ""}${(r.pct * 100).toFixed(1)}%</span>` : ""}`
                 : expired ? `<span class="opt-dim">Expired: the result depends on the ${optDate(t.expiry)} close</span>` : "—"}</td>
+            <td class="paper-progress">${(() => {
+                const pr = r ? optPaperProgress(r.pnl, t.max_profit) : null;
+                if (!pr) return `<span class="opt-dim">${r && t.max_profit === null ? "no cap on profit" : "—"}</span>`;
+                return `<span class="opt-meter"><span style="width:${Math.max(0, Math.min(100, pr.pct * 100))}%"></span></span>
+                    <span class="paper-sub">${Math.round(pr.pct * 100)}% of max profit</span>${pr.close
+                    ? `<span class="paper-take" title="A common rule of thumb for trades with capped profit">Many traders close at 50%+</span>` : ""}`;
+            })()}</td>
+            <td class="opt-num">${r && t.pop !== undefined && t.pop !== null ? optPct(t.pop, 0) : "—"}</td>
             <td class="paper-actions"><button class="btn-secondary" data-open="${t.id}" type="button"${expired ? " disabled" : ""}>Open</button>
                 <button class="btn-icon" data-remove-paper="${t.id}" aria-label="Remove">✕</button></td></tr>`;
     }).join("")}</tbody>`;
@@ -518,8 +566,12 @@ async function optRefreshPaper() {
     const work = open.map(t => async () => {
         try {
             const res = await optFetch("/options/strategy", { symbol: t.symbol, expiry: t.expiry,
-                legs: t.legs.map(l => ({ type: l.type, qty: l.qty, strike: l.strike })) });
-            t.now = res.net_debit;
+                legs: t.legs.map(l => ({ type: l.type, qty: l.qty, strike: l.strike, price: l.price })),
+                entry_prices: true });
+            // Analysed as held: from the entry prices, with today's value alongside.
+            t.now = res.value_now !== undefined ? res.value_now : res.net_debit;
+            t.pop = res.prob_profit;
+            t.max_profit = res.unlimited_profit ? null : res.max_profit;
             t.error = null;
         } catch (e) {
             t.now = null;
@@ -606,10 +658,14 @@ function optRenderCompare() {
     if (t) {
         const winners = d.strategies.filter(r => r.pnl_at_target > 0).length;
         const move = (t / d.spot - 1) * 100;
+        const o = d.target_odds;
+        const odds = o ? ` Option prices imply a <strong>${Math.round((t >= d.spot ? o.above : o.below) * 100)}% chance</strong> ` +
+            `${sym} ends ${t >= d.spot ? "above" : "below"} $${t.toFixed(2)} by then, and about ${Math.round(o.touch * 100)}% ` +
+            "that it trades there at some point before." : "";
         help.innerHTML = `Ranked for <strong>${sym} at $${t.toFixed(2)}</strong> on ${optDate(d.expiry)} ` +
             `(${move >= 0 ? "+" : ""}${move.toFixed(1)}% from $${d.spot.toFixed(2)}). ${winners} of ${d.strategies.length} strategies ` +
             "make money there. Best fit first: the most profit at your target for each dollar it can lose. " +
-            "If you're wrong, the worst case still applies.";
+            "If you're wrong, the worst case still applies." + odds;
     } else {
         help.textContent = `Type a price (or pick a move) to rank all ${d.strategies.length} strategies for it. ` +
             "Without one, you can still compare any of them below.";
@@ -960,7 +1016,35 @@ function optRenderChain() {
         return line + `<tr class="opt-row${itmC}${itmP}">${optCells(r.call, "call")}
             <td class="opt-strike">${r.strike}</td>${optCells(r.put, "put")}</tr>`;
     }).join("") + (spotDone ? "" : `<tr class="opt-spot-row"><td colspan="13">Stock $${c.spot.toFixed(2)}</td></tr>`);
+    optRenderChainCards(rows, c);
     if (optState.tab === "chain") optDrawSmile(c);
+}
+
+// Phones: one card per strike instead of a 13-column table (CSS shows one or the other).
+function optRenderChainCards(rows, c) {
+    const el = document.getElementById("opt-chain-cards");
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = `<p class="feed-empty">No contracts match the filters</p>`; return; }
+    const side = (x, kind) => {
+        if (!x) return `<div class="opt-card-side opt-card-empty"><span class="opt-dim">filtered out</span></div>`;
+        const q = (v, act) => v === null || v === undefined ? `<span class="opt-dim">—</span>`
+            : `<button class="opt-quote opt-card-quote opt-${act === "buy" ? "ask" : "bid"}" type="button" data-side="${kind}"
+                 data-strike="${x.strike}" data-act="${act}">${act === "buy" ? "Buy" : "Sell"} ${v.toFixed(2)}</button>`;
+        return `<div class="opt-card-side">
+            <div class="opt-card-quotes">${q(x.bid, "sell")}${q(x.ask, "buy")}</div>
+            <div class="opt-card-meta">Δ ${x.delta === null ? "—" : x.delta.toFixed(2)} · IV ${optPct(x.iv, 0)} · OI ${x.open_interest.toLocaleString()}</div>
+        </div>`;
+    };
+    let spotDone = false;
+    const spotLine = `<div class="opt-card-spot">Stock $${c.spot.toFixed(2)}</div>`;
+    el.innerHTML = `<div class="opt-card-head"><span>Calls</span><span>Puts</span></div>` + rows.map(r => {
+        let line = "";
+        if (!spotDone && r.strike >= c.spot) { spotDone = true; line = spotLine; }
+        return line + `<div class="opt-card">
+            <div class="opt-card-strike">$${r.strike}</div>
+            <div class="opt-card-sides${r.strike < c.spot ? " itm-call" : ""}${r.strike > c.spot ? " itm-put" : ""}">
+                ${side(r.call, "call")}${side(r.put, "put")}</div></div>`;
+    }).join("") + (spotDone ? "" : spotLine);
 }
 
 function optPlotTheme(extra) {
@@ -1054,6 +1138,7 @@ function optRenderStrategy() {
     const c = optState.chain;
     const strikes = c ? [...new Set([...c.calls, ...c.puts].map(x => x.strike))].sort((x, y) => x - y) : [];
     const priced = a ? a.legs : [];
+    const thinLegs = priced.map(p => optThinReason(p, c));
     legsEl.innerHTML = optState.legs.length ? optState.legs.map((l, i) => {
         const p = priced[i];
         const strikeSel = l.type === "stock" ? `<span class="opt-dim">—</span>` :
@@ -1070,9 +1155,17 @@ function optRenderStrategy() {
                     t === "stock" ? "100 shares" : t}</option>`).join("")}</select></td>
             <td>${strikeSel}</td>
             <td class="opt-num">${p ? "$" + p.price.toFixed(2) : "—"}</td>
-            <td class="opt-leg-plain">${p ? escapeHtml(optLegPlain(p, a.symbol)) : ""}</td>
+            <td class="opt-leg-plain">${p ? escapeHtml(optLegPlain(p, a.symbol)) : ""}${
+                thinLegs[i] ? ` <span class="opt-thin" title="${escapeHtml(thinLegs[i])}">thin market</span>` : ""}</td>
             <td><button class="btn-icon" data-remove="${i}" aria-label="Remove leg">✕</button></td></tr>`;
     }).join("") : `<tr><td colspan="7" class="feed-empty">Pick a strategy above, or click a bid (sell) or ask (buy) in the Chain tab.</td></tr>`;
+    const thinCount = thinLegs.filter(Boolean).length;
+    const thinNote = document.getElementById("opt-thin-note");
+    thinNote.hidden = !thinCount;
+    thinNote.textContent = thinCount
+        ? `${thinCount === 1 ? "One leg trades" : thinCount + " legs trade"} thinly (a wide bid-ask spread or few open ` +
+          "contracts). Real fills there are usually well away from the mid prices used here, so expect the cost to be worse."
+        : "";
 
     const stats = document.getElementById("opt-stats");
     const sum = document.getElementById("opt-strategy-summary");
@@ -1150,7 +1243,31 @@ function optRenderStrategy() {
         ["Reward / risk", a.return_on_risk === null ? "—" : a.return_on_risk.toFixed(2) + "×", "Best case divided by worst case."],
     ].map(([k, v, d]) => `<div class="opt-greek"><span class="opt-outcome-label">${k}</span>
         <span class="opt-greek-val">${v}</span><span class="opt-greek-text">${d}</span></div>`).join("");
-    if (optState.tab === "strategy") optDrawPayoff(a);
+    document.getElementById("opt-decay-note").textContent =
+        optDecayNote(a.decay, a.greeks.theta, a.symbol, a.spot);
+    if (optState.tab === "strategy") { optDrawPayoff(a); optDrawDecay(a); }
+}
+
+function optDrawDecay(a) {
+    const el = document.getElementById("opt-decay");
+    if (!el || typeof Plotly === "undefined" || !a.decay) return;
+    const start = new Date();
+    const dates = a.decay.map(p => new Date(start.getTime() + p.days * 86400000).toISOString().slice(0, 10));
+    const ys = a.decay.map(p => p.pnl);
+    const up = ys[ys.length - 1] >= ys[0];
+    Plotly.react(el, [{
+        x: dates, y: ys, type: "scatter", mode: "lines", line: { color: up ? "#4ADE80" : "#F87171", width: 2.5 },
+        fill: "tozeroy", fillcolor: up ? "rgba(22,163,74,0.12)" : "rgba(239,68,68,0.12)",
+        hovertemplate: "%{x|%b %d}: %{y:$,.0f}<extra></extra>",
+    }], optPlotTheme({
+        margin: { l: 70, r: 20, t: 16, b: 40 },
+        xaxis: { type: "date", tickformat: "%b %d", gridcolor: "rgba(255,255,255,0.06)", tickfont: { size: 12, color: "#C9CED6" } },
+        yaxis: { title: { text: "P/L at today's price", font: { size: 12, color: "#C9CED6" } }, tickprefix: "$",
+                 tickformat: ",.0f", gridcolor: "rgba(255,255,255,0.06)", zeroline: true,
+                 zerolinecolor: "rgba(255,255,255,0.3)", tickfont: { size: 12, color: "#C9CED6" } },
+        hovermode: "x unified",
+        hoverlabel: { bgcolor: "#111214", bordercolor: "#3B4048", font: { color: "#F3F4F6", size: 13 } },
+    }), { responsive: true, displayModeBar: false });
 }
 
 function optLegEdit(e) {

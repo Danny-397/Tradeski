@@ -335,6 +335,22 @@ TOOLS = [
             "days_to_expiry": {"type": "integer"},
         }),
     },
+    {
+        "name": "rank_option_strategies",
+        "description": (
+            "Rank the standard options strategies for a view: the user thinks the ticker will be at target_price "
+            "around days_to_expiry days out. Returns the best five for that view (profit if the stock is exactly "
+            "at the target at expiry, that profit per dollar the strategy can lose, cost, worst case, break-evens, "
+            "chance of profit) and what option prices imply about the target (chance of ending beyond it, and "
+            "roughly of trading there at some point). Use for 'what's the best way to bet X reaches Y'. "
+            "The user can see and adjust the full ranking in the Options page's Compare & choose tab."
+        ),
+        "input_schema": _schema({
+            "symbol": _SYMBOL,
+            "target_price": {"type": "number"},
+            "days_to_expiry": {"type": "integer"},
+        }),
+    },
 ]
 for _tool in TOOLS:
     _tool["strict"] = True
@@ -440,7 +456,7 @@ def run_tool(name: str, args: dict, data: SkiData) -> dict:
             "readings_newest_first": [{"date": o["date"], "value": _r(float(o["value"]), 3)} for o in obs],
         } if obs else {"series_id": sid, "error": "FRED returned no data"}
 
-    if name in ("get_options_overview", "analyze_option_strategy"):
+    if name in ("get_options_overview", "analyze_option_strategy", "rank_option_strategies"):
         return _options_tool(name, args, data)
 
     raise ValueError(f"unknown tool {name}")
@@ -459,6 +475,29 @@ def _options_tool(name: str, args: dict, data: SkiData) -> dict:
         return {"symbol": sym, "error": "no option data came back: the symbol may have no listed options, or the "
                                         "data source may be refusing requests right now. Say which is unknown."}
     base = {"symbol": sym, "expiry": chain["expiry"], "days_to_expiry": chain["dte"], "spot": _r(chain["spot"])}
+    if name == "rank_option_strategies":
+        target = args.get("target_price")
+        if not isinstance(target, (int, float)) or target <= 0:
+            raise ValueError("target_price must be a positive number")
+        rows = opt.compare_strategies(chain, target=float(target), symbol=sym)
+        odds = opt.price_odds(float(target), chain["spot"], chain["years"], chain["rate"],
+                              chain["dividend_yield"], chain["atm_iv"])
+        return {**base, "target_price": _r(float(target)),
+                "move_to_target_pct": _r((float(target) / chain["spot"] - 1) * 100, 1),
+                "chance_ends_beyond_target":
+                    (odds["above"] if target >= chain["spot"] else odds["below"]) if odds else None,
+                "chance_trades_at_target_before_expiry": odds["touch"] if odds else None,
+                "ranked": [{"strategy": r["name"],
+                            "legs": [{"action": "buy" if leg["qty"] > 0 else "sell", "type": leg["type"],
+                                      "strike": leg["strike"]} for leg in r["legs"]],
+                            "pnl_if_at_target": r["pnl_at_target"],
+                            "profit_per_dollar_at_risk": r["reward_risk_at_target"],
+                            "net_debit": r["net_debit"], "max_loss": r["max_loss"],
+                            "unlimited_loss": r["unlimited_loss"],
+                            "max_profit": r["max_profit"], "unlimited_profit": r["unlimited_profit"],
+                            "breakevens": r["breakevens"], "prob_profit": r["prob_profit"]} for r in rows[:5]],
+                "notes": "Ranked: money-makers at the target first, by profit at the target per dollar they can lose. "
+                         "If the stock doesn't get there, the worst case applies. Prices are delayed midpoints."}
     if name == "get_options_overview":
         iv, hv = chain.get("atm_iv"), chain.get("realized_vol_30d")
         move = chain.get("expected_move")
@@ -532,6 +571,10 @@ def describe_call(name: str, args: dict) -> str:
         return f"{args.get('series_id', 'macro')} history"
     if name == "get_options_overview":
         return f"{clean_symbol(args.get('symbol')) or '?'} options"
+    if name == "rank_option_strategies":
+        target = args.get("target_price")
+        return f"{clean_symbol(args.get('symbol')) or '?'} strategies for ${target:g}" \
+            if isinstance(target, (int, float)) else "ranking option strategies"
     if name == "analyze_option_strategy":
         label = opt.PRESETS.get(args.get("strategy"), "options strategy").lower()
         return f"{clean_symbol(args.get('symbol')) or '?'} {label}"

@@ -370,6 +370,21 @@ def _prob_below(x: float, S: float, T: float, r: float, q: float, sigma: float) 
     return norm_cdf(z)
 
 
+def price_odds(x: float, S: float, T: float, r: float, q: float, sigma: Optional[float]) -> Optional[dict]:
+    """What option prices imply about the stock reaching ``x`` by expiry.
+
+    ``above``/``below``: chance it ends above or below x (lognormal at
+    ``sigma``, risk-neutral drift). ``touch``: chance it trades at x at some
+    point before expiry, from the reflection principle (about twice the
+    chance of ending beyond it), so an approximation.
+    """
+    if not sigma or T <= 0 or x <= 0:
+        return None
+    below = _prob_below(x, S, T, r, q, sigma)
+    beyond = 1 - below if x >= S else below
+    return {"above": round(1 - below, 4), "below": round(below, 4), "touch": round(min(1.0, 2 * beyond), 4)}
+
+
 def profit_zones(legs: list) -> list:
     """Price intervals [(lo, hi), ...] where P/L at expiry is positive (hi may be inf)."""
     edges = sorted(set(_kinks(legs)) | set(breakevens(legs)))
@@ -474,6 +489,12 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
             row["at_date"] = round(position_pnl(shifted, x, t_at, r, q), 2)
         scenarios.append(row)
 
+    # Time decay: the position's P/L each day if the stock stays where it is.
+    days_left = max(int(round(T * 365)), 1)
+    step = max(1, days_left // 60)
+    decay = [{"days": d, "pnl": round(position_pnl(shifted, S, max(T - d / 365.0, 0.0), r, q), 2)}
+             for d in list(range(0, days_left, step)) + [days_left]]
+
     when = f" on {expiry}" if expiry else " at expiry"
     lines = [f"{'Costs' if debit > 0 else 'Collects'} {_money(debit)} up front (at mid prices)."]
     if zones:
@@ -504,6 +525,7 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
         "curves": curves,
         "scenarios": scenarios,
         "iv_shift": iv_shift,
+        "decay": decay,
         "summary": " ".join(lines),
     }
 
@@ -627,8 +649,14 @@ def compare_strategies(chain: dict, presets: Optional[list] = None, target: Opti
     return out
 
 
-def legs_from_request(specs: list, chain: dict, max_legs: int = 6) -> list:
-    """Price user-chosen legs [{type, qty, strike}] from the chain."""
+def legs_from_request(specs: list, chain: dict, max_legs: int = 6, entry: bool = False) -> list:
+    """Price user-chosen legs [{type, qty, strike}] from the chain.
+
+    With ``entry``, a leg's own ``price`` (what was paid or received when the
+    position was opened) is kept instead of today's mid, so the analysis is of
+    the position as held: break-evens, best and worst case and the chance of
+    profit measured from the entry cost. IV still comes from today's chain.
+    """
     if not isinstance(specs, list) or not specs:
         raise ValueError("legs must be a non-empty list")
     if len(specs) > max_legs:
@@ -655,8 +683,16 @@ def legs_from_request(specs: list, chain: dict, max_legs: int = 6) -> list:
             raise ValueError(f"no {kind} at strike {strike} for {chain['expiry']}")
         if not c.get("mid") or not c.get("iv"):
             raise ValueError(f"the {strike:g} {kind} has no usable quote right now")
-        legs.append(_leg(c, qty))
+        leg = _leg(c, qty)
+        if entry and _num((s or {}).get("price")) is not None:
+            leg["price"] = _num(s["price"])
+        legs.append(leg)
     return legs
+
+
+def value_now(legs: list) -> float:
+    """What the legs are worth at today's mids (the net debit to open them now)."""
+    return round(sum(leg["qty"] * MULTIPLIER * leg["price"] for leg in legs), 2)
 
 
 # ─────────────────────────────────────────────────────────────

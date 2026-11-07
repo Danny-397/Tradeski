@@ -590,3 +590,61 @@ def test_scan_endpoint_can_skip_stocks_reporting_before_expiry(client, monkeypat
     assert client.get(url).get_json()["results"][0]["earnings_before_expiry"] is True
     skipped = client.get(url + "&skip_earnings=1").get_json()
     assert skipped["results"] == [] and "earnings on" in skipped["skipped"][0]["skipped"]
+
+
+def test_price_odds_match_the_lognormal_and_bound_touch():
+    T = 30 / 365
+    odds = opt.price_odds(110, S, T, R, 0.0, SIGMA)
+    d2 = (math.log(S / 110) + (R - 0.5 * SIGMA ** 2) * T) / (SIGMA * math.sqrt(T))
+    assert odds["above"] == pytest.approx(opt.norm_cdf(d2), abs=1e-4)
+    assert odds["above"] + odds["below"] == pytest.approx(1.0, abs=1e-4)
+    assert odds["touch"] == pytest.approx(min(1, 2 * odds["above"]), abs=1e-4)
+    assert opt.price_odds(90, S, T, R, 0.0, SIGMA)["touch"] == pytest.approx(
+        2 * opt.price_odds(90, S, T, R, 0.0, SIGMA)["below"], abs=1e-4)          # downside target
+    assert opt.price_odds(110, S, T, R, 0.0, None) is None
+
+
+def test_time_decay_series_runs_to_expiry_at_todays_price():
+    T = 30 / 365
+    price = opt.bs_price("call", S, 100, T, R, SIGMA)
+    res = opt.analyze([_call(100, 1, price)], S, T, R, sigma=SIGMA)
+    d = res["decay"]
+    assert d[0]["days"] == 0 and d[-1]["days"] == 30
+    assert abs(d[0]["pnl"]) < 1                                   # fairly priced: ~0 today
+    assert d[-1]["pnl"] == pytest.approx(-price * 100, abs=0.01)  # at-the-money call expires worthless
+    assert all(a["pnl"] >= b["pnl"] for a, b in zip(d, d[1:]))    # a bought option only decays
+    short = opt.analyze([_call(100, -1, price)], S, T, R, sigma=SIGMA)["decay"]
+    assert short[-1]["pnl"] == pytest.approx(price * 100, abs=0.01)   # time works for the seller
+
+
+def test_held_positions_are_analysed_from_their_entry_prices(client):
+    c = chain()
+    call = next(x for x in c["calls"] if x["strike"] == 100)
+    spec = [{"type": "call", "qty": 1, "strike": 100, "price": 1.00}]          # bought cheap
+    held = opt.legs_from_request(spec, c, entry=True)
+    assert held[0]["price"] == 1.00 and held[0]["iv"] == call["iv"]
+    assert opt.legs_from_request(spec, c)[0]["price"] == call["mid"]           # default: today's mid
+    assert opt.value_now(opt.legs_from_request(spec, c)) == pytest.approx(call["mid"] * 100, abs=0.01)
+    res = client.post("/options/strategy", json={"symbol": "TEST", "expiry": client.expiries[1],
+                                                 "legs": spec, "entry_prices": True}).get_json()
+    assert res["net_debit"] == 100 and res["breakevens"] == [101.0]            # from the entry cost
+    assert res["value_now"] > 100                                              # worth more now
+    plain = client.post("/options/strategy", json={"symbol": "TEST", "expiry": client.expiries[1],
+                                                   "legs": spec}).get_json()
+    assert "value_now" not in plain
+
+
+def test_ski_ranks_strategies_for_a_view():
+    c = chain()
+    out = st.run_tool("rank_option_strategies", {"symbol": "test", "target_price": 110, "days_to_expiry": 30},
+                      _ski(lambda s, d: c))
+    assert out["symbol"] == "TEST" and out["target_price"] == 110 and out["move_to_target_pct"] == 10.0
+    assert len(out["ranked"]) == 5 and out["ranked"][0]["pnl_if_at_target"] > 0
+    assert 0 < out["chance_ends_beyond_target"] < 0.5                   # a 10% move in a month is unlikely
+    assert out["chance_ends_beyond_target"] < out["chance_trades_at_target_before_expiry"] <= 1
+    assert out["ranked"][0]["legs"][0]["action"] in ("buy", "sell")
+    with pytest.raises(ValueError):
+        st.run_tool("rank_option_strategies", {"symbol": "TEST", "target_price": -1, "days_to_expiry": 30},
+                    _ski(lambda s, d: c))
+    label = st.describe_call("rank_option_strategies", {"symbol": "nvda", "target_price": 210.0})
+    assert label == "NVDA strategies for $210"

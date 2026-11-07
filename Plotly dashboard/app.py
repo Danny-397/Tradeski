@@ -1145,8 +1145,12 @@ def options_strategy() -> tuple:
     if not chain:
         return _chain_error(sym, expiry)
     try:
+        current = None
         if body.get("legs"):
-            legs = opt.legs_from_request(body["legs"], chain)
+            entry = bool(body.get("entry_prices"))
+            legs = opt.legs_from_request(body["legs"], chain, entry=entry)
+            if entry:   # a held position: also what it is worth at today's mids
+                current = opt.value_now(opt.legs_from_request(body["legs"], chain))
         else:
             legs = opt.build_preset(str(body.get("preset") or ""), chain)
         days = body.get("days_forward")
@@ -1157,6 +1161,8 @@ def options_strategy() -> tuple:
                              sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days, iv_shift=shift)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
+    if current is not None:
+        result["value_now"] = current
     result.update({"symbol": sym, "expiry": expiry, "dte": chain["dte"], "spot": chain["spot"],
                    "atm_iv": chain["atm_iv"], "market_state": chain.get("market_state")})
     return jsonify(result)
@@ -1178,8 +1184,11 @@ def options_compare() -> tuple:
     target = body.get("target")
     target = float(target) if isinstance(target, (int, float)) and not isinstance(target, bool) and target > 0 else None
     rows = opt.compare_strategies(chain, presets, target, symbol=sym)
+    odds = opt.price_odds(target, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
+                          chain["atm_iv"]) if target else None
     return jsonify({"symbol": sym, "expiry": expiry, "spot": chain["spot"], "dte": chain["dte"],
-                    "expected_move": chain.get("expected_move"), "target": target, "strategies": rows})
+                    "expected_move": chain.get("expected_move"), "target": target, "target_odds": odds,
+                    "strategies": rows})
 
 
 @app.route("/options/scan")
@@ -1407,6 +1416,9 @@ expiry, put/call ratios, the strikes with the most open interest).
 - analyze_option_strategy: build a standard options strategy (covered call, spreads, straddle, iron condor...) \
 from the live chain and get its cost, max profit and loss, break-evens and chance of profit. Say that strikes follow \
 fixed rules and prices are delayed midpoints, and that the user can adjust it in the Options tab.
+- rank_option_strategies: when the user has a view ("NVDA to $210 by December"), rank the strategies for it and \
+explain the trade-off between the top ones (profit if right versus what each can lose), plus the market-implied \
+odds of the target. Never present one as a recommendation to buy.
 - web_search: for events, earnings dates, people in office, and anything else the tools above don't cover.
 Rules:
 - Quote a number only if it appears in the data below, in a tool result, or in a search result you just ran. Never \
