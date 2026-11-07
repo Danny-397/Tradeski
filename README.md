@@ -25,7 +25,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 
 ---
 
-Tradeski integrates six distinct data pipelines — live equity prices, option chains, Federal Reserve macroeconomic data, financial news with sentiment scoring, a screener over every US-listed stock, and an AI assistant grounded in real-time context — into a single coherent interface, with quantitative portfolio analytics and a 90-day correlation heatmap layered on top.
+Tradeski integrates six distinct data pipelines — live equity prices, option chains, Federal Reserve macroeconomic data, financial news with sentiment scoring, a screener over every US-listed stock, and an AI assistant grounded in real-time context — into a single coherent interface, with quantitative portfolio analytics layered on top.
 
 Every quantitative indicator is hand-written directly on NumPy arrays — no TA-Lib, no pandas — so the indicator logic itself (Wilder smoothing, MACD divergence, band math) is the project's own code, with NumPy supplying only primitive operations like mean, standard deviation, and least-squares. The AI assistant (Ski) receives live macro, portfolio, and news data on every request — not generic training knowledge. The backend is a persistent WebSocket server deployed on Render; the frontend is a static site on Vercel.
 
@@ -107,10 +107,6 @@ Add holdings by symbol, share count, and average cost basis. See unrealized P&L 
 | Sharpe Ratio | Annualized excess return / annualized volatility · risk-free rate: the current fed funds rate from FRED (4.5% if FRED is unavailable) |
 | Portfolio Beta | Covariance with SPY / variance of SPY over 252 trading days |
 | Annualized Volatility | Rolling standard deviation of weighted daily returns × √252 |
-
-### Correlation Heatmap
-
-A full-screen modal shows a pairwise 90-day return correlation matrix for all 11 tracked symbols, rendered as a Plotly heatmap with a diverging red-to-green colorscale. Cached server-side for one hour.
 
 ### Alert Engine
 
@@ -364,7 +360,7 @@ The briefing goes through the same tool loop as chat (without web search, so it 
 
 | Measure | Implementation |
 |:---|:---|
-| TTL caching | FRED 1hr · prices 5min · news 30min · screener 10min · correlation 1hr |
+| TTL caching | FRED 1hr · prices 5min · news 30min · screener 10min |
 | Health endpoint | `GET /health` returns live API service status — `configured` vs `missing` |
 | Graceful AI errors | `RateLimitError` → 429 · `529 overloaded` → 503 with retry guidance |
 | Frontend error UX | Distinct messages for 429, 503, and network failures |
@@ -505,16 +501,6 @@ Sharpe ratio, beta vs. S&P 500, and annualized volatility from 1-year daily retu
 
 ```json
 { "sharpe": 1.24, "beta": 0.91, "volatility": 18.4 }
-```
-
-### `GET /correlation`
-Pairwise 90-day return correlation matrix for all tracked symbols. Cached 1 hour.
-
-```json
-{
-  "symbols": ["AAPL", "MSFT", "NVDA", "..."],
-  "matrix": [[1.0, 0.874, 0.761], ["..."]]
-}
 ```
 
 ### `GET /screener`

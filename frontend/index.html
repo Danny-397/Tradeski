@@ -6,7 +6,7 @@
     <title>Tradeski — Real-Time Fintech Dashboard</title>
     <meta name="description" content="Tradeski is a real-time market intelligence platform with live prices, technical indicators, macro data, correlation analysis, portfolio risk metrics, multi-stock comparison charts, and Ski — an AI-powered financial assistant.">
     <meta property="og:title" content="Tradeski — Real-Time Market Intelligence Platform">
-    <meta property="og:description" content="Live equity prices, quantitative indicators, FRED macro ribbon, correlation heatmap, portfolio risk analytics (Sharpe, beta, volatility), multi-stock comparison, and an AI financial assistant — all in one dashboard.">
+    <meta property="og:description" content="Live equity prices, quantitative indicators, FRED macro ribbon, options analysis, portfolio risk analytics (Sharpe, beta, volatility), multi-stock comparison, and an AI financial assistant — all in one dashboard.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tradeski.dev">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -57,25 +57,6 @@
         </div>
 
         <div class="header-right">
-            <!-- Both buttons used to render the same literal glyph (U+229E). The
-                 label is hidden below 640px, so on a phone the header showed two
-                 identical marks and nothing said which was which. These are two
-                 distinct icons: a filled cell grid for the correlation heatmap,
-                 a funnel for the screener. aria-label carries the name when the
-                 text is hidden. -->
-            <button class="screener-btn" id="open-heatmap-btn"
-                    title="Correlation Heatmap" aria-label="Correlation heatmap">
-                <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                    <rect x="1.5" y="1.5" width="4" height="4" rx="1" fill="currentColor" opacity=".95"/>
-                    <rect x="6.5" y="1.5" width="4" height="4" rx="1" fill="currentColor" opacity=".45"/>
-                    <rect x="11.5" y="1.5" width="3" height="4" rx="1" fill="currentColor" opacity=".7"/>
-                    <rect x="1.5" y="6.5" width="4" height="4" rx="1" fill="currentColor" opacity=".45"/>
-                    <rect x="6.5" y="6.5" width="4" height="4" rx="1" fill="currentColor" opacity=".8"/>
-                    <rect x="11.5" y="6.5" width="3" height="4" rx="1" fill="currentColor" opacity=".3"/>
-                    <rect x="1.5" y="11.5" width="4" height="3" rx="1" fill="currentColor" opacity=".7"/>
-                    <rect x="6.5" y="11.5" width="4" height="3" rx="1" fill="currentColor" opacity=".3"/>
-                    <rect x="11.5" y="11.5" width="3" height="3" rx="1" fill="currentColor" opacity=".9"/>
-                </svg><span class="btn-text">Heatmap</span></button>
             <button class="screener-btn" id="open-screener-btn"
                     title="Stock Screener" aria-label="Stock screener">
                 <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"
@@ -354,25 +335,6 @@
                     <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.
                     Tradeski is an educational tool, not investment advice.
                 </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== HEATMAP MODAL ===== -->
-    <div class="modal-overlay" id="heatmap-modal" style="display:none">
-        <div class="modal modal-wide">
-            <div class="modal-header">
-                <span class="panel-title">Correlation heatmap</span>
-                <span class="badge">90-day returns</span>
-                <button class="btn-icon" id="close-heatmap-btn" aria-label="Close">✕</button>
-            </div>
-            <div class="modal-body heatmap-body">
-                <div id="heatmap-chart" class="heatmap-chart">
-                    <div class="chart-loading" id="heatmap-loading">
-                        <div class="loading-spinner"></div>
-                        <span>Computing correlations…</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

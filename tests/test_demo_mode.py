@@ -94,7 +94,7 @@ def test_snapshot_covers_default_chart_timeframes(snapshot):
 
 
 def test_snapshot_panels_present(snapshot):
-    for path in ("/screener", "/correlation", "/macro"):
+    for path in ("/screener", "/macro"):
         assert path in snapshot["endpoints"], "snapshot missing %s" % path
 
 

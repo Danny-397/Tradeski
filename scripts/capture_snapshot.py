@@ -229,8 +229,8 @@ def main():
         except Exception as e:  # noqa: BLE001
             print("  %-6s %-3s FAILED %s" % (sym, tf, e))
 
-    print("screener / correlation:")
-    for path in ("/screener", "/correlation"):
+    print("screener:")
+    for path in ("/screener",):
         try:
             endpoints[path] = get_json(path)
             print("  %s ok" % path)

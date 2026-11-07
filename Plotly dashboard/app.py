@@ -95,10 +95,7 @@ _FRED_TTL     = 3600   # refresh FRED data at most once per hour
 _CHART_TTL    = 300    # price history / stats cache: 5 minutes
 _NEWS_TTL     = 1800   # news + sentiment cache: 30 minutes
 _SCREENER_TTL = 600    # screener fundamentals cache: 10 minutes
-_CORR_TTL     = 3600  # correlation matrix cache: 1 hour
 _OPTIONS_TTL  = 300   # option chains: 5 minutes (quotes are delayed anyway)
-
-_CORR_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
 
 _SCREENER_UNIVERSE = [
     # Mega-cap tech
@@ -1199,43 +1196,6 @@ def options_scan() -> tuple:
     found = sorted((r for r in rows if "skipped" not in r), key=lambda r: -r["annualized_pct"])
     return jsonify({"kind": kind, "filters": {**filters, "min_dte": min_dte, "max_dte": max_dte},
                     "results": found, "skipped": [r for r in rows if "skipped" in r]})
-
-
-# ─────────────────────────────────────────────────────────────
-# Correlation Heatmap
-# ─────────────────────────────────────────────────────────────
-
-@app.route("/correlation")
-def correlation_endpoint() -> tuple:
-    """Return 90-day return correlation matrix for tracked symbols."""
-    cached = _cache.get("correlation")
-    if cached:
-        return jsonify(cached)
-
-    closes: dict = {}
-    for sym in _CORR_SYMS:
-        bars = get_ohlc_history(sym, "3mo", "1d")
-        if bars and len(bars) > 15:
-            closes[sym] = [b["close"] for b in bars]
-
-    if len(closes) < 2:
-        return jsonify({"error": "Insufficient data"}), 503
-
-    min_len = min(len(v) for v in closes.values())
-    syms = list(closes.keys())
-
-    returns_matrix = []
-    for sym in syms:
-        prices = np.array(closes[sym][-min_len:], dtype=float)
-        returns_matrix.append(np.diff(prices) / prices[:-1])
-
-    corr = np.corrcoef(returns_matrix)
-    result = {
-        "symbols": syms,
-        "matrix": [[round(float(corr[i][j]), 3) for j in range(len(syms))] for i in range(len(syms))],
-    }
-    _cache.set("correlation", result, ttl=_CORR_TTL)
-    return jsonify(result)
 
 
 # ─────────────────────────────────────────────────────────────

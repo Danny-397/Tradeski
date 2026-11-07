@@ -18,7 +18,7 @@ This report describes the architecture as built, the decisions worth defending, 
 
 | | |
 |---|---|
-| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
+| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 28 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
 | Tests | 264, across 26 files, run in GitHub Actions with flake8 |
@@ -146,9 +146,11 @@ or an untraded position — makes the Sharpe denominator zero, so the endpoint r
 it cannot be computed rather than dividing. And beta falls back to 1.0 if SPY's variance is
 degenerate. Both return an explicit reason to the client instead of a number.
 
-The 90-day correlation heatmap covers 11 tracked symbols, computed as Pearson correlation
-across their aligned daily return series — not price levels, which would report near-1.0
-correlation for any two assets that both drift upward.
+Correlation is computed on aligned daily *returns*, not price levels, which would report
+near-1.0 correlation for any two assets that both drift upward. It is available through
+Ski's correlation tool for any tickers, the user's holdings included. An earlier heatmap
+showed the same calculation for a fixed list of 11 symbols, whatever the user owned or was
+looking at. It answered a question nobody had asked, so it was removed.
 
 ### Options: priced here, not taken from the feed
 
