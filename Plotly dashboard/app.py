@@ -7,6 +7,7 @@ import os
 # Insert it so `tracker` can always be found regardless of working directory.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import json
 import re
 import threading
 import time
@@ -31,6 +32,7 @@ from tracker import auth
 from tracker.fred import get_macro_snapshot, format_macro_context
 from tracker.fred import _fetch_observations as fetch_fred_observations
 from tracker import ski_tools, ski_grounding, sec_fundamentals, alert_eval
+from tracker import screens as saved_screens
 from tracker import options as opt
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
@@ -424,6 +426,34 @@ def delete_saved_watchlist(symbol: str) -> tuple:
     clean = _clean_symbol(symbol)
     database.remove_from_watchlist(g.user_id, clean)
     return jsonify({"status": "deleted", "symbols": database.get_watchlist(g.user_id)})
+
+
+@app.route("/screens", methods=["GET"])
+@require_auth
+def get_screens() -> tuple:
+    """Return the signed-in user's saved screener setups."""
+    raw = database.get_saved_screens(g.user_id)
+    try:
+        screens = saved_screens.clean_screens(json.loads(raw)) if raw else []
+    except (ValueError, TypeError):
+        app.logger.warning("discarding unreadable saved screens for user %s", g.user_id)
+        screens = []
+    return jsonify({"screens": screens})
+
+
+@app.route("/screens", methods=["PUT"])
+@require_auth
+def put_screens() -> tuple:
+    """Replace the signed-in user's saved screener setups."""
+    if request.content_length and request.content_length > 200_000:
+        return jsonify({"error": "too much data"}), 413
+    data = request.get_json(silent=True) or {}
+    try:
+        screens = saved_screens.clean_screens(data.get("screens"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    database.set_saved_screens(g.user_id, json.dumps(screens, separators=(",", ":")))
+    return jsonify({"status": "ok", "screens": screens})
 
 
 @app.route("/market_status")

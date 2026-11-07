@@ -115,7 +115,14 @@ const scrState = {
     page: 0,
     filtered: [],
     loading: false,
+    screens: [],         // saved screens (account when signed in, else this browser)
+    active: null,        // name of the saved screen on show
+    fresh: new Set(),    // symbols new to the active screen since it was last opened
+    onlyNew: false,
 };
+const SCR_SCREENS_KEY = "tradeski-saved-screens";
+const SCR_SEEN_MAX = 3000;   // broader screens aren't tracked for new matches (server limit too)
+const SCR_SCREENS_MAX = 10;
 
 // ---------- pure helpers (unit-tested in tests/js/screener.test.mjs) ----------
 
@@ -223,6 +230,33 @@ function scrActiveCount(filters) {
     return n + (filters.earnings ? 1 : 0);
 }
 
+// The current filters as a saved screen (deep-copied, so later edits don't leak into it).
+function scrScreenFrom(name, filters, sort, view) {
+    return {
+        name: name.trim().slice(0, 60),
+        filters: JSON.parse(JSON.stringify({ ranges: filters.ranges || {}, selects: filters.selects || {},
+            earnings: filters.earnings || "", search: filters.search || "" })),
+        sort: { col: sort.col, dir: sort.dir === 1 ? 1 : -1 },
+        view: view || "overview",
+        seen: null,
+        seen_at: null,
+    };
+}
+
+// Which stocks a saved screen matches now, and which of them it didn't match last time.
+// A screen that has never been looked at (seen null) has nothing "new" yet.
+function scrScreenStatus(rows, screen, today) {
+    const matches = rows.filter(r => scrMatches(r, screen.filters, today)).map(r => r.symbol);
+    if (!Array.isArray(screen.seen)) return { matches, fresh: [] };
+    const seen = new Set(screen.seen);
+    return { matches, fresh: matches.filter(s => !seen.has(s)) };
+}
+
+// The screen after it has been looked at: today's matches become the baseline.
+function scrMarkSeen(screen, matches, asOf) {
+    return { ...screen, seen: matches.length <= SCR_SEEN_MAX ? [...matches].sort() : null, seen_at: asOf || null };
+}
+
 // ---------- window ----------
 
 function initScreener() {
@@ -245,6 +279,7 @@ function initScreener() {
         scrRefresh(true);
     });
     document.getElementById("scr-reset").addEventListener("click", scrReset);
+    scrInitSaved();
     document.getElementById("scr-export").addEventListener("click", scrExport);
     document.getElementById("scr-filters-toggle").addEventListener("click", () => {
         document.getElementById("scr-body").classList.toggle("scr-filters-open");
@@ -286,11 +321,26 @@ function initScreener() {
 
 function openScreener() {
     document.getElementById("screener-modal").style.display = "flex";
-    if (!scrState.rows && !scrState.loading) scrLoad();
+    if (!scrState.loading && !document.getElementById("scr-asof").textContent) scrLoad();
 }
 
 function closeScreener() {
     document.getElementById("screener-modal").style.display = "none";
+}
+
+let scrDataPromise = null;
+function scrFetchData() {
+    if (!scrDataPromise) {
+        scrDataPromise = fetch(SCREENER_URL, { cache: "no-cache" }).then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        }).then(data => {
+            scrState.meta = data;
+            scrState.rows = scrRows(data);
+            return data;
+        }).catch(e => { scrDataPromise = null; throw e; });
+    }
+    return scrDataPromise;
 }
 
 async function scrLoad() {
@@ -299,12 +349,9 @@ async function scrLoad() {
     body.innerHTML = `<tr><td colspan="12" class="screener-loading"><div class="loading-spinner"></div>
         Loading every US-listed stock…</td></tr>`;
     try {
-        const res = await fetch(SCREENER_URL, { cache: "no-cache" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        scrState.meta = data;
-        scrState.rows = scrRows(data);
+        const data = await scrFetchData();
         scrPopulateSelects();
+        scrRenderSaved();
         const asOf = data.prices_as_of ? new Date(data.prices_as_of + "T12:00:00Z")
             .toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
         document.getElementById("scr-asof").textContent =
@@ -431,6 +478,7 @@ function scrReset() {
     scrState.sort = { col: "market_cap", dir: -1 };
     document.getElementById("scr-search").value = "";
     document.getElementById("scr-preset").value = "";
+    scrSetActive(null);
     if (scrState.rows) scrPopulateIndustries();
     scrSyncInputs();
     scrRefresh(true);
@@ -439,7 +487,8 @@ function scrReset() {
 function scrRefresh(resetPage) {
     if (!scrState.rows) return;
     const today = new Date().toISOString().slice(0, 10);
-    const matched = scrState.rows.filter(r => scrMatches(r, scrState.filters, today));
+    let matched = scrState.rows.filter(r => scrMatches(r, scrState.filters, today));
+    if (scrState.onlyNew && scrState.fresh.size) matched = matched.filter(r => scrState.fresh.has(r.symbol));
     scrState.filtered = scrSort(matched, scrState.sort.col, scrState.sort.dir);
     if (resetPage) scrState.page = 0;
     document.getElementById("screener-count").textContent =
@@ -493,7 +542,7 @@ function scrRenderTable() {
     body.innerHTML = slice.length ? slice.map(r => `<tr class="screener-row">${cols.map(c => {
         const m = SCR_FIELDS[c];
         const v = r[c];
-        if (c === "symbol") return `<td class="sc-symbol" data-symbol="${escapeHtml(r.symbol)}" title="Open ${escapeHtml(r.symbol)} on the chart">${escapeHtml(r.symbol)}</td>`;
+        if (c === "symbol") return `<td class="sc-symbol" data-symbol="${escapeHtml(r.symbol)}" title="Open ${escapeHtml(r.symbol)} on the chart">${escapeHtml(r.symbol)}${scrState.fresh.has(r.symbol) ? ` <span class="scr-new-tag">New</span>` : ""}</td>`;
         if (m.kind === "text") return `<td class="scr-text" title="${escapeHtml(v || "")}">${escapeHtml(v || "—")}</td>`;
         const cls = m.kind === "signed" && v !== null && v !== undefined ? (v > 0 ? " positive" : v < 0 ? " negative" : "") : "";
         return `<td class="scr-num${cls}">${scrFormat(v, m.kind)}</td>`;
@@ -518,3 +567,220 @@ function scrExport() {
 }
 
 document.addEventListener("DOMContentLoaded", initScreener);
+
+
+// ---------- saved screens ----------
+// Signed in: stored on the account (GET/PUT /screens). Signed out: this browser.
+// Each screen keeps the symbols it matched when last opened; after the nightly
+// rebuild, anything outside that list is "new" (badge on the Screener button,
+// "New" tag in the table).
+
+function scrSignedIn() {
+    return typeof getToken === "function" && !!getToken() && typeof CFG !== "undefined";
+}
+
+function scrLocalScreens() {
+    try {
+        const v = JSON.parse(localStorage.getItem(SCR_SCREENS_KEY) || "[]");
+        return Array.isArray(v) ? v : [];
+    } catch (_) { return []; }
+}
+
+async function scrLoadScreens() {
+    const local = scrLocalScreens();
+    if (!scrSignedIn()) return local;
+    try {
+        const res = await fetch(`${CFG.API}/screens`);
+        if (!res.ok) return local;
+        const server = (await res.json()).screens || [];
+        if (!server.length && local.length) {
+            // First sign-in on this browser: move its screens to the account.
+            if (await scrPutScreens(local)) { localStorage.removeItem(SCR_SCREENS_KEY); return local; }
+        }
+        return server;
+    } catch (_) { return local; }
+}
+
+async function scrPutScreens(list) {
+    try {
+        const res = await fetch(`${CFG.API}/screens`, {
+            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ screens: list }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            scrSavedMessage(err.error || `Couldn't save (HTTP ${res.status}).`, true);
+            return false;
+        }
+        return true;
+    } catch (_) {
+        scrSavedMessage("Couldn't reach the server; your change isn't saved.", true);
+        return false;
+    }
+}
+
+async function scrStoreScreens(list) {
+    scrState.screens = list;
+    scrRenderSaved();
+    if (scrSignedIn()) return scrPutScreens(list);
+    try { localStorage.setItem(SCR_SCREENS_KEY, JSON.stringify(list)); return true; }
+    catch (_) { scrSavedMessage("This browser wouldn't store the screen.", true); return false; }
+}
+
+function scrSavedMessage(html, isError) {
+    const el = document.getElementById("scr-saved-note");
+    if (!el) return;
+    el.hidden = !html;
+    el.classList.toggle("scr-saved-error", !!isError);
+    el.innerHTML = html || "";
+}
+
+function scrToday() { return new Date().toISOString().slice(0, 10); }
+
+function scrRenderSaved() {
+    const sel = document.getElementById("scr-saved");
+    if (!sel) return;
+    const rows = scrState.rows;
+    const today = scrToday();
+    sel.innerHTML = `<option value="">${scrState.screens.length ? "Your saved screens…" : "No saved screens yet"}</option>` +
+        scrState.screens.map(s => {
+            const n = rows ? scrScreenStatus(rows, s, today).fresh.length : 0;
+            return `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}${n ? ` · ${n} new` : ""}</option>`;
+        }).join("");
+    sel.value = scrState.active || "";
+    sel.disabled = !scrState.screens.length;
+    document.getElementById("scr-delete").hidden = !scrState.active;
+    scrUpdateBadge();
+}
+
+function scrUpdateBadge() {
+    const badge = document.getElementById("scr-new-badge");
+    if (!badge) return;
+    const rows = scrState.rows;
+    const today = scrToday();
+    const n = rows ? scrState.screens.reduce((t, s) => t + scrScreenStatus(rows, s, today).fresh.length, 0) : 0;
+    badge.hidden = !n;
+    badge.textContent = n ? `${n > 99 ? "99+" : n} new` : "";
+    const btn = document.getElementById("open-screener-btn");
+    if (btn) btn.title = n ? `Stock screener: ${n} new match${n === 1 ? "" : "es"} in your saved screens` : "Stock Screener";
+}
+
+function scrSetActive(name) {
+    scrState.active = name;
+    scrState.fresh = new Set();
+    scrState.onlyNew = false;
+    scrSavedMessage("");
+    const sel = document.getElementById("scr-saved");
+    if (sel) sel.value = name || "";
+    const del = document.getElementById("scr-delete");
+    if (del) del.hidden = !name;
+}
+
+async function scrOpenSaved(name) {
+    const i = scrState.screens.findIndex(s => s.name === name);
+    if (i < 0 || !scrState.rows) { scrSetActive(null); return; }
+    const screen = scrState.screens[i];
+    scrState.filters = JSON.parse(JSON.stringify(screen.filters));
+    scrState.sort = { ...screen.sort };
+    scrState.view = SCR_VIEWS[screen.view] ? screen.view : "overview";
+    document.querySelectorAll(".scr-view").forEach(x => x.classList.toggle("active", x.dataset.view === scrState.view));
+    document.getElementById("scr-search").value = scrState.filters.search || "";
+    document.getElementById("scr-preset").value = "";
+    scrPopulateIndustries();
+    scrSyncInputs();
+
+    const { matches, fresh } = scrScreenStatus(scrState.rows, screen, scrToday());
+    scrSetActive(name);
+    scrState.fresh = new Set(fresh);
+    const since = screen.seen_at ? new Date(screen.seen_at + "T12:00:00Z")
+        .toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+    if (fresh.length) {
+        scrSavedMessage(`<strong>${fresh.length} new</strong> since ${escapeHtml(since || "you last opened it")}.
+            <button class="text-btn" id="scr-only-new" type="button">Show only new</button>`);
+    } else if (matches.length > SCR_SEEN_MAX) {
+        scrSavedMessage(`${matches.length.toLocaleString()} matches: too broad to track new ones. Narrow it to under ${SCR_SEEN_MAX.toLocaleString()}.`);
+    } else if (Array.isArray(screen.seen)) {
+        scrSavedMessage(`Nothing new since ${escapeHtml(since)}.`);
+    }
+    scrRefresh(true);
+
+    // Today's matches become the baseline for next time.
+    const asOf = scrState.meta && scrState.meta.prices_as_of;
+    const updated = scrMarkSeen(screen, matches, asOf);
+    if (JSON.stringify(updated.seen) !== JSON.stringify(screen.seen) || updated.seen_at !== screen.seen_at) {
+        const list = scrState.screens.slice();
+        list[i] = updated;
+        await scrStoreScreens(list);
+        // The tags stay up for this visit; the counts in the menu and badge drop to zero.
+    }
+}
+
+async function scrSaveCurrent(name) {
+    name = (name || "").trim();
+    if (!name) return;
+    if (!scrState.rows) return;
+    const list = scrState.screens.slice();
+    const existing = list.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+    if (existing < 0 && list.length >= SCR_SCREENS_MAX) {
+        scrSavedMessage(`You can save up to ${SCR_SCREENS_MAX} screens; delete one first.`, true);
+        return;
+    }
+    const { matches } = scrScreenStatus(scrState.rows, { filters: scrState.filters, seen: null }, scrToday());
+    const screen = scrMarkSeen(scrScreenFrom(name, scrState.filters, scrState.sort, scrState.view), matches,
+        scrState.meta && scrState.meta.prices_as_of);
+    if (existing >= 0) list[existing] = screen; else list.push(screen);
+    if (await scrStoreScreens(list)) {
+        scrSetActive(screen.name);
+        const where = scrSignedIn() ? "to your account" : "in this browser (sign in to keep it across devices)";
+        scrSavedMessage(`Saved ${where}. New matches will be flagged after each daily update.`);
+    }
+}
+
+async function scrDeleteActive() {
+    if (!scrState.active) return;
+    const list = scrState.screens.filter(s => s.name !== scrState.active);
+    scrSetActive(null);
+    await scrStoreScreens(list);
+    scrRefresh(false);
+}
+
+function scrInitSaved() {
+    const form = document.getElementById("scr-save-form");
+    const nameInput = document.getElementById("scr-save-name");
+    const saveBtn = document.getElementById("scr-save");
+    const closeForm = () => { form.hidden = true; saveBtn.hidden = false; };
+    saveBtn.addEventListener("click", () => {
+        form.hidden = false;
+        saveBtn.hidden = true;
+        nameInput.value = scrState.active || "";
+        nameInput.focus();
+    });
+    document.getElementById("scr-save-cancel").addEventListener("click", closeForm);
+    const submit = async () => { await scrSaveCurrent(nameInput.value); closeForm(); };
+    document.getElementById("scr-save-ok").addEventListener("click", submit);
+    nameInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") submit();
+        if (e.key === "Escape") { e.stopPropagation(); closeForm(); }
+    });
+    document.getElementById("scr-saved").addEventListener("change", e => {
+        if (e.target.value) scrOpenSaved(e.target.value); else { scrSetActive(null); scrRefresh(false); }
+    });
+    document.getElementById("scr-delete").addEventListener("click", scrDeleteActive);
+    document.getElementById("scr-saved-note").addEventListener("click", e => {
+        if (e.target.id !== "scr-only-new") return;
+        scrState.onlyNew = !scrState.onlyNew;
+        e.target.textContent = scrState.onlyNew ? "Show all matches" : "Show only new";
+        scrRefresh(true);
+    });
+    scrOnAuthChange();
+}
+
+// Load the screens; if any are being tracked, fetch the data in the background
+// so the Screener button can say how many new matches are waiting.
+async function scrOnAuthChange() {
+    scrState.screens = await scrLoadScreens();
+    if (scrState.active && !scrState.screens.some(s => s.name === scrState.active)) scrSetActive(null);
+    scrRenderSaved();
+    if (!scrState.rows && scrState.screens.some(s => Array.isArray(s.seen))) {
+        setTimeout(() => { scrFetchData().then(scrRenderSaved).catch(() => {}); }, 3000);
+    }
+}

@@ -63,7 +63,7 @@
                      fill="none" stroke="currentColor" stroke-width="1.5"
                      stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1.8 2.6h12.4L9.4 8.2v4.6l-2.8 1.6V8.2z"/>
-                </svg><span class="btn-text">Screener</span></button>
+                </svg><span class="btn-text">Screener</span><span class="scr-new-badge" id="scr-new-badge" hidden></span></button>
             <a class="screener-btn" id="open-options-btn" href="/options"
                     title="Options chain, strategies and scanner" aria-label="Options">
                 <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"
@@ -352,6 +352,15 @@
                 <input type="search" id="scr-search" class="filter-input scr-search" placeholder="Search symbol or company"
                        autocomplete="off" spellcheck="false" aria-label="Search symbol or company">
                 <select id="scr-preset" class="filter-select" aria-label="Preset screens"></select>
+                <select id="scr-saved" class="filter-select scr-saved" aria-label="Your saved screens"></select>
+                <button class="btn-secondary" id="scr-save" title="Save these filters and get told about new matches">Save screen</button>
+                <span class="scr-save-form" id="scr-save-form" hidden>
+                    <input type="text" id="scr-save-name" class="filter-input" maxlength="60" placeholder="Name this screen"
+                           autocomplete="off" aria-label="Screen name">
+                    <button class="btn-primary" id="scr-save-ok">Save</button>
+                    <button class="text-btn" id="scr-save-cancel">Cancel</button>
+                </span>
+                <button class="text-btn" id="scr-delete" hidden>Delete screen</button>
                 <button class="btn-secondary scr-filters-toggle" id="scr-filters-toggle">Filters</button>
                 <button class="text-btn" id="scr-reset">Reset</button>
                 <button class="btn-secondary" id="scr-export" title="Download the matching stocks as CSV">Export CSV</button>
@@ -367,6 +376,7 @@
                         <button class="scr-view" data-view="technical">Technical</button>
                         <button class="scr-view" data-view="analysts">Analysts</button>
                     </div>
+                    <div class="scr-saved-note" id="scr-saved-note" role="status" hidden></div>
                     <div class="scr-chips" id="scr-chips"></div>
                     <div class="screener-table-wrap">
                         <table class="screener-table scr-table">

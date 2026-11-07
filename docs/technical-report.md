@@ -18,10 +18,10 @@ This report describes the architecture as built, the decisions worth defending, 
 
 | | |
 |---|---|
-| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
+| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 31 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 280, across 26 files, run in GitHub Actions with flake8 |
+| Tests | 300, across 27 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 9 Tradeski tools + web search, a figure-grounding check, and a 24-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -72,6 +72,14 @@ close. The output is published as one static file on a data branch whose single 
 replaced each run, so a few megabytes of daily prices never accumulate in git history. The
 browser downloads it once and filters locally: about 40 filters over 5,500 rows takes
 milliseconds, and the backend is never involved.
+
+Saved screens turn that into an alert without a scheduler. Each saved screen stores the
+symbols it matched when it was last opened (on the account through `PUT /screens`, or in
+the browser when signed out). On the next visit after a rebuild, the browser re-runs every
+saved screen over the new file and counts symbols outside that list: the Screener button
+shows the total, and opening the screen tags those rows and makes today's matches the new
+baseline. Screens matching more than 3,000 stocks are not tracked, since "new" means little
+there and the list would dominate the stored document.
 
 ---
 
@@ -316,7 +324,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-280 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
+300 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
