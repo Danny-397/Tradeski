@@ -34,7 +34,7 @@ from tracker import ski_tools, ski_grounding, sec_fundamentals, alert_eval
 from tracker import options as opt
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
-from tracker.price_fetcher import get_option_expirations, get_option_chain
+from tracker.price_fetcher import get_option_expirations, get_option_chain, get_eod_options
 from tracker.analyzer import (
     sma,
     ema,
@@ -1012,14 +1012,41 @@ def _options_rate() -> tuple:
         return _DEFAULT_RATE, "an assumed rate: FRED was unavailable"
 
 
+# Where the snapshot workflow publishes end-of-day chains (static files on Vercel).
+_OPTIONS_EOD_BASE = os.environ.get("OPTIONS_EOD_URL", "https://tradeski.dev/data/options")
+
+
+def _cached_eod(symbol: str) -> Optional[dict]:
+    key = f"opt_eod:{symbol}"
+    eod = _cache.get(key)
+    if eod is None:
+        eod = get_eod_options(symbol, _OPTIONS_EOD_BASE) or {}
+        _cache.set(key, eod, ttl=1800)
+    return eod or None
+
+
+def _options_source(symbol: str) -> tuple:
+    """("live", expiries) from the data source, else ("eod", expiries) from the
+    saved end-of-day chains. Yahoo refuses option requests from Render, so in
+    production the end-of-day files are usually what answers."""
+    key = f"opt_exp:{symbol}"
+    hit = _cache.get(key)
+    if hit is None:
+        live = get_option_expirations(symbol)
+        if live:
+            hit = ("live", live)
+        else:
+            eod = _cached_eod(symbol)
+            hit = ("eod", list(eod["chains"])) if eod else ("live", [])
+        # An empty answer is usually the source refusing this server, not a symbol
+        # without options, so it is retried after a minute, not five.
+        _cache.set(key, hit, ttl=_OPTIONS_TTL if hit[1] else 60)
+    return hit[0], [e for e in hit[1] if opt.year_fraction(e) > 0]
+
+
 def _cached_expiries(symbol: str) -> list:
     """Future expiries only: one that closed today can no longer be priced."""
-    key = f"opt_exp:{symbol}"
-    exp = _cache.get(key)
-    if exp is None:
-        exp = get_option_expirations(symbol)
-        _cache.set(key, exp, ttl=_OPTIONS_TTL)
-    return [e for e in exp if opt.year_fraction(e) > 0]
+    return _options_source(symbol)[1]
 
 
 def _cached_chain(symbol: str, expiry: str) -> Optional[dict]:
@@ -1027,12 +1054,25 @@ def _cached_chain(symbol: str, expiry: str) -> Optional[dict]:
     key = f"opt_chain:{symbol}:{expiry}"
     chain = _cache.get(key)
     if chain is None:
-        raw = get_option_chain(symbol, expiry)
+        source, _ = _options_source(symbol)
+        eod = _cached_eod(symbol) if source == "eod" else None
+        raw = opt.eod_raw_chain(eod, expiry) if eod else get_option_chain(symbol, expiry)
         if not raw:
             return None
         rate, rate_source = _options_rate()
-        chain = opt.clean_chain(raw, expiry, rate)
+        # Saved quotes are priced at the moment they were saved: measuring time to
+        # expiry from now would read Friday's prices against a shorter clock over a
+        # weekend and overstate every IV.
+        when = None
+        if eod:
+            try:
+                when = datetime.datetime.fromisoformat(eod.get("captured_at"))
+            except (TypeError, ValueError):
+                when = None
+        chain = opt.clean_chain(raw, expiry, rate, now=when)
         chain["rate_source"] = rate_source
+        chain["source"] = "end_of_day" if eod else "live"
+        chain["quotes_as_of"] = eod.get("captured_at") if eod else None
         closes = [b["close"] for b in _cached_bars(symbol, "3mo")]
         hv = opt.realized_vol(closes, 30)
         chain["realized_vol_30d"] = round(hv, 4) if hv else None
@@ -1060,7 +1100,9 @@ def _option_args(body: dict) -> tuple:
         return None, None, (jsonify({"error": "symbol is required"}), 400)
     expiries = _cached_expiries(sym)
     if not expiries:
-        return sym, None, (jsonify({"error": f"no listed options found for {sym}"}), 404)
+        msg = (f"no option data came back for {sym}: either it has no listed options, "
+               "or the data source is not answering this server right now")
+        return sym, None, (jsonify({"error": msg}), 404)
     expiry = body.get("expiry") or request.args.get("expiry") or ""
     if expiry not in expiries:
         expiry = opt.pick_expiry(expiries, 20, 60) or expiries[0]

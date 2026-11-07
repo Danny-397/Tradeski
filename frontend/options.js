@@ -253,7 +253,7 @@ async function optLoadSymbol(sym) {
         optState.expirations = data.expirations;
         if (!data.expirations.length) {
             sel.innerHTML = "";
-            optStatus(`${sym} has no listed options.`, true);
+            optStatus(`No option data came back for ${sym}. Either it has no listed options, or the data source isn't answering right now.`, true);
             optRenderChain();
             return;
         }
@@ -357,7 +357,9 @@ function optRenderSummary() {
             <span class="opt-stat-val">${c.put_call_volume ?? "—"} · ${c.put_call_oi ?? "—"}</span></div>
         ${optIvRankStat(c)}
         <p class="opt-note">${ivVsHv ? `Options are pricing volatility ${ivVsHv} what the stock has actually done lately. ` : ""}
-            Quotes are delayed about 15 minutes${closed ? "; the market is closed, so these are the last session's" : ""}.
+            ${c.source === "end_of_day"
+                ? `These are <strong>end-of-day quotes</strong> saved at ${escapeHtml((c.quotes_as_of || "").slice(0, 10))}: the live option feed doesn't answer this server, so the chain updates once a day, after the close.`
+                : `Quotes are delayed about 15 minutes${closed ? "; the market is closed, so these are the last session's" : ""}.`}
             IV and Greeks are computed from each bid/ask midpoint with Black-Scholes, at a ${optPct(c.rate, 2)}
             interest rate (${escapeHtml(c.rate_source || "")}).</p>`;
 }

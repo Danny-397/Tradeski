@@ -187,6 +187,19 @@ def get_option_expirations(symbol: str) -> list:
         return []
 
 
+def get_eod_options(symbol: str, base_url: str) -> dict | None:
+    """The saved end-of-day option file for a symbol (see capture_snapshot.py), or None."""
+    import requests
+    try:
+        resp = requests.get(f"{base_url.rstrip('/')}/{symbol}.json", timeout=10)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        return data if isinstance(data, dict) and data.get("chains") else None
+    except Exception:
+        return None
+
+
 def get_option_chain(symbol: str, expiry: str) -> dict | None:
     """Raw calls and puts for one expiry, plus the spot price and dividend yield.
 

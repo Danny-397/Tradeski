@@ -13,7 +13,9 @@ name: Refresh demo snapshot
 #
 # The same run records each ticker's at-the-money implied volatility in
 # frontend/data/iv_history.json, because no free source has IV history; the
-# Options window ranks today's IV against it.
+# Options window ranks today's IV against it. It also saves the day's closing
+# option chains to frontend/data/options/: Yahoo refuses option requests from
+# Render, so the backend falls back to these end-of-day files.
 
 on:
   schedule:
@@ -62,6 +64,7 @@ jobs:
         run: |
           git add frontend/demo-snapshot.js
           [ -f frontend/data/iv_history.json ] && git add frontend/data/iv_history.json
+          [ -d frontend/data/options ] && git add frontend/data/options
           git diff --cached --quiet && { echo "No change."; exit 0; }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

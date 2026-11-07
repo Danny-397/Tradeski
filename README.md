@@ -9,7 +9,7 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-244%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-247%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 244 tests across 24 files — CI on every push |
+| **Tests** | 247 tests across 24 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 <div align="center">
@@ -130,6 +130,8 @@ An **Options** window ([`tracker/options.py`](tracker/options.py), [`frontend/op
 
 The data source's own IV is often stale out of hours, so Tradeski solves IV from each bid/ask midpoint itself and computes the Greeks with Black-Scholes (written on `math.erf`, no SciPy), using the 3-month Treasury yield from FRED. The window states the model's limits next to the numbers: quotes are delayed, prices are midpoints, Black-Scholes treats options as European, and the chance of profit is what option prices imply, not a forecast.
 
+On the live site Yahoo refuses option requests from the backend's host (Render), though it answers GitHub's runners. So the same daily snapshot job also saves the closing chains for the ticker-strip symbols and JPM (expiries up to 75 days, strikes within 30% of the price) to [`frontend/data/options/`](frontend/data/options), and the backend falls back to them when the live source returns nothing. The window then says it is showing end-of-day quotes and when they were saved; the builder and scanner work on them as usual. Other symbols need the live source.
+
 No free source has implied-volatility history, so Tradeski keeps its own. After each US close, the snapshot workflow records every ticker-strip symbol's at-the-money IV (expiry nearest 30 days) in [`frontend/data/iv_history.json`](frontend/data/iv_history.json), starting 2026-11-06. Once a symbol has 20 daily readings, the chain header shows today's IV as a percentile of that history, labelled with how many days it covers. Until then it says how many days are recorded.
 
 ### Accounts & Saved Data
@@ -170,7 +172,7 @@ Tradeski/
 │   ├── dashboard.js           # WebSocket, Plotly, Ski, screener, health indicator
 │   └── options.js             # Options window: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 244 tests across 24 files
+├── tests/                     # pytest suite — 247 tests across 24 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -253,7 +255,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (244 tests) |
+| Testing | pytest (247 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -582,7 +584,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-244 tests across 24 files:
+247 tests across 24 files:
 
 | File | What it covers |
 |:---|:---|
