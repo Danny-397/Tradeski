@@ -21,8 +21,8 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 29 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 276, across 26 files, run in GitHub Actions with flake8 |
-| Assistant | Claude Haiku 5.5 with 8 Tradeski tools + web search, a figure-grounding check, and a 23-question eval |
+| Tests | 280, across 26 files, run in GitHub Actions with flake8 |
+| Assistant | Claude Haiku 5.5 with 9 Tradeski tools + web search, a figure-grounding check, and a 24-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
 ---
@@ -189,6 +189,12 @@ falls 10 to 30 points. In the AAPL example, a straddle held over earnings that c
 was worth $2,133 less after a 15-point drop, with the stock unchanged. The next earnings date comes from Yahoo's chain response, using its estimate of
 the next report rather than its timestamp of the last one.
 
+A paper trade is re-analysed *as held*: its legs keep their entry prices while volatility
+comes from today's chain. Its break-evens and chance of profit are therefore measured from
+what was actually paid, not from what a new position would cost today. Those two answers
+differ as soon as the stock moves. Ski can call the same ranking (`rank_option_strategies`)
+when someone states a view, and is told to explain the trade-off, never to recommend one.
+
 ---
 
 ## 5. News sentiment: why general-purpose scoring fails here
@@ -310,7 +316,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-276 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
+280 tests across 26 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
