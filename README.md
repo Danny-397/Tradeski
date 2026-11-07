@@ -4,7 +4,7 @@
 
 **A real-time financial analytics platform for retail investors.**
 
-Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio risk analytics · News sentiment
+Live charts · Market news · Whole-market screener · Options strategy lab · AI analyst · Portfolio risk · Federal Reserve data
 
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -17,9 +17,9 @@ Live charts · Federal Reserve macro data · AI-powered assistant · Portfolio r
 
 <br>
 
-![Tradeski dashboard — live candlestick chart with Bollinger Bands and moving averages, a Federal Reserve macro ribbon, and a real-time indicator panel](docs/screenshots/dashboard.png)
+![A 25-second tour of Tradeski: the dashboard with news, the whole-market screener with a saved screen flagging new matches, and the Options page building an iron condor, trying an IV crush, and ranking strategies for a price target](docs/screenshots/demo.gif)
 
-<sub>Live dashboard: candlesticks with hand-computed Bollinger Bands, SMA/EMA overlays, a Federal Reserve macro ribbon, and RSI / MACD / Z-score readouts — Ski (bottom-right) reads all of it.</sub>
+<sub>A 25-second tour: dashboard and news → screener with a saved screen flagging new matches → Options: chain, an iron condor's payoff, an IV crush, the what-if table, and every strategy ranked for a price target.</sub>
 
 </div>
 
@@ -36,6 +36,15 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
 | **Tests** | 300 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
+
+### Screenshots
+
+| | |
+|:---:|:---:|
+| ![Dashboard: NVDA candlesticks with Bollinger Bands and moving averages, the Federal Reserve macro ribbon, and the News tab](docs/screenshots/dashboard.png) | ![Screener: momentum leaders across 5,698 US stocks, a saved screen reporting 3 new matches since Nov 5, rows tagged New](docs/screenshots/screener.png) |
+| **Dashboard** — live chart with hand-computed indicators, Fed ribbon, News first | **Screener** — every US stock, ~40 filters, saved screens that flag new matches |
+| ![Strategy builder: an AAPL iron condor with cost, best and worst case, break-evens, chance of profit and the payoff chart with the expected-move band](docs/screenshots/options-strategy.png) | ![Compare and choose: nine strategies ranked for AAPL at $370 by profit at the target per dollar at risk, with market-implied odds](docs/screenshots/options-compare.png) |
+| **Strategy builder** — outcome cards, payoff at expiry and today, expected range | **Compare & choose** — every strategy ranked for your price target |
 
 <div align="center">
 
