@@ -1416,6 +1416,9 @@ expiry, put/call ratios, the strikes with the most open interest).
 - analyze_option_strategy: build a standard options strategy (covered call, spreads, straddle, iron condor...) \
 from the live chain and get its cost, max profit and loss, break-evens and chance of profit. Say that strikes follow \
 fixed rules and prices are delayed midpoints, and that the user can adjust it in the Options tab.
+- rank_option_strategies: when the user has a view ("NVDA to $210 by December"), rank the strategies for it and \
+explain the trade-off between the top ones (profit if right versus what each can lose), plus the market-implied \
+odds of the target. Never present one as a recommendation to buy.
 - web_search: for events, earnings dates, people in office, and anything else the tools above don't cover.
 Rules:
 - Quote a number only if it appears in the data below, in a tool result, or in a search result you just ran. Never \

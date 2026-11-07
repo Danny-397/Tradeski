@@ -632,3 +632,19 @@ def test_held_positions_are_analysed_from_their_entry_prices(client):
     plain = client.post("/options/strategy", json={"symbol": "TEST", "expiry": client.expiries[1],
                                                    "legs": spec}).get_json()
     assert "value_now" not in plain
+
+
+def test_ski_ranks_strategies_for_a_view():
+    c = chain()
+    out = st.run_tool("rank_option_strategies", {"symbol": "test", "target_price": 110, "days_to_expiry": 30},
+                      _ski(lambda s, d: c))
+    assert out["symbol"] == "TEST" and out["target_price"] == 110 and out["move_to_target_pct"] == 10.0
+    assert len(out["ranked"]) == 5 and out["ranked"][0]["pnl_if_at_target"] > 0
+    assert 0 < out["chance_ends_beyond_target"] < 0.5                   # a 10% move in a month is unlikely
+    assert out["chance_ends_beyond_target"] < out["chance_trades_at_target_before_expiry"] <= 1
+    assert out["ranked"][0]["legs"][0]["action"] in ("buy", "sell")
+    with pytest.raises(ValueError):
+        st.run_tool("rank_option_strategies", {"symbol": "TEST", "target_price": -1, "days_to_expiry": 30},
+                    _ski(lambda s, d: c))
+    label = st.describe_call("rank_option_strategies", {"symbol": "nvda", "target_price": 210.0})
+    assert label == "NVDA strategies for $210"
