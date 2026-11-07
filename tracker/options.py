@@ -578,6 +578,47 @@ def build_preset(name: str, chain: dict) -> list:
     return legs
 
 
+def compare_strategies(chain: dict, presets: Optional[list] = None, target: Optional[float] = None,
+                       symbol: str = "the stock") -> list:
+    """Every preset (or the ones named) on one chain, side by side.
+
+    With a ``target`` price, each also gets its P/L if the stock is exactly
+    there at expiry and that as a multiple of what it can lose, and the list
+    is ranked: positions that make money at the target first, best reward for
+    the risk at the target first, unlimited-loss positions last among equals.
+    Presets that don't fit the chain are left out.
+    """
+    S, T, r, q, sigma = chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"], chain["atm_iv"]
+    names = [p for p in (presets or list(PRESETS)) if p in PRESETS]
+    out = []
+    for name in names:
+        try:
+            legs = build_preset(name, chain)
+        except ValueError:
+            continue
+        res = analyze(legs, S, T, r, q, sigma=sigma, symbol=symbol, expiry=chain["expiry"], points=81)
+        row = {
+            "preset": name, "name": PRESETS[name],
+            "legs": [{"type": leg["type"], "qty": leg["qty"], "strike": leg["strike"]} for leg in legs],
+            **{k: res[k] for k in ("net_debit", "max_profit", "max_loss", "unlimited_profit", "unlimited_loss",
+                                   "breakevens", "profit_zones", "prob_profit", "return_on_risk", "scenarios")},
+            "curve": {"prices": res["curves"]["prices"], "expiry": res["curves"]["expiry"]},
+        }
+        if target is not None and target > 0:
+            pnl = position_pnl(legs, target)
+            risk = None if res["unlimited_loss"] or not res["max_loss"] else -res["max_loss"]
+            row["pnl_at_target"] = round(pnl, 2)
+            row["reward_risk_at_target"] = round(pnl / risk, 3) if risk else None
+        out.append(row)
+    if target is not None and target > 0:
+        def rank(row):
+            rr = row["reward_risk_at_target"]
+            return (row["pnl_at_target"] <= 0, row["unlimited_loss"], -(rr if rr is not None else -1e9),
+                    -row["pnl_at_target"])
+        out.sort(key=rank)
+    return out
+
+
 def legs_from_request(specs: list, chain: dict, max_legs: int = 6) -> list:
     """Price user-chosen legs [{type, qty, strike}] from the chain."""
     if not isinstance(specs, list) or not specs:

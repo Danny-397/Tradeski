@@ -150,3 +150,28 @@ test("dates, day counts and the expected range", () => {
     assert.deepEqual(plain(optExpectedRange({ spot: 342.37, expected_move: 25.07 })), { lo: 317.3, hi: 367.44 });
     assert.equal(optExpectedRange({ spot: 100, expected_move: null }), null);
 });
+
+test("which strategies to compare when the list loads", () => {
+    const ctx = vm.createContext({});
+    vm.runInContext('const OPT_COMPARE_MAX = 3; const OPT_COMPARE_DEFAULT = ["long_call", "bull_call_spread", "covered_call"];\n' +
+        declaration("optCompareSelection") + "\nthis.__f = optCompareSelection;", ctx);
+    const pick = ctx.__f;
+    const rows = [{ preset: "bull_call_spread", pnl_at_target: 900 }, { preset: "long_call", pnl_at_target: 600 },
+                  { preset: "covered_call", pnl_at_target: 300 }, { preset: "long_strangle", pnl_at_target: 50 },
+                  { preset: "long_put", pnl_at_target: -400 }];
+    assert.deepEqual(plain(pick(rows, null, 110)), ["bull_call_spread", "long_call", "covered_call"]);   // top three
+    assert.deepEqual(plain(pick(rows, ["long_put", "gone"], 110)), ["long_put"]);                          // keep picks
+    assert.deepEqual(plain(pick(rows, null, null)), ["long_call", "bull_call_spread", "covered_call"]);   // starter set
+    assert.deepEqual(plain(pick([{ preset: "long_put", pnl_at_target: -1 }], null, 90)), []);             // nothing wins
+});
+
+test("the comparison chart's window, and curves clipped to it", () => {
+    const { optCompareWindow, optClipCurve } = load(["optCompareWindow", "optClipCurve"]);
+    const r2 = a => plain(a).map(v => +v.toFixed(2));
+    assert.deepEqual(r2(optCompareWindow(100, 5, null)), [87.5, 112.5]);               // 2.5 expected moves
+    assert.deepEqual(r2(optCompareWindow(100, 1, null)), [88, 112]);                   // at least ±12%
+    assert.deepEqual(r2(optCompareWindow(100, 30, null)), [60, 140]);                  // at most ±40%
+    assert.deepEqual(plain(optCompareWindow(100, 5, 130)).map(v => +v.toFixed(2)), [87.5, 136.5]);  // shows the target
+    const c = optClipCurve([0, 10, 20, 30], [0, 100, 200, 300], 5, 25);
+    assert.deepEqual(plain(c), { x: [5, 10, 20, 25], y: [50, 100, 200, 250] });
+});

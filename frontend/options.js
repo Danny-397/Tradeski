@@ -32,7 +32,10 @@ const OPT_SCAN_DEFAULT = "AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, JPM, SPY, Q
 const OPT_API = "https://tradeski.onrender.com";
 // Quick picks: the symbols whose closing chains are always saved (see capture_snapshot.py).
 const OPT_QUICK = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "SPY", "QQQ", "JPM", "SOFI", "RDW"];
-const OPT_TABS = ["chain", "strategy", "scan"];
+const OPT_TABS = ["chain", "strategy", "compare", "scan"];
+const OPT_COMPARE_COLORS = ["#60A5FA", "#F59E0B", "#C084FC"];
+const OPT_COMPARE_DEFAULT = ["long_call", "bull_call_spread", "covered_call"];
+const OPT_COMPARE_MAX = 3;
 const OPT_SKI_KEY = "tradeski-ski-prompt";   // read by dashboard.js on load
 // Fewer daily readings than this and a percentile says more about the sample than the stock.
 const OPT_IV_MIN_DAYS = 20;
@@ -60,6 +63,39 @@ function escapeHtml(s) {
 }
 
 // The page's starting state from its query string: ?symbol=NVDA&expiry=2026-12-18&tab=strategy.
+// Which strategies to compare when the list (re)loads: the user's picks if
+// still available, else the top three for a target, else a starter set.
+function optCompareSelection(rows, previous, target) {
+    const have = new Set(rows.map(r => r.preset));
+    const kept = (previous || []).filter(p => have.has(p));
+    if (kept.length) return kept.slice(0, OPT_COMPARE_MAX);
+    if (target) return rows.filter(r => r.pnl_at_target > 0).slice(0, OPT_COMPARE_MAX).map(r => r.preset);
+    return OPT_COMPARE_DEFAULT.filter(p => have.has(p));
+}
+
+// The price window for the comparison chart: spot ± max(2.5 expected moves, 12%), capped at ±40%,
+// and always wide enough to show the target.
+function optCompareWindow(spot, expectedMove, target) {
+    const w = Math.min(Math.max(expectedMove ? 2.5 * expectedMove / spot : 0, 0.12), 0.4);
+    let lo = spot * (1 - w), hi = spot * (1 + w);
+    if (target) { lo = Math.min(lo, target * 0.95); hi = Math.max(hi, target * 1.05); }
+    return [lo, hi];
+}
+
+// The part of a curve inside [lo, hi], with the end points interpolated onto the edges.
+function optClipCurve(xs, ys, lo, hi) {
+    const at = x => {
+        for (let i = 1; i < xs.length; i++) {
+            if (xs[i] >= x) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / ((xs[i] - xs[i - 1]) || 1);
+        }
+        return ys[ys.length - 1];
+    };
+    const x = [lo], y = [at(lo)];
+    xs.forEach((v, i) => { if (v > lo && v < hi) { x.push(v); y.push(ys[i]); } });
+    x.push(hi); y.push(at(hi));
+    return { x, y };
+}
+
 function optParseQuery(search) {
     const q = new URLSearchParams(search || "");
     const sym = (q.get("symbol") || "").trim().toUpperCase();
@@ -320,6 +356,16 @@ function initOptions() {
             optRenderScan();
         }));
     document.getElementById("opt-scan-body").addEventListener("click", optScanClick);
+    document.getElementById("cmp-table").addEventListener("click", optCompareClick);
+    document.getElementById("cmp-rank").addEventListener("click", () => optSetTarget(document.getElementById("cmp-target").value));
+    document.getElementById("cmp-target").addEventListener("keydown", e => {
+        if (e.key === "Enter") optSetTarget(e.target.value);
+    });
+    document.getElementById("cmp-clear-target").addEventListener("click", () => optSetTarget(null));
+    document.getElementById("cmp-quick").addEventListener("click", e => {
+        const b = e.target.closest("[data-move]");
+        if (b && optState.chain) optSetTarget(optState.chain.spot * (1 + Number(b.dataset.move) / 100));
+    });
 
     const start = optParseQuery(location.search);
     optState.wantExpiry = start.expiry;
@@ -338,6 +384,193 @@ function optShowTab(tab) {
     optSyncUrl();
     if (tab === "strategy" && optState.analysis) optDrawPayoff(optState.analysis);
     if (tab === "chain" && optState.chain) optDrawSmile(optState.chain);
+    if (tab === "compare") optEnsureCompare();
+}
+
+// ---------- compare & choose ----------
+
+function optCompareKey() {
+    return `${optState.symbol}|${optState.expiry}|${optState.compareTarget || ""}`;
+}
+
+function optEnsureCompare() {
+    const c = optState.chain;
+    if (!c) return;
+    document.getElementById("cmp-sym").textContent = c.symbol || optState.symbol;
+    document.getElementById("cmp-exp").textContent = optDate(c.expiry);
+    const moves = [[-10, "Down 10%"], [-5, "Down 5%"], [0, "Unchanged"], [5, "Up 5%"], [10, "Up 10%"]];
+    document.getElementById("cmp-quick").innerHTML = moves.map(([m, label]) =>
+        `<button class="opt-quick-btn" type="button" data-move="${m}">${label}</button>`).join("");
+    if (optState.compare && optState.compareKey === optCompareKey()) { optRenderCompare(); return; }
+    optLoadCompare();
+}
+
+async function optLoadCompare() {
+    const id = ++optState.reqId;
+    const key = optCompareKey();
+    document.getElementById("cmp-table").innerHTML =
+        `<tbody><tr><td class="screener-loading"><div class="loading-spinner"></div> Pricing every strategy…</td></tr></tbody>`;
+    try {
+        const body = { symbol: optState.symbol, expiry: optState.expiry };
+        if (optState.compareTarget) body.target = optState.compareTarget;
+        const data = await optFetch("/options/compare", body);
+        if (id !== optState.reqId) return;
+        optState.compare = data;
+        optState.compareKey = key;
+        optState.compareSel = optCompareSelection(data.strategies, optState.compareSel, data.target);
+        optRenderCompare();
+    } catch (e) {
+        if (id !== optState.reqId) return;
+        document.getElementById("cmp-table").innerHTML = `<tbody><tr><td class="feed-empty">${optOffline()
+            ? "Comparing needs the live backend, which is asleep right now." : escapeHtml(e.message)}</td></tr></tbody>`;
+    }
+}
+
+function optRenderCompare() {
+    const d = optState.compare;
+    if (!d) return;
+    const sym = escapeHtml(d.symbol);
+    const t = d.target;
+    const help = document.getElementById("cmp-help");
+    document.getElementById("cmp-clear-target").hidden = !t;
+    if (t) {
+        const winners = d.strategies.filter(r => r.pnl_at_target > 0).length;
+        const move = (t / d.spot - 1) * 100;
+        help.innerHTML = `Ranked for <strong>${sym} at $${t.toFixed(2)}</strong> on ${optDate(d.expiry)} ` +
+            `(${move >= 0 ? "+" : ""}${move.toFixed(1)}% from $${d.spot.toFixed(2)}). ${winners} of ${d.strategies.length} strategies ` +
+            "make money there. Best fit first: the most profit at your target for each dollar it can lose. " +
+            "If you're wrong, the worst case still applies.";
+    } else {
+        help.textContent = `Type a price (or pick a move) to rank all ${d.strategies.length} strategies for it. ` +
+            "Without one, you can still compare any of them below.";
+    }
+    const sel = new Set(optState.compareSel || []);
+    const money = (v, unlimited) => unlimited ? "Unlimited" : optMoney(v, true);
+    document.getElementById("cmp-table").innerHTML = `<thead><tr>
+        <th>Compare</th><th>Strategy</th><th class="opt-num">Cost</th>
+        ${t ? `<th class="opt-num">If ${sym} is $${t.toFixed(2)}</th><th class="opt-num" title="Profit at your target divided by the most it can lose">Reward ÷ risk</th>` : ""}
+        <th class="opt-num">Best case</th><th class="opt-num">Worst case</th><th class="opt-num">Chance of profit</th><th></th></tr></thead>
+        <tbody>${d.strategies.map((r, i) => {
+            const info = OPT_PRESET_INFO[r.preset];
+            const loses = t && r.pnl_at_target <= 0;
+            return `<tr class="${loses ? "cmp-loses" : ""}">
+                <td><input type="checkbox" class="cmp-pick" data-preset="${r.preset}"${sel.has(r.preset) ? " checked" : ""}
+                     aria-label="Compare ${escapeHtml(r.name)}"></td>
+                <td><span class="cmp-name">${escapeHtml(r.name)}</span>
+                    ${t && i === 0 && !loses ? `<span class="cmp-best">Best fit</span>` : ""}
+                    <span class="opt-view opt-view-${info.kind}">${escapeHtml(info.view)}</span></td>
+                <td class="opt-num">${r.net_debit >= 0 ? "pay " + optMoney(r.net_debit) : "collect " + optMoney(-r.net_debit)}</td>
+                ${t ? `<td class="opt-num ${r.pnl_at_target > 0 ? "positive" : "negative"}">${optMoney(r.pnl_at_target, true)}</td>
+                       <td class="opt-num">${r.reward_risk_at_target === null || r.reward_risk_at_target === undefined ? "—" : r.reward_risk_at_target.toFixed(2) + "×"}</td>` : ""}
+                <td class="opt-num positive">${money(r.max_profit, r.unlimited_profit)}</td>
+                <td class="opt-num negative">${money(r.max_loss, r.unlimited_loss)}</td>
+                <td class="opt-num">${optPct(r.prob_profit, 0)}</td>
+                <td><button class="btn-secondary cmp-open" data-preset="${r.preset}" type="button">Open</button></td></tr>`;
+        }).join("")}</tbody>`;
+    optRenderCompareSide();
+}
+
+function optRenderCompareSide() {
+    const d = optState.compare;
+    const rows = (optState.compareSel || []).map(p => d.strategies.find(r => r.preset === p)).filter(Boolean);
+    document.getElementById("cmp-results").hidden = !rows.length;
+    if (!rows.length) return;
+    const t = d.target;
+    const sym = escapeHtml(d.symbol);
+    const at = (r, m) => { const s = (r.scenarios || []).find(x => x.move_pct === m); return s ? s.expiry : null; };
+    const cell = v => v === null || v === undefined ? "<td class=\"opt-num\">—</td>"
+        : `<td class="opt-num ${v > 0 ? "positive" : v < 0 ? "negative" : ""}">${optMoney(v, true)}</td>`;
+    const metric = (label, fn) => `<tr><th scope="row">${label}</th>${rows.map(fn).join("")}</tr>`;
+    document.getElementById("cmp-side").innerHTML = `<thead><tr><th></th>${rows.map((r, i) =>
+        `<th class="opt-num"><span class="cmp-swatch" style="background:${OPT_COMPARE_COLORS[i]}"></span>${escapeHtml(r.name)}</th>`).join("")}</tr></thead>
+        <tbody>
+        ${metric("You pay / collect", r => `<td class="opt-num">${r.net_debit >= 0 ? "pay " + optMoney(r.net_debit) : "collect " + optMoney(-r.net_debit)}</td>`)}
+        ${metric("Best case", r => r.unlimited_profit ? `<td class="opt-num positive">Unlimited</td>` : cell(r.max_profit))}
+        ${metric("Worst case", r => r.unlimited_loss ? `<td class="opt-num negative">Unlimited</td>` : cell(r.max_loss))}
+        ${metric("Break-even", r => `<td class="opt-num">${r.breakevens.length ? r.breakevens.map(b => "$" + b.toFixed(2)).join(" / ") : "—"}</td>`)}
+        ${metric("Makes money if", r => `<td class="opt-num cmp-zone">${escapeHtml(optZoneText(r.profit_zones))}</td>`)}
+        ${metric("Chance of profit", r => `<td class="opt-num">${optPct(r.prob_profit, 0)}</td>`)}
+        ${t ? metric(`If ${sym} is $${t.toFixed(2)}`, r => cell(r.pnl_at_target)) : ""}
+        ${metric(`If ${sym} drops 10%`, r => cell(at(r, -10)))}
+        ${metric("If it doesn't move", r => cell(at(r, 0)))}
+        ${metric(`If ${sym} rises 10%`, r => cell(at(r, 10)))}
+        </tbody>`;
+    optDrawCompare(rows);
+}
+
+function optDrawCompare(rows) {
+    const el = document.getElementById("cmp-chart");
+    if (!el || typeof Plotly === "undefined") return;
+    const d = optState.compare;
+    const narrow = el.clientWidth < 640;
+    // A window that matters: ±2.5 expected moves (at least ±12%), widened to include the target.
+    // Without it an unlimited-profit line stretches the scale and flattens the others.
+    const [lo, hi] = optCompareWindow(d.spot, d.expected_move, d.target);
+    const traces = rows.map((r, i) => ({
+        ...optClipCurve(r.curve.prices, r.curve.expiry, lo, hi), name: r.name, type: "scatter", mode: "lines",
+        line: { color: OPT_COMPARE_COLORS[i], width: 2.5 },
+        hovertemplate: `${r.name}: %{y:$,.0f}<extra></extra>`,
+    }));
+    const range = optExpectedRange(optState.chain && optState.chain.expiry === d.expiry ? optState.chain : null);
+    const shapes = [
+        ...(range ? [{ type: "rect", xref: "x", x0: range.lo, x1: range.hi, yref: "paper", y0: 0, y1: 1, layer: "below",
+                       fillcolor: "rgba(96,165,250,0.07)", line: { width: 1, color: "rgba(96,165,250,0.3)", dash: "dot" } }] : []),
+        { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: "rgba(255,255,255,0.35)", width: 1 } },
+        { type: "line", xref: "x", x0: d.spot, x1: d.spot, yref: "paper", y0: 0, y1: 1,
+          line: { color: "rgba(255,255,255,0.35)", width: 1, dash: "dot" } },
+        ...(d.target ? [{ type: "line", xref: "x", x0: d.target, x1: d.target, yref: "paper", y0: 0, y1: 1,
+                          line: { color: "#4ADE80", width: 1.5, dash: "dash" } }] : []),
+    ];
+    const notes = [
+        { x: d.spot, y: 1, yref: "paper", text: narrow ? "Now" : `Now $${d.spot.toFixed(2)}`, showarrow: false,
+          yanchor: "bottom", font: { size: 12, color: "#E5E7EB" } },
+        ...(d.target ? [{ x: d.target, y: 0.92, yref: "paper", text: narrow ? "Target" : `Your target $${d.target.toFixed(2)}`,
+                          showarrow: false, xanchor: d.target >= d.spot ? "left" : "right", font: { size: 12, color: "#4ADE80" },
+                          bgcolor: "rgba(17,18,20,0.85)" }] : []),
+    ];
+    Plotly.react(el, traces, optPlotTheme({
+        showlegend: true,
+        legend: narrow ? { orientation: "h", y: -0.32, x: 0, font: { size: 11, color: "#E5E7EB" } }
+                       : { orientation: "h", y: 1.1, x: 0, font: { size: 12, color: "#E5E7EB" } },
+        hovermode: "x unified",
+        hoverlabel: { bgcolor: "#111214", bordercolor: "#3B4048", font: { color: "#F3F4F6", size: 13 } },
+        margin: narrow ? { l: 56, r: 12, t: 30, b: 96 } : { l: 70, r: 20, t: 52, b: 48 },
+        xaxis: { title: { text: `${d.symbol} price at expiry`, font: { size: 12, color: "#C9CED6" } },
+                 gridcolor: "rgba(255,255,255,0.06)", zeroline: false, tickprefix: "$", hoverformat: "$.2f",
+                 tickfont: { size: 12, color: "#C9CED6" } },
+        yaxis: { title: { text: "Profit or loss", font: { size: 12, color: "#C9CED6" } },
+                 gridcolor: "rgba(255,255,255,0.06)", zeroline: false, tickprefix: "$", tickformat: ",.0f",
+                 tickfont: { size: 12, color: "#C9CED6" } },
+        shapes, annotations: notes,
+    }), { responsive: true, displayModeBar: false });
+}
+
+function optCompareClick(e) {
+    const open = e.target.closest(".cmp-open");
+    if (open) {
+        optShowTab("strategy");
+        optBuildPreset(open.dataset.preset);
+        return;
+    }
+    const box = e.target.closest(".cmp-pick");
+    if (!box) return;
+    let sel = (optState.compareSel || []).filter(p => p !== box.dataset.preset);
+    if (box.checked) sel.push(box.dataset.preset);
+    if (sel.length > OPT_COMPARE_MAX) {
+        const dropped = sel.shift();
+        const other = document.querySelector(`.cmp-pick[data-preset="${dropped}"]`);
+        if (other) other.checked = false;
+    }
+    optState.compareSel = sel;
+    optRenderCompareSide();
+}
+
+function optSetTarget(value) {
+    const v = Number(value);
+    optState.compareTarget = Number.isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : null;
+    optState.compareSel = null;          // a new view: start from its top three
+    document.getElementById("cmp-target").value = optState.compareTarget || "";
+    optLoadCompare();
 }
 
 function optStatus(msg, isError) {
@@ -348,6 +581,9 @@ function optStatus(msg, isError) {
 
 async function optLoadSymbol(sym) {
     optState.symbol = sym;
+    optState.compareTarget = null;        // a target price belongs to one stock
+    const t = document.getElementById("cmp-target");
+    if (t) t.value = "";
     document.querySelectorAll(".opt-quick-btn").forEach(b => b.classList.toggle("active", b.dataset.symbol === sym));
     optState.chain = null;
     optState.legs = [];
@@ -400,6 +636,7 @@ async function optLoadChain(expiry) {
         optStatus("");
         optRenderSummary();
         optLabelExpiries(chain);
+        if (optState.tab === "compare") optEnsureCompare();
         optRenderChain();
         if (optState.legs.length) {
             // Same structure at the new expiry: rebuild a preset, else keep only legs that still exist.

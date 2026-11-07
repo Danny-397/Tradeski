@@ -1698,3 +1698,30 @@ select.form-input {
 .opt-warning strong { color: #FCD34D; }
 .opt-stat-warn .opt-stat-val { color: #FCD34D; }
 @media (max-width: 768px) { .opt-warning { margin-left: var(--s-5); margin-right: var(--s-5); } }
+
+/* ===== OPTIONS PAGE: Compare & choose ===== */
+.cmp-target-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-4); padding: 0 var(--s-7); }
+.cmp-target-wrap { display: inline-flex; align-items: center; gap: var(--s-2); color: #C9CED6; font-family: var(--data); }
+.cmp-target { width: 130px; height: 36px; font-size: var(--fs-base); }
+.cmp-quick { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.cmp-help { margin: 0; padding: var(--s-4) var(--s-7) 0; color: #C9CED6; font-size: var(--fs-sm); line-height: var(--lh-base); }
+.cmp-help strong { color: var(--text-strong); }
+.cmp-table td, .cmp-table th, .cmp-side td, .cmp-side th { font-size: var(--fs-sm); }
+.cmp-table td.positive, .cmp-side td.positive { color: #4ADE80; font-weight: 600; }
+.cmp-table td.negative, .cmp-side td.negative { color: #F87171; font-weight: 600; }
+.cmp-table th.opt-num, .cmp-side th.opt-num { text-align: right; }
+.cmp-table tr.cmp-loses td { opacity: 0.55; }
+.cmp-name { font-weight: 600; color: var(--text-strong); margin-right: var(--s-3); }
+.cmp-best { display: inline-block; margin-right: var(--s-3); padding: 1px 8px; border-radius: 999px; font-size: 11px;
+    font-weight: 700; color: #052E16; background: #4ADE80; }
+.cmp-table .opt-view { vertical-align: middle; }
+.cmp-pick { width: 16px; height: 16px; accent-color: #3B82F6; cursor: pointer; }
+.cmp-side th[scope=row] { color: #AEB4BD; font-weight: 500; text-align: left; }
+.cmp-side td.cmp-zone { white-space: normal; color: #C9CED6; }
+.cmp-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+#cmp-results .opt-table-wrap { margin-top: var(--s-5); }
+.cmp-side { margin: 0 var(--s-7); width: calc(100% - 2 * var(--s-7)); }
+@media (max-width: 768px) {
+    .cmp-target-row, .cmp-help { padding-left: var(--s-5); padding-right: var(--s-5); }
+    .cmp-side { margin: 0 var(--s-5); width: calc(100% - 2 * var(--s-5)); }
+}

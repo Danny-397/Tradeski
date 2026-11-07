@@ -514,3 +514,30 @@ def test_chain_flags_an_expiry_that_spans_earnings():
     raw.update(earnings_ts=[(soon + dt.timedelta(days=60)).timestamp()])
     assert opt.clean_chain(raw, expiry, R)["earnings_before_expiry"] is False
     assert opt.clean_chain(raw_chain(30)[1], expiry, R)["earnings"] is None
+
+
+def test_compare_ranks_strategies_for_a_target_price():
+    c = chain()
+    up = opt.compare_strategies(c, target=110.0)
+    assert {r["preset"] for r in up} == set(opt.PRESETS)
+    winners = [r for r in up if r["pnl_at_target"] > 0]
+    assert up[:len(winners)] == winners                          # money-makers at the target come first
+    assert up[0]["preset"] in ("bull_call_spread", "long_call", "long_strangle", "long_straddle", "covered_call")
+    assert all(r["preset"] not in ("long_put", "bear_put_spread") for r in winners)
+    spread = next(r for r in up if r["preset"] == "bull_call_spread")
+    assert spread["reward_risk_at_target"] == pytest.approx(spread["pnl_at_target"] / -spread["max_loss"], abs=1e-3)
+    down = opt.compare_strategies(c, target=90.0)
+    assert down[0]["preset"] in ("bear_put_spread", "long_put", "long_straddle", "long_strangle")
+    # Without a target: just the presets asked for, in that order, with curves to overlay.
+    two = opt.compare_strategies(c, ["iron_condor", "long_call", "bogus"])
+    assert [r["preset"] for r in two] == ["iron_condor", "long_call"]
+    assert "pnl_at_target" not in two[0] and len(two[0]["curve"]["prices"]) == 81
+
+
+def test_compare_endpoint(client):
+    res = client.post("/options/compare", json={"symbol": "TEST", "target": 108, "presets": ["long_call", "long_put"]})
+    data = res.get_json()
+    assert res.status_code == 200 and data["target"] == 108
+    assert [r["preset"] for r in data["strategies"]] == ["long_call", "long_put"]
+    assert data["strategies"][0]["pnl_at_target"] > 0 > data["strategies"][1]["pnl_at_target"]
+    assert client.post("/options/compare", json={"symbol": "TEST", "target": "x"}).get_json()["target"] is None

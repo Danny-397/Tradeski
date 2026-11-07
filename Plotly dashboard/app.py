@@ -1160,6 +1160,26 @@ def options_strategy() -> tuple:
     return jsonify(result)
 
 
+@app.route("/options/compare", methods=["POST"])
+@limiter.limit("30 per minute")
+def options_compare() -> tuple:
+    """Strategies side by side on one chain; with a target price, ranked for it."""
+    body = request.get_json(silent=True) or {}
+    sym, expiry, err = _option_args(body)
+    if err:
+        return err
+    chain = _cached_chain(sym, expiry)
+    if not chain:
+        return _chain_error(sym, expiry)
+    presets = body.get("presets")
+    presets = [p for p in presets if isinstance(p, str)][:len(opt.PRESETS)] if isinstance(presets, list) else None
+    target = body.get("target")
+    target = float(target) if isinstance(target, (int, float)) and not isinstance(target, bool) and target > 0 else None
+    rows = opt.compare_strategies(chain, presets, target, symbol=sym)
+    return jsonify({"symbol": sym, "expiry": expiry, "spot": chain["spot"], "dte": chain["dte"],
+                    "expected_move": chain.get("expected_move"), "target": target, "strategies": rows})
+
+
 @app.route("/options/scan")
 @limiter.limit("10 per minute")
 def options_scan() -> tuple:
