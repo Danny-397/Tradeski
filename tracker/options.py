@@ -192,6 +192,22 @@ def clean_contract(row: dict, kind: str, S: float, T: float, r: float, q: float)
     }
 
 
+def next_earnings(timestamps: Iterable, estimated: bool = False,
+                  now: Optional[_dt.datetime] = None) -> Optional[dict]:
+    """The next earnings date from Yahoo's timestamps (epoch seconds), or None.
+
+    Yahoo gives the last report time and an estimated window for the next one;
+    only a date from today on counts, so a report that already happened is
+    never shown as upcoming.
+    """
+    now = now or _dt.datetime.now(_dt.timezone.utc)
+    today = now.astimezone(_ET).date()
+    days = sorted({_dt.datetime.fromtimestamp(t, _dt.timezone.utc).astimezone(_ET).date()
+                   for t in timestamps if isinstance(t, (int, float)) and t > 0})
+    upcoming = [d for d in days if d >= today]
+    return {"date": upcoming[0].isoformat(), "estimated": bool(estimated)} if upcoming else None
+
+
 def clean_chain(raw: dict, expiry: str, r: float, now: Optional[_dt.datetime] = None) -> dict:
     """Turn a raw chain (see price_fetcher.get_option_chain) into the API shape."""
     S = float(raw["spot"])
@@ -202,6 +218,7 @@ def clean_chain(raw: dict, expiry: str, r: float, now: Optional[_dt.datetime] = 
     puts = sorted((clean_contract(p, "put", S, T, r, q) for p in raw.get("puts", [])),
                   key=lambda c: c["strike"])
     atm = atm_iv(calls, puts, S)
+    earnings = next_earnings(raw.get("earnings_ts") or [], raw.get("earnings_estimated", False), now)
     return {
         "symbol": raw.get("symbol"),
         "expiry": expiry,
@@ -211,6 +228,8 @@ def clean_chain(raw: dict, expiry: str, r: float, now: Optional[_dt.datetime] = 
         "years": T,
         "dte": days_to_expiry(expiry),
         "market_state": raw.get("market_state"),
+        "earnings": earnings,
+        "earnings_before_expiry": bool(earnings and earnings["date"] <= expiry),
         "atm_iv": _r(atm),
         "expected_move": _r(S * atm * math.sqrt(T), 2) if atm else None,
         "calls": calls,
@@ -274,6 +293,7 @@ def eod_raw_chain(eod: dict, expiry: str) -> Optional[dict]:
         return None
     return {"symbol": eod.get("symbol"), "spot": float(eod["spot"]),
             "dividend_yield": float(eod.get("dividend_yield") or 0.0), "market_state": "CLOSED",
+            "earnings_ts": eod.get("earnings_ts") or [], "earnings_estimated": eod.get("earnings_estimated", False),
             "calls": chain.get("calls", []), "puts": chain.get("puts", [])}
 
 

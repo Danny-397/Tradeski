@@ -142,3 +142,11 @@ test("each leg as a sentence", () => {
     assert.equal(optLegPlain({ type: "stock", qty: 1, strike: null, price: 342.37 }, "AAPL"),
                  "Buy 100 AAPL shares at $342.37: you pay $34,237");
 });
+
+test("dates, day counts and the expected range", () => {
+    const { optDate, optDaysBetween, optExpectedRange } = load(["optDate", "optDaysBetween", "optExpectedRange"]);
+    assert.equal(optDate("2027-01-28"), "Jan 28, 2027");
+    assert.equal(optDaysBetween("2026-11-07", "2027-01-28"), 82);
+    assert.deepEqual(plain(optExpectedRange({ spot: 342.37, expected_move: 25.07 })), { lo: 317.3, hi: 367.44 });
+    assert.equal(optExpectedRange({ spot: 100, expected_move: null }), null);
+});

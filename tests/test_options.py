@@ -495,3 +495,22 @@ def test_what_if_scenarios_are_exact_pnl_at_round_moves():
     assert rows[0]["today"] == pytest.approx(opt.position_pnl(legs, S, T, R), abs=0.01)
     assert rows[0]["at_date"] == pytest.approx(opt.position_pnl(legs, S, T - 10 / 365, R), abs=0.01)
     assert "at_date" not in opt.analyze(legs, S, T, R, sigma=SIGMA)["scenarios"][0]
+
+
+def test_next_earnings_skips_reports_that_already_happened():
+    now = dt.datetime(2026, 11, 7, 15, 0, tzinfo=dt.timezone.utc)
+    last, nxt = 1793653200, 1801170000                     # 2026-11-02 (past), 2027-01-28
+    assert opt.next_earnings([last, nxt, nxt], True, now) == {"date": "2027-01-28", "estimated": True}
+    assert opt.next_earnings([last], False, now) is None
+    assert opt.next_earnings([None, "x", 0], False, now) is None
+
+
+def test_chain_flags_an_expiry_that_spans_earnings():
+    expiry, raw = raw_chain(30)
+    soon = dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=10)
+    raw.update(earnings_ts=[soon.timestamp()], earnings_estimated=False)
+    c = opt.clean_chain(raw, expiry, R)
+    assert c["earnings"]["date"] < expiry and c["earnings_before_expiry"] is True
+    raw.update(earnings_ts=[(soon + dt.timedelta(days=60)).timestamp()])
+    assert opt.clean_chain(raw, expiry, R)["earnings_before_expiry"] is False
+    assert opt.clean_chain(raw_chain(30)[1], expiry, R)["earnings"] is None

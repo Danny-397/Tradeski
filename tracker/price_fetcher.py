@@ -222,6 +222,10 @@ def get_option_chain(symbol: str, expiry: str) -> dict | None:
             "spot": float(spot),
             "dividend_yield": float(div) if div and math.isfinite(float(div)) else 0.0,
             "market_state": under.get("marketState"),
+            # Next earnings: Yahoo's last report time and its estimate of the next one.
+            "earnings_ts": [under.get(k) for k in
+                            ("earningsTimestamp", "earningsTimestampStart", "earningsTimestampEnd")],
+            "earnings_estimated": bool(under.get("isEarningsDateEstimate")),
             "calls": chain.calls.to_dict("records"),
             "puts": chain.puts.to_dict("records"),
         }

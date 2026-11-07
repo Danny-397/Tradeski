@@ -208,7 +208,13 @@ def fundamentals_from_info(info: dict, today: str) -> dict | None:
         return None
     pct = lambda k: _r(info[k] * 100, 1) if isinstance(info.get(k), (int, float)) else None  # noqa: E731
     num = lambda k, d=4: _r(info[k], d) if isinstance(info.get(k), (int, float)) else None  # noqa: E731
-    ts = info.get("earningsTimestamp")
+    # The *next* report: earningsTimestamp is often the last one, so take the
+    # earliest of Yahoo's timestamps that is not in the past.
+    now = dt.datetime.now(dt.timezone.utc).timestamp() - 86400
+    keys = ("earningsTimestamp", "earningsTimestampStart", "earningsTimestampEnd")
+    upcoming = sorted(t for t in (info.get(k) for k in keys)
+                      if isinstance(t, (int, float)) and t > now)
+    ts = upcoming[0] if upcoming else None
     return {
         "name": info.get("shortName") or info.get("longName"),
         "sector": info.get("sector"), "industry": info.get("industry"), "country": info.get("country"),

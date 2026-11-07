@@ -140,6 +140,24 @@ function optIvRank(rows, current, today, minDays) {
     return out;
 }
 
+// "Jan 28, 2027" from "2027-01-28" (no time-zone shift).
+function optDate(iso) {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+// Whole days from `today` to `iso` (both YYYY-MM-DD).
+function optDaysBetween(today, iso) {
+    return Math.round((Date.parse(iso + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 86400000);
+}
+
+// The market's expected range by expiry (one standard deviation, about 68%), or null.
+function optExpectedRange(chain) {
+    if (!chain || !chain.expected_move) return null;
+    return { lo: chain.spot - chain.expected_move, hi: chain.spot + chain.expected_move };
+}
+
 // Where a position makes money at expiry, from analyze()'s profit_zones:
 // [[348.7, null]] -> "above $348.70"; [[0, 94], [106, null]] -> "below $94.00 or above $106.00".
 function optZoneText(zones) {
@@ -381,6 +399,7 @@ async function optLoadChain(expiry) {
         document.getElementById("opt-days-label").textContent = optDaysLabel();
         optStatus("");
         optRenderSummary();
+        optLabelExpiries(chain);
         optRenderChain();
         if (optState.legs.length) {
             // Same structure at the new expiry: rebuild a preset, else keep only legs that still exist.
@@ -409,6 +428,28 @@ async function optLoadIvHistory() {
         optState.ivHistory = null;
     }
     if (optState.chain) optRenderSummary();
+}
+
+function optEarningsStat(c) {
+    if (!c.earnings) return "";
+    const today = new Date().toISOString().slice(0, 10);
+    const days = optDaysBetween(today, c.earnings.date);
+    const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+    return `<div class="opt-stat${c.earnings_before_expiry ? " opt-stat-warn" : ""}" title="${c.earnings.estimated ? "Yahoo's estimate; the company may not have confirmed it yet" : "Confirmed date"}">
+        <span class="opt-stat-label">Next earnings${c.earnings.estimated ? " (est.)" : ""}</span>
+        <span class="opt-stat-val">${optDate(c.earnings.date)} <span class="opt-dim">· ${when}</span></span></div>`;
+}
+
+// Mark the expiries that come after the next earnings report in the dropdown.
+function optLabelExpiries(c) {
+    const sel = document.getElementById("opt-expiry");
+    if (!sel) return;
+    for (const o of sel.options) {
+        const e = optState.expirations.find(x => x.date === o.value);
+        if (!e) continue;
+        const after = c.earnings && e.date >= c.earnings.date;
+        o.textContent = `${e.date} (${e.dte}d)${after ? " · after earnings" : ""}`;
+    }
 }
 
 function optIvRankStat(c) {
@@ -453,6 +494,7 @@ function optRenderSummary() {
             <span class="opt-stat-label">Put/call (vol · OI)</span>
             <span class="opt-stat-val">${c.put_call_volume ?? "—"} · ${c.put_call_oi ?? "—"}</span></div>
         ${optIvRankStat(c)}
+        ${optEarningsStat(c)}
         <p class="opt-note">${ivVsHv ? `Options are pricing volatility ${ivVsHv} what the stock has actually done lately. ` : ""}
             ${c.source === "end_of_day"
                 ? `These are <strong>end-of-day quotes</strong> saved at ${escapeHtml((c.quotes_as_of || "").slice(0, 10))}: the live option feed doesn't answer this server, so the chain updates once a day, after the close.`
@@ -661,6 +703,21 @@ function optRenderStrategy() {
             <span class="opt-meter" aria-hidden="true"><span style="width:${pop || 0}%"></span></span>
             <span class="opt-outcome-sub">implied by option prices, not a forecast</span></div>`;
     sum.innerHTML = `<strong>In plain words:</strong> ${escapeHtml(a.summary)}`;
+    const warn = document.getElementById("opt-earnings-warning");
+    if (c && c.earnings && c.earnings_before_expiry) {
+        warn.hidden = false;
+        warn.innerHTML = `<strong>Earnings before expiry.</strong> ${escapeHtml(a.symbol)} reports on ` +
+            `${optDate(c.earnings.date)}${c.earnings.estimated ? " (estimated)" : ""}, before this position expires. ` +
+            "The stock can jump either way on the news, and option prices usually drop sharply right after " +
+            "(the \"IV crush\"), which hurts positions that bought options and helps those that sold them.";
+    } else {
+        warn.hidden = true;
+    }
+    const range = optExpectedRange(c);
+    document.getElementById("opt-range-note").textContent = range
+        ? `Shaded: the range the market expects by expiry, $${range.lo.toFixed(2)} to $${range.hi.toFixed(2)} ` +
+          "(about a 2-in-3 chance the stock ends inside it)."
+        : "";
 
     // What if the stock moves X%? (An older backend has no scenarios: hide the table.)
     const scenarios = a.scenarios || [];
@@ -725,7 +782,10 @@ function optDrawPayoff(a) {
     if (cv.at_date) traces.push({ x: cv.prices, y: cv.at_date, name: `In ${cv.at_date_days} days`, type: "scatter",
         mode: "lines", line: { color: "#F59E0B", width: 2, dash: "dot" },
         hovertemplate: `In ${cv.at_date_days}d: %{y:$,.0f}<extra></extra>` });
+    const range = optExpectedRange(optState.chain && optState.chain.expiry === a.expiry ? optState.chain : null);
     const shapes = [
+        ...(range ? [{ type: "rect", xref: "x", x0: range.lo, x1: range.hi, yref: "paper", y0: 0, y1: 1, layer: "below",
+                       fillcolor: "rgba(96,165,250,0.08)", line: { width: 1, color: "rgba(96,165,250,0.35)", dash: "dot" } }] : []),
         { type: "line", xref: "x", x0: a.spot, x1: a.spot, yref: "paper", y0: 0, y1: 1,
           line: { color: "rgba(255,255,255,0.35)", width: 1, dash: "dot" } },
         { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: "rgba(255,255,255,0.25)", width: 1 } },
@@ -749,6 +809,8 @@ function optDrawPayoff(a) {
         annotations: [
             { x: a.spot, y: 1, yref: "paper", text: narrow ? "Now" : `Now $${a.spot.toFixed(2)}`, showarrow: false,
               yanchor: "bottom", font: { size: 12, color: "#E5E7EB" } },
+            ...(range ? [{ x: range.hi, y: 1, yref: "paper", xanchor: "right", yanchor: "top", showarrow: false,
+                           text: narrow ? "Expected range" : "Expected range (≈68%)", font: { size: 11, color: "#93C5FD" } }] : []),
             // Alternate heights so two close break-evens don't print on top of each other.
             ...a.breakevens.map((be, i) => ({ x: be, y: 0, text: narrow ? `$${be.toFixed(2)}` : `Break-even $${be.toFixed(2)}`,
               showarrow: true, arrowhead: 0, ax: 0, ay: i % 2 ? -58 : -32, arrowcolor: "#FBBF24",

@@ -1690,3 +1690,11 @@ select.form-input {
     .opt-outcome-val { font-size: 18px; }
 }
 .opt-scenarios th.opt-num { text-align: right; }
+
+.opt-warning { margin: var(--s-3) var(--s-7) 0; padding: var(--s-4) var(--s-5); border-radius: var(--radius-md, 10px);
+    border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.1); color: #FDE68A;
+    font-size: var(--fs-sm); line-height: var(--lh-base); }
+.opt-warning[hidden] { display: none; }
+.opt-warning strong { color: #FCD34D; }
+.opt-stat-warn .opt-stat-val { color: #FCD34D; }
+@media (max-width: 768px) { .opt-warning { margin-left: var(--s-5); margin-right: var(--s-5); } }
