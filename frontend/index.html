@@ -261,17 +261,17 @@
 
             <div class="panel panel-grow">
                 <div class="sidebar-tabs">
-                    <button class="sidebar-tab active" data-tab="indicators">Indicators</button>
-                    <button class="sidebar-tab" data-tab="news">News</button>
+                    <button class="sidebar-tab active" data-tab="news">News</button>
+                    <button class="sidebar-tab" data-tab="indicators">Indicators</button>
                 </div>
 
-                <div id="tab-indicators" class="tab-pane">
+                <div id="tab-indicators" class="tab-pane" style="display:none">
                     <div id="indicators-panel" class="indicators-panel">
                         <div class="feed-empty">Loading indicators…</div>
                     </div>
                 </div>
 
-                <div id="tab-news" class="tab-pane" style="display:none">
+                <div id="tab-news" class="tab-pane">
                     <div class="news-tab-meta">
                         <span class="news-tab-label" title="Tone of the headlines' wording, scored by a word list (VADER). A rough hint, not a forecast.">Headline tone</span>
                         <span class="sentiment-chip" id="agg-sentiment-chip">—</span>

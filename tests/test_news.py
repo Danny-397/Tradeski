@@ -109,9 +109,45 @@ def test_fetch_news_returns_empty_on_http_error(mock_get):
 def test_fetch_news_uses_company_query(mock_get):
     mock_get.return_value = _mock_response([])
     fetch_news("AAPL", api_key="test-key")
-    call_kwargs = mock_get.call_args
-    params = call_kwargs[1]["params"] if "params" in call_kwargs[1] else call_kwargs[0][1]
+    params = mock_get.call_args_list[0][1]["params"]
     assert "Apple" in params["q"]
+    assert params["searchIn"] == "title"                 # not anywhere in the article body
+    assert "reuters.com" in params["domains"]            # finance sites first
+
+
+def test_query_uses_the_company_name_for_any_ticker():
+    from tracker.news import _query_for, short_name
+    assert _query_for("AAPL") == "Apple OR AAPL"
+    assert _query_for("ADM") == '"Archer Daniels Midland" OR ADM'      # from the search index
+    assert _query_for("SPY") == '"S&P 500" OR "stock market" OR "Wall Street" OR SPY'
+    assert _query_for("A") == "Agilent"                              # a one-letter ticker is a word
+    assert _query_for("ZZZQX") == "ZZZQX"                               # unknown: the ticker alone
+    assert short_name("Apple Inc.") == "Apple"
+    assert short_name("Arch Capital Group") == "Arch Capital"
+    assert short_name("Berkshire Hathaway Inc. Class B") == "Berkshire Hathaway"
+    assert short_name("SoFi Technologies") == "SoFi"
+    assert short_name("Lilly (Eli)") == "Eli Lilly"
+    assert _query_for("F") == "Ford"
+
+
+@patch("tracker.news.requests.get")
+def test_few_finance_results_widen_the_search_and_dedupe(mock_get):
+    one = _FAKE_ARTICLES[:1]
+    mock_get.side_effect = [_mock_response(one), _mock_response(_FAKE_ARTICLES)]
+    result = fetch_news("AAPL", api_key="test-key")
+    first, second = (c[1]["params"] for c in mock_get.call_args_list)
+    assert "domains" in first and "domains" not in second
+    assert second["searchIn"] == "title"
+    assert [a["title"] for a in result] == ["Apple beats Q4 earnings expectations",
+                                            "Apple faces lawsuit over patent dispute"]
+
+
+@patch("tracker.news.requests.get")
+def test_enough_finance_results_need_one_request(mock_get):
+    many = [{**_FAKE_ARTICLES[0], "title": f"Apple headline {i}"} for i in range(6)]
+    mock_get.return_value = _mock_response(many)
+    assert len(fetch_news("AAPL", api_key="test-key", page_size=5)) == 5
+    assert mock_get.call_count == 1
 
 
 # ---------------------------------------------------------------------------
