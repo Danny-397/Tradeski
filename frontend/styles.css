@@ -1811,3 +1811,7 @@ select.form-input {
     .scr-save-form { width: 100%; }
     .scr-save-form .filter-input { flex: 1; width: auto; }
 }
+
+/* Hand the strategy to AlphaGlyph's backtester. */
+.opt-ag-link { text-decoration: none; }
+.opt-ag-link[hidden] { display: none; }

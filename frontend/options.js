@@ -31,6 +31,7 @@ const OPT_INTRO_KEY = "tradeski-options-intro-hidden";
 
 const OPT_SCAN_DEFAULT = "AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, JPM, SPY, QQQ";
 const OPT_API = "https://tradeski.onrender.com";
+const OPT_ALPHAGLYPH = "https://alphaglyph.org";   // the backtester the planner hands strategies to
 const OPT_TABS = ["chain", "strategy", "compare", "scan", "paper"];
 const OPT_PAPER_KEY = "tradeski-paper-trades";
 const OPT_PAPER_MAX = 50;
@@ -270,6 +271,25 @@ function optDate(iso) {
 }
 
 // Whole days from `today` to `iso` (both YYYY-MM-DD).
+// A link that opens this strategy in AlphaGlyph's options backtester. Strikes go as a percent
+// from today's price (a backtest rolls the same shape through history), the expiry as days to
+// expiry. AlphaGlyph reads it in frontend/options-import.js.
+function optAlphaGlyphUrl(analysis, name, today) {
+    const spot = analysis.spot;
+    const legs = analysis.legs.map(l => {
+        const side = l.qty > 0 ? "long" : "short";
+        const n = Math.abs(l.qty);
+        if (l.type === "stock") return `${side}_stock_${n}`;
+        const pct = Math.round((l.strike / spot - 1) * 1000) / 10;
+        return `${side}_${l.type}_${n}_${pct}`;
+    });
+    const q = new URLSearchParams({
+        ticker: analysis.symbol, dte: String(Math.max(1, optDaysBetween(today, analysis.expiry))),
+        name: name || "Custom strategy", legs: legs.join("|"), from: "tradeski", run: "1",
+    });
+    return `${OPT_ALPHAGLYPH}/options.html?${q}`;
+}
+
 function optDaysBetween(today, iso) {
     return Math.round((Date.parse(iso + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 86400000);
 }
@@ -1155,6 +1175,12 @@ function optRenderStrategy() {
     const results = document.getElementById("opt-results");
     document.getElementById("opt-ask-ski").hidden = !a;
     document.getElementById("opt-save-paper").hidden = !a;
+    const ag = document.getElementById("opt-alphaglyph");
+    ag.hidden = !a;
+    if (a) {
+        const name = optState.preset ? (OPT_PRESETS.find(([k]) => k === optState.preset) || [])[1] : null;
+        ag.href = optAlphaGlyphUrl(a, name, new Date().toISOString().slice(0, 10));
+    }
     results.hidden = !a;
     if (!a) {
         stats.innerHTML = "";
