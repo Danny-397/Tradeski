@@ -15,7 +15,9 @@ name: Refresh demo snapshot
 # frontend/data/iv_history.json, because no free source has IV history; the
 # Options window ranks today's IV against it. It also saves the day's closing
 # option chains to frontend/data/options/: Yahoo refuses option requests from
-# Render, so the backend falls back to these end-of-day files.
+# Render, so the backend falls back to these end-of-day files. A trimmed copy of
+# each day's chains is kept in data/options-archive/ (not deployed): AlphaGlyph
+# checks its model option prices against these real quotes.
 
 on:
   schedule:
@@ -65,6 +67,7 @@ jobs:
           git add frontend/demo-snapshot.js
           [ -f frontend/data/iv_history.json ] && git add frontend/data/iv_history.json
           [ -d frontend/data/options ] && git add frontend/data/options
+          [ -d data/options-archive ] && git add data/options-archive
           git diff --cached --quiet && { echo "No change."; exit 0; }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
