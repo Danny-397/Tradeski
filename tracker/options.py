@@ -286,6 +286,44 @@ def compact_rows(rows: list, spot: float, band: float = 0.30) -> list:
     return out
 
 
+ARCHIVE_BAND = 0.20       # strikes kept in the archive: within 20% of the spot
+
+
+def archive_entry(eod: dict, band: float = ARCHIVE_BAND) -> dict:
+    """One symbol's saved end-of-day file, cut down for the long-term archive.
+
+    Rows become [strike, bid, ask, volume, open interest] within ``band`` of the spot;
+    implied volatilities are left out (a reader inverts its own from the quotes).
+    """
+    spot = float(eod["spot"])
+
+    def rows(side):
+        out = []
+        for r in side or []:
+            k = r.get("strike")
+            if k is None or abs(k / spot - 1) > band + 1e-9:
+                continue
+            out.append([k, r.get("bid"), r.get("ask"), r.get("volume"), r.get("openInterest")])
+        return out
+    return {"spot": spot, "dividend_yield": eod.get("dividend_yield") or 0.0,
+            "earnings_ts": eod.get("earnings_ts") or [],
+            "expiries": {e: {"calls": rows(c.get("calls")), "puts": rows(c.get("puts"))}
+                         for e, c in sorted((eod.get("chains") or {}).items())}}
+
+
+def archive_day(eods: list, captured_at: str) -> dict:
+    """A day's archive file: every symbol's chains, dated by the US trading day.
+
+    The capture runs after the 16:00 ET close and GitHub may start it hours late, past
+    midnight UTC; five hours back from UTC gives the trading day from 20:00 to 04:59 UTC.
+    """
+    import datetime as dt
+    t = dt.datetime.fromisoformat(captured_at.replace("Z", "+00:00"))
+    day = (t.astimezone(dt.timezone.utc) - dt.timedelta(hours=5)).date().isoformat()
+    return {"date": day, "captured_at": captured_at,
+            "symbols": {e["symbol"]: archive_entry(e) for e in eods if e.get("chains") and e.get("spot")}}
+
+
 def eod_raw_chain(eod: dict, expiry: str) -> Optional[dict]:
     """One expiry from a saved end-of-day file, in get_option_chain's raw shape."""
     chain = (eod.get("chains") or {}).get(expiry)

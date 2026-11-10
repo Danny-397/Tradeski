@@ -21,7 +21,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 31 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
-| Tests | 300, across 27 files, run in GitHub Actions with flake8 |
+| Tests | 304, across 27 files, run in GitHub Actions with flake8 |
 | Assistant | Claude Haiku 5.5 with 9 Tradeski tools + web search, a figure-grounding check, and a 24-question eval |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
@@ -324,7 +324,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-300 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
+304 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -383,7 +383,9 @@ three-month Treasury bill yield would be the textbook choice.
 Render's servers (as it does company fundamentals) but answers GitHub's runners, so the
 daily snapshot job saves closing chains for twelve symbols and the backend falls back to
 them. The window says so and dates them. Any other symbol has no options on the live site
-until a data source that serves this host is wired in.
+until a data source that serves this host is wired in. A trimmed copy of each day's chains is
+kept in `data/options-archive/`, a history of real quotes that no free source offers;
+AlphaGlyph's options backtester checks its model prices against it.
 
 **Options values are model values.** Black-Scholes treats every option as European. US
 equity options are American, so values are approximate where early exercise matters: deep

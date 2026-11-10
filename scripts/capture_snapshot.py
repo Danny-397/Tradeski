@@ -20,6 +20,9 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
 IV_OUT = os.path.join(os.path.dirname(OUT), "data", "iv_history.json")
 IV_TARGET_DTE = 30          # the expiry nearest a month out, like most IV indices
 EOD_DIR = os.path.join(os.path.dirname(OUT), "data", "options")
+# Every day's chains, kept: AlphaGlyph checks its model prices against them. Outside
+# frontend/, so they are not deployed with the site.
+ARCHIVE_DIR = os.path.join(os.path.dirname(os.path.dirname(OUT)), "data", "options-archive")
 
 TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
 TIMEFRAMES = ["1D", "5D", "1M", "3M", "6M", "1Y"]
@@ -187,6 +190,7 @@ def capture_eod_chains():
     print("end-of-day option chains:")
     os.makedirs(EOD_DIR, exist_ok=True)
     now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+    saved = []
     for s in EOD_SYMS:
         expiries = [e for e in get_option_expirations(s)
                     if opt.year_fraction(e) > 0 and opt.days_to_expiry(e) <= EOD_MAX_DTE][:EOD_MAX_EXPIRIES]
@@ -205,7 +209,29 @@ def capture_eod_chains():
         with io.open(os.path.join(EOD_DIR, s + ".json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(out, f, separators=(",", ":"), sort_keys=True)
             f.write("\n")
+        saved.append(out)
         print("  %-6s %d expiries" % (s, len(out["chains"])))
+    if saved:
+        write_archive(opt.archive_day(saved, now))
+
+
+def write_archive(day):
+    """Write data/options-archive/<date>.json and add the date to index.json."""
+    os.makedirs(ARCHIVE_DIR, exist_ok=True)
+    with io.open(os.path.join(ARCHIVE_DIR, day["date"] + ".json"), "w", encoding="utf-8", newline="\n") as f:
+        json.dump(day, f, separators=(",", ":"), sort_keys=True)
+        f.write("\n")
+    idx_path = os.path.join(ARCHIVE_DIR, "index.json")
+    try:
+        with io.open(idx_path, encoding="utf-8") as f:
+            days = json.load(f).get("days", [])
+    except (OSError, ValueError):
+        days = []
+    days = sorted(set(days) | {day["date"]})
+    with io.open(idx_path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump({"days": days}, f, indent=1)
+        f.write("\n")
+    print("  archived %s (%d symbols)" % (day["date"], len(day["symbols"])))
 
 
 def main():
