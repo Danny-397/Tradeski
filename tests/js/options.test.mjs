@@ -232,3 +232,33 @@ test("paper-trade progress toward a capped best case", () => {
     assert.equal(optPaperProgress(50, null), null);          // unlimited profit: no progress bar
     assert.equal(optPaperProgress(50, 0), null);
 });
+
+// optAlphaGlyphUrl needs URLSearchParams and the AlphaGlyph address in its sandbox.
+function loadAg() {
+    const ctx = vm.createContext({ URLSearchParams, OPT_ALPHAGLYPH: "https://alphaglyph.org" });
+    vm.runInContext(["optAlphaGlyphUrl", "optDaysBetween"].map(declaration).join(String.fromCharCode(10)) +
+        "; this.__x = { optAlphaGlyphUrl };", ctx);
+    return ctx.__x.optAlphaGlyphUrl;
+}
+
+test("optAlphaGlyphUrl: strikes as percent from the price, expiry as days, what AlphaGlyph imports", () => {
+    const url = new URL(loadAg()({
+        symbol: "AAPL", spot: 200, expiry: "2026-12-18",
+        legs: [{ type: "stock", qty: 1, strike: null }, { type: "put", qty: 1, strike: 190 }, { type: "call", qty: -2, strike: 216.5 }],
+    }, "Protective collar", "2026-11-08"));
+    assert.equal(url.origin + url.pathname, "https://alphaglyph.org/options.html");
+    assert.equal(url.searchParams.get("ticker"), "AAPL");
+    assert.equal(url.searchParams.get("dte"), "40");
+    assert.equal(url.searchParams.get("name"), "Protective collar");
+    assert.equal(url.searchParams.get("legs"), "long_stock_1|long_put_1_-5|short_call_2_8.3");
+    assert.equal(url.searchParams.get("from"), "tradeski");
+    assert.equal(url.searchParams.get("run"), "1");
+});
+
+test("optAlphaGlyphUrl: unnamed custom legs and a same-day expiry", () => {
+    const url = new URL(loadAg()({ symbol: "SPY", spot: 500, expiry: "2026-11-08",
+        legs: [{ type: "call", qty: 1, strike: 500 }] }, null, "2026-11-08"));
+    assert.equal(url.searchParams.get("name"), "Custom strategy");
+    assert.equal(url.searchParams.get("dte"), "1");
+    assert.equal(url.searchParams.get("legs"), "long_call_1_0");
+});
