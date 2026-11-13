@@ -324,7 +324,7 @@ the live model, so there is no score to report; §9 says so.
 
 ## 8. Testing
 
-304 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
+306 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the

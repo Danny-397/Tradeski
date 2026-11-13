@@ -648,3 +648,40 @@ def test_ski_ranks_strategies_for_a_view():
                     _ski(lambda s, d: c))
     label = st.describe_call("rank_option_strategies", {"symbol": "nvda", "target_price": 210.0})
     assert label == "NVDA strategies for $210"
+
+
+def test_eod_expiries_keeps_each_week_through_its_last_month():
+    """A weekly contract must be in the capture on every day of its last month.
+
+    With daily SPY expiries the nearest ten reach only a few weeks out and shift
+    every day; each week's last expiry within 45 days is kept on top of them.
+    """
+    import datetime as dt
+
+    from tracker.options import eod_expiries
+
+    start = dt.date(2026, 11, 13)
+    daily = [(start + dt.timedelta(days=i)).isoformat() for i in range(1, 90)
+             if (start + dt.timedelta(days=i)).weekday() < 5]
+    target = "2026-12-18"                                   # a Friday, 35 days out
+    for k in range(36):
+        today = start + dt.timedelta(days=k)
+        if today.weekday() >= 5:
+            continue
+        kept = eod_expiries([e for e in daily if e >= today.isoformat()], today=today)
+        assert target in kept, today
+    kept = eod_expiries(daily, today=start)
+    assert kept[:10] == sorted(daily)[:10]                  # the nearest ten are still there
+    assert all(dt.date.fromisoformat(e) - start <= dt.timedelta(days=75) for e in kept)
+
+
+def test_eod_expiries_keeps_a_holiday_thursday():
+    import datetime as dt
+
+    from tracker.options import eod_expiries
+
+    today = dt.date(2026, 11, 13)
+    # Christmas week ends on Thursday 2026-12-24; it is that week's last expiry.
+    exps = ["2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2026-12-23", "2026-12-24"]
+    assert "2026-12-24" in eod_expiries(exps, today=today, nearest=2)
+    assert "2026-12-23" not in eod_expiries(exps, today=today, nearest=2)
