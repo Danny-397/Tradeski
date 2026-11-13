@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 304 tests across 27 files — CI on every push |
+| **Tests** | 306 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 ### Screenshots
@@ -212,7 +212,7 @@ Tradeski/
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 304 tests across 27 files
+├── tests/                     # pytest suite — 306 tests across 27 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -296,7 +296,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (304 tests) |
+| Testing | pytest (306 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -622,7 +622,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-304 tests across 27 files:
+306 tests across 27 files:
 
 | File | What it covers |
 |:---|:---|

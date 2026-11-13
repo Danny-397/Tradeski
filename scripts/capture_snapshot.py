@@ -29,7 +29,7 @@ TIMEFRAMES = ["1D", "5D", "1M", "3M", "6M", "1Y"]
 DEFAULT_SYM = "AAPL"
 # The ticker strip plus the scanner's default list.
 EOD_SYMS = TICKER_SYMS + ["JPM"]
-EOD_MAX_DTE, EOD_MAX_EXPIRIES = 75, 10
+EOD_MAX_DTE, EOD_MAX_EXPIRIES, EOD_WEEKLY_DTE = 75, 10, 45
 
 # series_id -> (label, unit, description, fred transformation or None)
 FRED_SERIES = [
@@ -181,9 +181,10 @@ def record_iv(endpoints):
 
 
 def capture_eod_chains():
-    """Save each symbol's closing option chains (expiries up to 75 days out,
-    strikes within 30% of the spot) for the backend to fall back on: Yahoo
-    serves option chains to this runner but refuses them to Render."""
+    """Save each symbol's closing option chains (the nearest 10 expiries up to
+    75 days out plus each week's last expiry up to 45 days out, strikes within
+    30% of the spot) for the backend to fall back on: Yahoo serves option chains
+    to this runner but refuses them to Render."""
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from tracker import options as opt
     from tracker.price_fetcher import get_option_chain, get_option_expirations
@@ -192,8 +193,9 @@ def capture_eod_chains():
     now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
     saved = []
     for s in EOD_SYMS:
-        expiries = [e for e in get_option_expirations(s)
-                    if opt.year_fraction(e) > 0 and opt.days_to_expiry(e) <= EOD_MAX_DTE][:EOD_MAX_EXPIRIES]
+        chosen = opt.eod_expiries(get_option_expirations(s), max_dte=EOD_MAX_DTE,
+                                  nearest=EOD_MAX_EXPIRIES, weekly_dte=EOD_WEEKLY_DTE)
+        expiries = [e for e in chosen if opt.year_fraction(e) > 0]
         out = {"symbol": s, "captured_at": now, "chains": {}}
         for e in expiries:
             raw = get_option_chain(s, e)

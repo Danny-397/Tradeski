@@ -138,6 +138,29 @@ def days_to_expiry(expiry: str, today: Optional[_dt.date] = None) -> int:
     return (_dt.date.fromisoformat(expiry) - today).days
 
 
+def eod_expiries(expirations: list, today: Optional[_dt.date] = None, max_dte: int = 75,
+                 nearest: int = 10, weekly_dte: int = 45) -> list:
+    """Which expiries the end-of-day capture saves.
+
+    The ``nearest`` expiries within ``max_dte`` days, as before, plus the last
+    expiry of every calendar week within ``weekly_dte`` days. For symbols with an
+    expiry nearly every day (SPY, QQQ) the nearest ten reach only two to four
+    weeks out and change from day to day, so no contract was captured on every
+    day of its last month. The weekly ones are, from 45 days out to expiry, which
+    is what a study that follows one option through its life needs (the
+    real-quote hedging test in Danny-397/RL-for-Crypto-and-stocks-). The last
+    expiry of a week rather than its Friday, so a holiday-shortened week keeps
+    its Thursday expiry.
+    """
+    live = sorted(e for e in expirations if 0 <= days_to_expiry(e, today) <= max_dte)
+    keep = set(live[:nearest])
+    weeks: dict = {}
+    for e in live:
+        if days_to_expiry(e, today) <= weekly_dte:
+            weeks[_dt.date.fromisoformat(e).isocalendar()[:2]] = e   # sorted, so the last wins
+    return sorted(keep | set(weeks.values()))
+
+
 def _num(x) -> Optional[float]:
     try:
         v = float(x)
