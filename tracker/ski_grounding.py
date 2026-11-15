@@ -7,9 +7,14 @@ evidence (the system prompt, the tool outputs and any cited search text).
 
 It is a heuristic, deliberately biased towards silence. Counts, years, dates
 and indicator lengths ("14-day RSI", "52-week") are not checked, and a
-reply's "55%" matches evidence of 55.3. A miss means "this number is not in
-the data", which is either an invented figure or a derived one (a sum the
-model did itself); both are worth knowing about.
+reply's "55%" matches evidence of 55.3. A reply's "37%" also matches a
+probability stored as a fraction (0.3684), and "about 8,800" matches 8,806.
+
+Arithmetic the model shows its work for passes: a figure equal to the sum or
+difference of two other figures in the same reply that are themselves in the
+data ("$470.65 high, $465.07 close, a gap of $5.58"). A derived figure whose
+inputs are not quoted still counts as a miss. A miss means "this number is
+not in the data": an invented figure, or arithmetic the reader can't check.
 """
 
 from __future__ import annotations
@@ -48,7 +53,25 @@ _REFERENCE_LEVELS = [
     (re.compile(r"bollinger|standard deviations?", re.I), {2}),
     (re.compile(r"\bz-?score\b", re.I), {1, 2, 3}),
     (re.compile(r"\bmacd\b|histogram|signal line|zero line", re.I), {0}),
+    # US equity options: one contract is 100 shares.
+    (re.compile(r"contract|covered call|\boptions?\b|\bstrike\b", re.I), {100}),
 ]
+
+# "about 8,800", "roughly $1,200": the trailing zeros are rounding, not digits.
+_APPROX = re.compile(r"(?:about|roughly|around|approximately|nearly|almost|~)\s*\$?$", re.I)
+
+
+_OPTIONS_WORDS = re.compile(r"contract|covered call|\boptions?\b|\bstrike\b|\bcalls?\b|\bputs?\b", re.I)
+
+
+def _is_scale_or_contract(text: str, start: int, end: int) -> bool:
+    before = text[max(0, start - 3):start]
+    if before.endswith("/") or re.search(r"\b0\s?[-\u2013]\s?$", before):
+        return True  # "96/100", "0-100 scale"
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    line = text[line_start:line_end if line_end != -1 else len(text)]
+    return text[end:end + 7].lower().startswith(" shares") and bool(_OPTIONS_WORDS.search(line))
 
 
 def _is_reference_level(text: str, start: int, end: int, value: float) -> bool:
@@ -61,7 +84,8 @@ def _figures(text: str, *, for_reply: bool) -> list[tuple[float, float, str]]:
 
     The tolerance is half a unit in the last digit shown, times any scale
     word, so "55%" covers 54.5 to 55.5 and "$3.4 trillion" covers 3.35e12 to
-    3.45e12.
+    3.45e12. In a reply, a whole number after "about"/"roughly" also treats
+    its trailing zeros as rounding: "about 8,800" covers 8,750 to 8,850.
     """
     text = _DATE.sub(" ", text)
     out = []
@@ -79,8 +103,16 @@ def _figures(text: str, *, for_reply: bool) -> list[tuple[float, float, str]]:
                 continue  # "14-day", "50 day", "52-week", "10-year"
             if _is_reference_level(text, m.start(), m.end(), value):
                 continue  # "RSI above 70", "beta of 1", "VIX over 30"
+            if value == 100 and _is_scale_or_contract(text, m.start(), m.end()):
+                continue  # "96/100", "a 0-100 scale", "a covered call needs 100 shares"
         decimals = len(frac) - 1 if frac else 0
-        out.append((abs(value), 0.5 * 10 ** -decimals * scale + 1e-9, raw))
+        tol = 0.5 * 10 ** -decimals * scale
+        if for_reply and not frac and _APPROX.search(text[max(0, m.start() - 14):m.start()]):
+            digits = whole.replace(",", "")
+            zeros = len(digits) - len(digits.rstrip("0"))
+            if 0 < zeros < len(digits):
+                tol = 0.5 * 10 ** zeros * scale
+        out.append((abs(value), tol + 1e-9, raw))
     return out
 
 
@@ -109,15 +141,87 @@ def check(reply: str, evidence_texts: list[str], evidence_objects: list) -> dict
     for obj in evidence_objects:
         evidence.extend(_numbers_in(obj))
 
+    # A probability stored as a fraction (0.3684) is written as a percent (37%).
+    as_percent = [e * 100 for e in evidence if e <= 1]
+
     figures = _figures(reply or "", for_reply=True)
-    missing = [raw for value, tol, raw in figures if not any(abs(value - e) <= tol for e in evidence)]
+
+    def found(value: float, tol: float, raw: str) -> bool:
+        pool = evidence + as_percent if raw.endswith("%") else evidence
+        return any(abs(value - e) <= tol for e in pool)
+
+    direct = [found(*f) for f in figures]
+    # Shown arithmetic: inputs are figures from this reply that are in the data.
+    inputs = [f for f, ok in zip(figures, direct) if ok]
+    missing = [raw for (value, tol, raw), ok in zip(figures, direct)
+               if not ok and not _derived(value, tol, raw, inputs)]
     return {"grounded": not missing, "checked": len(figures), "ungrounded": missing}
 
 
+def restates(line: str, cited: str) -> bool:
+    """Does a cited passage repeat the sentence just written on the same line?
+
+    True when the passage starts a new sentence and at least half of its figures
+    (one at least) are already on the line. A passage that completes the
+    sentence ("a range of " + "13.38 to 35.30") starts lower-case or with a
+    figure, and a bare quoted bullet has nothing on its line, so both are kept.
+    """
+    head = cited.lstrip()[:1]
+    if not head.isupper():
+        return False
+    # Reply rules, so dates, years and counts ("Oct 15, 2026") don't count as figures.
+    figures = _figures(cited, for_reply=True)
+    shown = _figures(line, for_reply=True)
+    if not figures or not shown:
+        return False
+    repeated = sum(any(abs(v - s) <= max(t, ts) for s, ts, _ in shown) for v, t, _ in figures)
+    return repeated * 2 >= len(figures)
+
+
+def _kind(raw: str) -> str:
+    return "$" if "$" in raw else "%" if raw.endswith("%") else ""
+
+
+def _decimals(raw: str) -> int:
+    m = re.search(r"\.(\d+)", raw)
+    return len(m.group(1)) if m else 0
+
+
+def _derived(value: float, tol: float, raw: str, inputs: list[tuple[float, float, str]]) -> bool:
+    """Is value the sum or difference of two grounded figures from the same reply?
+
+    Only precise figures of one kind qualify: all three in dollars, or all in
+    percent, each with at least two decimals ($470.65 - $465.07 = $5.58).
+    Looser rules let invented figures through: on the 72 replies of the
+    2026-11-15 eval, perturbing each figure by 2-20% passed 39% of the fakes
+    with any two figures allowed, 15% with matching units, 0.4% with this
+    rule, which still passed all 9 real derived figures. Tolerances add, since
+    each input was itself rounded for display.
+    """
+    if _decimals(raw) < 2:
+        return False
+    usable = [(v, t) for v, t, r in inputs if _kind(r) == _kind(raw) and _decimals(r) >= 2]
+    for i, (a, ta) in enumerate(usable):
+        for b, tb in usable[i + 1:]:
+            slack = tol + ta + tb
+            if abs(value - (a + b)) <= slack or abs(value - abs(a - b)) <= slack:
+                return True
+    return False
+
+
 def evidence_from_response_blocks(blocks) -> list[str]:
-    """Search-result text Ski was shown: cited passages and result titles."""
+    """Search-result text Ski was shown: cited passages and result titles.
+
+    The text of a block that carries a citation counts too. The API cuts each
+    cited_text to about 150 characters, so "a 52-week range of 13.38 to 35.30"
+    cited from further into a page could never be matched. The page itself is
+    encrypted, so such a figure is checked only as far as "Ski attributed it to
+    a source the user can open", not against the source's words.
+    """
     texts = []
     for b in blocks or []:
+        if getattr(b, "citations", None):
+            texts.append(getattr(b, "text", "") or "")
         for c in getattr(b, "citations", None) or []:
             texts.append(getattr(c, "cited_text", "") or "")
         if getattr(b, "type", None) == "web_search_tool_result":

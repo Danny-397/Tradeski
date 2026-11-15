@@ -8,6 +8,12 @@ on:
       repeat:
         description: "Runs per case (answers vary run to run)"
         default: "1"
+      set:
+        description: "Cases: main, held-out or all"
+        default: "all"
+      only:
+        description: "Optional: space-separated case ids"
+        default: ""
 
 jobs:
   eval:
@@ -25,7 +31,11 @@ jobs:
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         REPEAT: ${{ inputs.repeat }}
-      run: python tests/ski_eval/run_eval.py --repeat "$REPEAT" | tee eval.txt
+        CASE_SET: ${{ inputs.set }}
+        ONLY: ${{ inputs.only }}
+      run: |
+        set -o pipefail
+        python tests/ski_eval/run_eval.py --repeat "$REPEAT" --set "$CASE_SET" ${ONLY:+--only $ONLY} | tee eval.txt
     - name: Summary
       if: always()
       run: |

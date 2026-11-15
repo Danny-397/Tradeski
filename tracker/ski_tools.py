@@ -441,6 +441,7 @@ def run_tool(name: str, args: dict, data: SkiData) -> dict:
         if b["total_value"] is not None and a["total_value"] is not None:
             change["total_value"] = _r(a["total_value"] - b["total_value"])
         return {"before": b, "after": a, "change_after_minus_before": change,
+                "prices_used": {s: _r(p, 2) for s, p in sorted(priced.items()) if p},
                 "notes": notes, "unpriced_symbols": unpriced}
 
     if name == "get_macro_history":

@@ -151,3 +151,144 @@ def test_a_real_reading_or_an_unrelated_figure_is_still_checked():
     assert check("Bottom line: NVDA rallied 70% this year.", [], [])["ungrounded"] == ["70%"]
     assert check("Bottom line: a beta of 1.4.", [], [])["ungrounded"] == ["1.4"]
     assert check("Bottom line: a beta of 1.0 means it moves with the market.", [], [])["grounded"]
+
+
+# ── 2026-11-15 fixes from the first real eval run ───────────
+
+def test_a_probability_stored_as_a_fraction_matches_its_percent():
+    tool = [{"prob_profit": 0.3684, "chance_ends_beyond_target": 0.0799}]
+    assert check("Bottom line: about **37%** to profit, **8%** to end above $140.", ["spot 140"], tool)["grounded"]
+    # Only when written as a percent, and still within rounding.
+    assert check("Bottom line: 37 contracts at risk.", [], tool)["ungrounded"] == ["37"]
+    assert check("Bottom line: about 45% to profit.", [], tool)["ungrounded"] == ["45%"]
+
+
+def test_arithmetic_passes_only_when_its_inputs_are_shown_and_grounded():
+    data = [{"close": 465.07, "high_52w": 470.65, "spot": 127.27, "expected_move": 8.56}]
+    shown = "Bottom line: closed at **$465.07** against a high of **$470.65**, a gap of $5.58."
+    assert check(shown, [], data)["grounded"]
+    assert check("Bottom line: between $118.71 and $135.83 around $127.27 (±$8.56).", [], data)["grounded"]
+    # Same derived figure without its inputs: the reader can't check it.
+    assert check("Bottom line: MSFT is $5.58 below its high.", [], data)["ungrounded"] == ["$5.58"]
+    # Inputs shown but one is invented: the derived figure doesn't launder it.
+    r = check("Bottom line: closed at $465.07 against a high of $480.00, a gap of $14.93.", [], data)
+    assert set(r["ungrounded"]) == {"$480.00", "$14.93"}
+    # An invented figure that isn't a sum or difference of the shown ones still fails.
+    assert check(shown + " Fair value is $512.40.", [], data)["ungrounded"] == ["$512.40"]
+
+
+def test_tolerances_add_for_shown_arithmetic():
+    # $3.12 - $0.61 = $2.51, and each leg was rounded to the cent, so $2.515 is consistent.
+    assert check("Bottom line: buy at $3.12, sell at $0.61, net $2.515 a share.", [],
+                 [{"buy": 3.12, "sell": 0.61}])["grounded"]
+
+
+def test_about_widens_only_trailing_zeros():
+    tool = [{"open_interest": 8806}]
+    assert check("Bottom line: about 8,800 contracts open.", [], tool)["grounded"]
+    assert check("Bottom line: 8,800 contracts open.", [], tool)["ungrounded"] == ["8,800"]
+    assert check("Bottom line: about 8,900 contracts open.", [], tool)["ungrounded"] == ["8,900"]
+    assert check("Bottom line: about 8,812 contracts open.", [], tool)["ungrounded"] == ["8,812"]
+
+
+def test_scale_denominators_and_the_contract_size_are_not_data():
+    assert check("Bottom line: it sits near the top of its band (96/100).", ["position 96"], [])["grounded"]
+    assert check("Bottom line: a covered call needs 100 shares.", [], [])["grounded"]
+    assert check("Bottom line: each options contract covers 100 shares.", [], [])["grounded"]
+    # Elsewhere 100 is still checked.
+    assert check("Bottom line: the stock is up 100% this year.", [], [])["ungrounded"] == ["100%"]
+
+
+def test_bottom_line_in_bold_passes_the_format_check_like_the_ui():
+    case = _case("biggest-position")
+    for reply in ("Bottom line: NVDA.", "**Bottom line:** NVDA.", "**Bottom line**: NVDA."):
+        assert grade(case, {"reply": reply, "tools_used": [], "grounded": True}) == [], reply
+    for reply in ("NVDA. Bottom line: NVDA.", "Bottom line NVDA.", "**Summary:** NVDA."):
+        assert grade(case, {"reply": reply, "tools_used": [], "grounded": True}), reply
+
+
+def test_unknown_ticker_accepts_cant_find():
+    case = _case("unknown-ticker")
+    for reply in ("Bottom line: I can't find any data for ZZZQX.", "Bottom line: I can’t find ZZZQX.",
+                  "Bottom line: I cannot find that symbol."):
+        assert grade(case, {"reply": reply, "tools_used": [], "grounded": True}) == [], reply
+    assert grade(case, {"reply": "Bottom line: ZZZQX is up 3%.", "tools_used": [], "grounded": True})
+
+
+def test_held_out_cases_are_separate_and_marked():
+    from cases import HELD_OUT
+    ids = [c["id"] for c in CASES + HELD_OUT]
+    assert len(ids) == len(set(ids))
+    assert HELD_OUT and all(c.get("held_out") for c in HELD_OUT)
+    assert not any(c.get("held_out") for c in CASES)
+
+
+# ── 2026-11-15 Ski fixes ────────────────────────────────────
+
+def _app():
+    import app
+    return app
+
+
+def _text(text, url=None, cited=""):
+    cites = [SimpleNamespace(url=url, title="Source page", cited_text=cited)] if url else None
+    return SimpleNamespace(type="text", text=text, citations=cites)
+
+
+def test_a_cited_passage_that_repeats_its_line_is_dropped():
+    # Block layout seen in the eval: a paraphrase, then the cited passage itself.
+    resp = SimpleNamespace(content=[
+        _text("Bottom line: low.\n- ORTEX estimates **2.6% of free float** with a **0.39%** borrow cost "),
+        _text("As of Oct 27, 2026, ORTEX estimated 2.6% of free float sold short, cost to borrow 0.39%.",
+              "https://ortex.example/tsla"),
+        _text("\n- Chartmill reports **69.35M shares** short, down from the prior report "),
+        _text("As of Oct 15, 2026, TSLA had 69.35M shares sold short, representing 2.13% of float.",
+              "https://chartmill.example/tsla"),
+    ])
+    reply = _app()._reply_text(resp)
+    assert "ORTEX estimated" not in reply and "TSLA had" not in reply
+    assert reply.endswith("down from the prior report")
+
+
+def test_a_cited_passage_that_completes_its_sentence_is_kept():
+    resp = SimpleNamespace(content=[
+        _text("Bottom line: VIX is 19.30.\n- Cboe lists it at "),
+        _text("$19.30 (as of November 13, 2026)", "https://cboe.example/vix"),
+        _text(", with a 52-week range of "),
+        _text("13.38 Low to 35.30 High", "https://cboe.example/vix"),
+        _text(".\n- "),
+        _text("Volatility was elevated at 23.5 on November 9.", "https://yahoo.example/vix"),
+    ])
+    reply = _app()._reply_text(resp)
+    assert "range of 13.38 Low to 35.30 High." in reply and "elevated at 23.5" in reply
+
+
+def test_sources_are_unique_http_links_in_order():
+    blocks = [_text("a", "https://a.example/1"), _text("b", "https://b.example/2"),
+              _text("c", "https://a.example/1"), _text("d", "javascript:alert(1)"), _text("e")]
+    assert [s["url"] for s in _app()._sources(blocks)] == ["https://a.example/1", "https://b.example/2"]
+
+
+def test_cited_block_text_is_evidence_since_cited_text_is_truncated():
+    texts = evidence_from_response_blocks([_text("13.38 Low to 35.30 High", "https://cboe.example/vix",
+                                                 cited="# Trade Data $19.30 (as of November 13, 2026)")])
+    assert check("Bottom line: a 52-week range of 13.38 to 35.30.", texts, [])["grounded"]
+    # Uncited text is not evidence.
+    assert not evidence_from_response_blocks([_text("13.38 Low to 35.30 High")])
+
+
+def test_zero_to_hundred_scales_and_the_contract_size_on_its_line():
+    assert check("Bottom line: the band position is 107 on a 0–100 scale.", ["position 107"], [])["grounded"]
+    reply = "Bottom line: weak.\n- **Covered call:** Only **$644** at target. It requires owning 100 shares."
+    assert check(reply, ["profit 644"], [])["grounded"]
+    assert check("Bottom line: you own 100 shares of NVDA.", [], [])["ungrounded"] == ["100"]
+
+
+def test_the_sample_portfolio_points_ski_at_the_what_if_tool(monkeypatch):
+    # The old wording ("Risk metrics are not computed for the sample, so do not
+    # mention them") kept Ski from calling portfolio_what_if for signed-out users.
+    app = run_eval.install_fixtures(monkeypatch.setattr)
+    ctx = " ".join(app._get_portfolio_context(None, run_eval.SAMPLE_PORTFOLIO).split())
+    assert "SAMPLE PORTFOLIO" in ctx and "portfolio_what_if computes them" in ctx
+    assert "do not mention them" not in ctx
+    assert "never work out new weights" in " ".join(app._SKI_SYSTEM_PROMPT.split())

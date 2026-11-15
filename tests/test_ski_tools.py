@@ -281,3 +281,10 @@ def test_loop_reports_what_it_looked_up():
     )
     out = app._run_ski(client, "sys", [{"role": "user", "content": "q"}], fake_data())
     assert out["lookups"] == ["NVDA price and chart"]  # duplicates collapse
+
+
+def test_what_if_returns_the_prices_it_used():
+    data = fake_data(holdings=[{"symbol": "AAPL", "shares": 10, "avg_cost": 1}])
+    out = st.run_tool("portfolio_what_if", {"changes": [{"symbol": "SPY", "shares_change": 20}]}, data)
+    assert set(out["prices_used"]) == {"AAPL", "SPY"}
+    assert all(isinstance(p, float) and p > 0 for p in out["prices_used"].values())

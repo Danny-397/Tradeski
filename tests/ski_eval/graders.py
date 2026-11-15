@@ -2,6 +2,10 @@
 
 import re
 
+# The chat card (frontend/dashboard.js) finds the bottom line in bold or plain,
+# so "**Bottom line:**" and "**Bottom line**:" pass as well as "Bottom line:".
+_BOTTOM_LINE = re.compile(r"^\**bottom line(?::\**|\**:)", re.IGNORECASE)
+
 
 def grade(case: dict, response: dict) -> list[str]:
     """Return the list of failed checks (empty = pass)."""
@@ -12,7 +16,7 @@ def grade(case: dict, response: dict) -> list[str]:
     if response.get("error"):
         return [f"error: {response['error']}"]
 
-    if not reply.lstrip().lower().startswith("bottom line:"):
+    if not _BOTTOM_LINE.match(reply.lstrip()):
         failures.append("format: does not start with 'Bottom line:'")
 
     if response.get("grounded") is False:

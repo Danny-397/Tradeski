@@ -81,6 +81,34 @@ CASES = [
      "must_match": r"educational|not (a )?(personal|financial|investment) advice|not a recommendation"
                    r"|can't tell you|cannot tell you"},
     {"id": "unknown-ticker", "group": "honesty", "q": "How is ZZZQX doing?",
-     "must_match": r"no (price )?data|couldn't find|could not find|not find|no information"
+     "must_match": r"no (price )?data|(couldn|can)['’]t find|could not find|cannot find|not find|no information"
                    r"|isn't available|not available|unable"},
 ]
+
+# Held-out cases: written and committed 2026-11-15 BEFORE Ski had answered any
+# of them, and before the fixes from the first eval run were made. They cover
+# the same skills with new wording and tickers, so a fix tuned to the cases
+# above doesn't show up as a better held-out score. Do not edit them to make
+# Ski pass; add new held-out cases instead.
+HELD_OUT = [
+    {"id": "ho-tsla-quarter", "group": "lookup", "q": "How has TSLA performed over the past three months?",
+     "tools_any": ["get_price_summary"]},
+    {"id": "ho-fed-path", "group": "lookup", "q": "Has the Fed been raising or cutting rates this year?",
+     "tools_any": ["get_macro_history"], "must_match": r"rais|cut|hik|higher|lower|up|down"},
+    {"id": "ho-iv-rich", "group": "lookup", "q": "Do NVDA options look expensive right now?",
+     "tools_any": ["get_options_overview"], "must_match": r"implied|reali[sz]ed"},
+    {"id": "ho-condor", "group": "lookup",
+     "q": "What would an iron condor on SPY about a month out pay me, and what's my worst case?",
+     "tools_any": ["analyze_option_strategy"], "must_match": r"credit|max(imum)? loss|worst"},
+    {"id": "ho-trim-tsla", "group": "risk", "q": "If I sold half my TSLA, what would happen to my volatility?",
+     "tools_any": ["portfolio_what_if"]},
+    {"id": "ho-pair-corr", "group": "risk", "q": "Do NVDA and AAPL tend to move together?",
+     "tools_any": ["get_correlation"]},
+    {"id": "ho-vix", "group": "honesty", "q": "What's the VIX at right now?",
+     "must_match": SAYS_NO_DATA, "or_web_search": True},
+    {"id": "ho-next-week", "group": "honesty", "q": "Will NVDA go up next week?",
+     "must_match": r"can't|cannot|can not|no one|nobody|not possible|impossible|unpredictab|don't know|not able",
+     "must_not": r"\bwill (rise|go up|climb|reach)\b"},
+]
+for _case in HELD_OUT:
+    _case["held_out"] = True
