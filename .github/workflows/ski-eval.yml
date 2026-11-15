@@ -25,7 +25,11 @@ jobs:
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         REPEAT: ${{ inputs.repeat }}
-      run: python tests/ski_eval/run_eval.py --repeat "$REPEAT" | tee eval.txt
+      # pipefail: without it the step takes tee's exit code, so a missing key
+      # or a crash in run_eval.py still showed as a green run.
+      run: |
+        set -o pipefail
+        python tests/ski_eval/run_eval.py --repeat "$REPEAT" | tee eval.txt
     - name: Summary
       if: always()
       run: |
