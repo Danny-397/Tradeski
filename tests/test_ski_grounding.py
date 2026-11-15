@@ -221,3 +221,74 @@ def test_held_out_cases_are_separate_and_marked():
     assert len(ids) == len(set(ids))
     assert HELD_OUT and all(c.get("held_out") for c in HELD_OUT)
     assert not any(c.get("held_out") for c in CASES)
+
+
+# ── 2026-11-15 Ski fixes ────────────────────────────────────
+
+def _app():
+    import app
+    return app
+
+
+def _text(text, url=None, cited=""):
+    cites = [SimpleNamespace(url=url, title="Source page", cited_text=cited)] if url else None
+    return SimpleNamespace(type="text", text=text, citations=cites)
+
+
+def test_a_cited_passage_that_repeats_its_line_is_dropped():
+    # Block layout seen in the eval: a paraphrase, then the cited passage itself.
+    resp = SimpleNamespace(content=[
+        _text("Bottom line: low.\n- ORTEX estimates **2.6% of free float** with a **0.39%** borrow cost "),
+        _text("As of Oct 27, 2026, ORTEX estimated 2.6% of free float sold short, cost to borrow 0.39%.",
+              "https://ortex.example/tsla"),
+        _text("\n- Chartmill reports **69.35M shares** short, down from the prior report "),
+        _text("As of Oct 15, 2026, TSLA had 69.35M shares sold short, representing 2.13% of float.",
+              "https://chartmill.example/tsla"),
+    ])
+    reply = _app()._reply_text(resp)
+    assert "ORTEX estimated" not in reply and "TSLA had" not in reply
+    assert reply.endswith("down from the prior report")
+
+
+def test_a_cited_passage_that_completes_its_sentence_is_kept():
+    resp = SimpleNamespace(content=[
+        _text("Bottom line: VIX is 19.30.\n- Cboe lists it at "),
+        _text("$19.30 (as of November 13, 2026)", "https://cboe.example/vix"),
+        _text(", with a 52-week range of "),
+        _text("13.38 Low to 35.30 High", "https://cboe.example/vix"),
+        _text(".\n- "),
+        _text("Volatility was elevated at 23.5 on November 9.", "https://yahoo.example/vix"),
+    ])
+    reply = _app()._reply_text(resp)
+    assert "range of 13.38 Low to 35.30 High." in reply and "elevated at 23.5" in reply
+
+
+def test_sources_are_unique_http_links_in_order():
+    blocks = [_text("a", "https://a.example/1"), _text("b", "https://b.example/2"),
+              _text("c", "https://a.example/1"), _text("d", "javascript:alert(1)"), _text("e")]
+    assert [s["url"] for s in _app()._sources(blocks)] == ["https://a.example/1", "https://b.example/2"]
+
+
+def test_cited_block_text_is_evidence_since_cited_text_is_truncated():
+    texts = evidence_from_response_blocks([_text("13.38 Low to 35.30 High", "https://cboe.example/vix",
+                                                 cited="# Trade Data $19.30 (as of November 13, 2026)")])
+    assert check("Bottom line: a 52-week range of 13.38 to 35.30.", texts, [])["grounded"]
+    # Uncited text is not evidence.
+    assert not evidence_from_response_blocks([_text("13.38 Low to 35.30 High")])
+
+
+def test_zero_to_hundred_scales_and_the_contract_size_on_its_line():
+    assert check("Bottom line: the band position is 107 on a 0–100 scale.", ["position 107"], [])["grounded"]
+    reply = "Bottom line: weak.\n- **Covered call:** Only **$644** at target. It requires owning 100 shares."
+    assert check(reply, ["profit 644"], [])["grounded"]
+    assert check("Bottom line: you own 100 shares of NVDA.", [], [])["ungrounded"] == ["100"]
+
+
+def test_the_sample_portfolio_points_ski_at_the_what_if_tool(monkeypatch):
+    # The old wording ("Risk metrics are not computed for the sample, so do not
+    # mention them") kept Ski from calling portfolio_what_if for signed-out users.
+    app = run_eval.install_fixtures(monkeypatch.setattr)
+    ctx = " ".join(app._get_portfolio_context(None, run_eval.SAMPLE_PORTFOLIO).split())
+    assert "SAMPLE PORTFOLIO" in ctx and "portfolio_what_if computes them" in ctx
+    assert "do not mention them" not in ctx
+    assert "never work out new weights" in " ".join(app._SKI_SYSTEM_PROMPT.split())

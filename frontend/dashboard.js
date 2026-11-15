@@ -1946,6 +1946,29 @@ function appendSkiLookups(bubble, lookups) {
     bubble.appendChild(line);
 }
 
+// Under a web-search answer, link the pages Ski cited, so its outside figures
+// can be checked at the source.
+function appendSkiSources(bubble, sources) {
+    if (!Array.isArray(sources) || !sources.length) return;
+    const line = document.createElement("div");
+    line.className = "ski-lookups ski-sources";
+    line.append("Sources: ");
+    sources.slice(0, 5).forEach((src, i) => {
+        let url;
+        try { url = new URL(src && src.url); } catch { return; }
+        if (url.protocol !== "https:" && url.protocol !== "http:") return;
+        if (i) line.append(" · ");
+        const a = document.createElement("a");
+        a.href = url.href;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = url.hostname.replace(/^www\./, "");
+        a.title = String(src.title || url.href);
+        line.appendChild(a);
+    });
+    if (line.querySelector("a")) bubble.appendChild(line);
+}
+
 // The news scores are a word list's reading of a headline's wording (VADER),
 // unvalidated against returns, so they are shown as tone, not as a call.
 const TONE_TITLE = "Tone of the headline's wording, scored by a word list (VADER). A rough hint, not a forecast.";
@@ -2072,6 +2095,7 @@ async function skiSend() {
         if (data.reply) {
             setSkiReply(loadingBubble, reply);
             appendSkiLookups(loadingBubble, data.lookups);
+            appendSkiSources(loadingBubble, data.sources);
         } else loadingBubble.textContent = reply;
         loadingBubble.classList.remove("loading");
         skiState.history.push({ role: "assistant", content: reply });

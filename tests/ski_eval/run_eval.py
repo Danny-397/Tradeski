@@ -302,7 +302,10 @@ def regrade(path: str) -> None:
     for r in saved["results"]:
         body = {k: r.get(k) for k in ("reply", "tools_used", "grounded", "ungrounded_figures", "error")}
         if r.get("evidence"):
-            g = ski_grounding.check(r["reply"] or "", *r["evidence"])
+            texts, objects = r["evidence"]
+            # Results saved before cited block text counted as evidence (2026-11-15).
+            texts = texts + [b["text"] for b in r.get("blocks") or [] if b.get("citations")]
+            g = ski_grounding.check(r["reply"] or "", texts, objects)
             body["grounded"], body["ungrounded_figures"] = g["grounded"], g["ungrounded"]
         failures = grade(by_id[r["id"]], body)
         results.append({**r, "grounded": body["grounded"], "passed": not failures, "failures": failures})

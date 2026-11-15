@@ -753,9 +753,10 @@ def _get_portfolio_context(user_id: Optional[int], sample: Optional[list] = None
     if user_id is None:
         lines = [f"SAMPLE PORTFOLIO — {datetime.date.today()} (the user is not signed in and is "
                  "trying Tradeski with this example portfolio; treat it as theirs for the "
-                 "conversation, and mention it is a sample if they ask about saving it. Risk "
-                 "metrics are not computed for the sample, so do not mention them or "
-                 "point to a risk panel):"]
+                 "conversation, and mention it is a sample if they ask about saving it. Its risk "
+                 "metrics are not listed here, and there is no risk panel for it, but "
+                 "portfolio_what_if computes them (beta, volatility, Sharpe, before and after "
+                 "a trade) for this sample too):"]
     else:
         lines = [f"USER'S PORTFOLIO — {datetime.date.today()}:"]
 
@@ -1439,7 +1440,9 @@ You also have TOOLS. Use them instead of guessing, and call several at once when
 - get_fundamentals: sector, P/E, market cap for a ticker; when those are missing, a from_filings section has \ntrailing EPS, P/E, market cap, revenue growth and net margin computed from SEC filings.
 - get_news: recent headlines for any ticker.
 - get_correlation: how closely tickers move together (diversification questions).
-- portfolio_what_if: the user's weights and risk before and after hypothetical trades ("what if I sold half my TSLA").
+- portfolio_what_if: the user's weights and risk before and after hypothetical trades ("what if I sold half my TSLA"). \
+Call it for every question about buying, selling or trimming a position, even if only weights are asked; never work \
+out new weights, values or risk yourself.
 - get_macro_history: the trend of a macro series, not just its latest reading.
 - get_options_overview: what a ticker's options imply (implied vs realised volatility, the expected move by an \
 expiry, put/call ratios, the strikes with the most open interest).
@@ -1553,12 +1556,36 @@ def _ski_data(user_id: Optional[int], sample: Optional[list]) -> ski_tools.SkiDa
 
 
 def _reply_text(response) -> str:
-    # With tools the response holds several blocks (thinking, searches,
-    # results, answer); the reply is the concatenation of the text blocks.
-    return "".join(
-        getattr(b, "text", "") for b in response.content
-        if getattr(b, "type", None) == "text"
-    ).strip()
+    """The answer: the response's text blocks, joined.
+
+    With web search, the model sometimes paraphrases a result and then writes the
+    cited passage itself as its own block, so the reader saw the same facts twice
+    ("...0.39% borrow cost As of Oct 27, 2026, ORTEX estimated..."). A cited block
+    that starts a new sentence and repeats figures already on its line is dropped;
+    its citation still counts as grounding evidence and is listed in the sources.
+    """
+    parts: list = []
+    for b in response.content:
+        if getattr(b, "type", None) != "text":
+            continue
+        text = getattr(b, "text", "") or ""
+        if getattr(b, "citations", None) and parts:
+            line = "".join(parts).rsplit("\n", 1)[-1]
+            if ski_grounding.restates(line, text):
+                continue
+        parts.append(text)
+    return "".join(parts).strip()
+
+
+def _sources(blocks) -> list:
+    """The web pages a reply cites, as [{"title", "url"}], first mention first."""
+    seen: dict = {}
+    for b in blocks or []:
+        for c in getattr(b, "citations", None) or []:
+            url = getattr(c, "url", None)
+            if url and url.startswith(("https://", "http://")) and url not in seen:
+                seen[url] = {"title": (getattr(c, "title", None) or url)[:120], "url": url}
+    return list(seen.values())
 
 
 def _system_blocks(system) -> list:
@@ -1600,7 +1627,8 @@ def _run_ski(client, system, messages: list, data: ski_tools.SkiData, web_search
 
     def done(reply: str) -> dict:
         return {"reply": reply, "tools_used": tools_used, "lookups": list(dict.fromkeys(lookups)),
-                "tool_outputs": outputs, "search_texts": search_texts}
+                "tool_outputs": outputs, "search_texts": search_texts,
+                "sources": _sources(response.content if response is not None else [])}
 
     for round_no in range(SKI_MAX_TOOL_ROUNDS + 1):
         while True:
@@ -1736,6 +1764,7 @@ def chat() -> tuple:
             "reply": result["reply"],
             "tools_used": result["tools_used"],
             "lookups": result["lookups"],
+            "sources": result.get("sources", [])[:5],
             "grounded": grounding["grounded"],
             "ungrounded_figures": grounding["ungrounded"],
         })

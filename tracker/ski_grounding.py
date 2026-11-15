@@ -61,6 +61,19 @@ _REFERENCE_LEVELS = [
 _APPROX = re.compile(r"(?:about|roughly|around|approximately|nearly|almost|~)\s*\$?$", re.I)
 
 
+_OPTIONS_WORDS = re.compile(r"contract|covered call|\boptions?\b|\bstrike\b|\bcalls?\b|\bputs?\b", re.I)
+
+
+def _is_scale_or_contract(text: str, start: int, end: int) -> bool:
+    before = text[max(0, start - 3):start]
+    if before.endswith("/") or re.search(r"\b0\s?[-\u2013]\s?$", before):
+        return True  # "96/100", "0-100 scale"
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    line = text[line_start:line_end if line_end != -1 else len(text)]
+    return text[end:end + 7].lower().startswith(" shares") and bool(_OPTIONS_WORDS.search(line))
+
+
 def _is_reference_level(text: str, start: int, end: int, value: float) -> bool:
     window = text[max(0, start - 60):end + 30]
     return any(value in levels and pattern.search(window) for pattern, levels in _REFERENCE_LEVELS)
@@ -90,8 +103,8 @@ def _figures(text: str, *, for_reply: bool) -> list[tuple[float, float, str]]:
                 continue  # "14-day", "50 day", "52-week", "10-year"
             if _is_reference_level(text, m.start(), m.end(), value):
                 continue  # "RSI above 70", "beta of 1", "VIX over 30"
-            if value == 100 and text[max(0, m.start() - 1):m.start()] == "/":
-                continue  # a scale's denominator: "96/100"
+            if value == 100 and _is_scale_or_contract(text, m.start(), m.end()):
+                continue  # "96/100", "a 0-100 scale", "a covered call needs 100 shares"
         decimals = len(frac) - 1 if frac else 0
         tol = 0.5 * 10 ** -decimals * scale
         if for_reply and not frac and _APPROX.search(text[max(0, m.start() - 14):m.start()]):
@@ -145,6 +158,26 @@ def check(reply: str, evidence_texts: list[str], evidence_objects: list) -> dict
     return {"grounded": not missing, "checked": len(figures), "ungrounded": missing}
 
 
+def restates(line: str, cited: str) -> bool:
+    """Does a cited passage repeat the sentence just written on the same line?
+
+    True when the passage starts a new sentence and at least half of its figures
+    (one at least) are already on the line. A passage that completes the
+    sentence ("a range of " + "13.38 to 35.30") starts lower-case or with a
+    figure, and a bare quoted bullet has nothing on its line, so both are kept.
+    """
+    head = cited.lstrip()[:1]
+    if not head.isupper():
+        return False
+    # Reply rules, so dates, years and counts ("Oct 15, 2026") don't count as figures.
+    figures = _figures(cited, for_reply=True)
+    shown = _figures(line, for_reply=True)
+    if not figures or not shown:
+        return False
+    repeated = sum(any(abs(v - s) <= max(t, ts) for s, ts, _ in shown) for v, t, _ in figures)
+    return repeated * 2 >= len(figures)
+
+
 def _kind(raw: str) -> str:
     return "$" if "$" in raw else "%" if raw.endswith("%") else ""
 
@@ -177,9 +210,18 @@ def _derived(value: float, tol: float, raw: str, inputs: list[tuple[float, float
 
 
 def evidence_from_response_blocks(blocks) -> list[str]:
-    """Search-result text Ski was shown: cited passages and result titles."""
+    """Search-result text Ski was shown: cited passages and result titles.
+
+    The text of a block that carries a citation counts too. The API cuts each
+    cited_text to about 150 characters, so "a 52-week range of 13.38 to 35.30"
+    cited from further into a page could never be matched. The page itself is
+    encrypted, so such a figure is checked only as far as "Ski attributed it to
+    a source the user can open", not against the source's words.
+    """
     texts = []
     for b in blocks or []:
+        if getattr(b, "citations", None):
+            texts.append(getattr(b, "text", "") or "")
         for c in getattr(b, "citations", None) or []:
             texts.append(getattr(c, "cited_text", "") or "")
         if getattr(b, "type", None) == "web_search_tool_result":
