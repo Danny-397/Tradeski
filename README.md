@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 306 tests across 27 files — CI on every push |
+| **Tests** | 321 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 ### Screenshots
@@ -212,7 +212,7 @@ Tradeski/
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 306 tests across 27 files
+├── tests/                     # pytest suite — 321 tests across 27 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -296,7 +296,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (306 tests) |
+| Testing | pytest (321 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -354,12 +354,21 @@ Ski can answer "Is now a good time to add to my NVDA position?" with awareness o
 
 **Grounding check** ([`tracker/ski_grounding.py`](tracker/ski_grounding.py)). After every answer, the server pulls the figures out of the reply and checks each one, at the reply's own rounding, against the data Ski was given: its context, its tool results and any cited search text. Counts, years, dates, indicator lengths ("14-day") and textbook levels named next to their indicator ("RSI above 70") are skipped. A figure that matches nothing is either invented or something Ski calculated itself. Either way it's logged, and the response carries `grounded` and `ungrounded_figures`. For now this only logs; it doesn't block anything.
 
-**Eval set** ([`tests/ski_eval/`](tests/ski_eval)). 24 questions asked through the real `/chat` endpoint against fixed fixture data, so a score change comes from Ski, not the market. They fall into three groups:
+**Eval set** ([`tests/ski_eval/`](tests/ski_eval)). 24 questions asked through the real `/chat` endpoint against fixed fixture data, so a score change comes from Ski, not the market, plus 8 held-out questions written before any fix. They fall into three groups:
 - lookups: another ticker's trend, P/E, news, macro trends, and options (put/call ratio, expected move, a spread's cost and max loss), against a fixture option chain
 - portfolio risk: concentration, correlation, what-if trades
 - honesty traps: short interest, unusual options flow, tomorrow's price, an unknown ticker
 
-Grading is deterministic, with no model judging: answer format, grounded figures, whether the expected tool was called, and required or banned phrases. Run it with `ANTHROPIC_API_KEY=... python tests/ski_eval/run_eval.py`, or from the manual **Ski eval** workflow (needs the key as a repository secret). A run costs a few cents.
+Grading is deterministic, with no model judging: answer format, grounded figures, whether the expected tool was called, and required or banned phrases. Run it with `ANTHROPIC_API_KEY=... python tests/ski_eval/run_eval.py`, or from the manual **Ski eval** workflow (needs the key as a repository secret). A full run costs well under a dollar.
+
+**Results** (2026-11-15, Claude Haiku 5.5, 3 runs per case; [details and run links](docs/ski-eval/README.md)):
+
+| | Main set | Held-out |
+|---|---|---|
+| Before the fixes (graders fixed, Ski unchanged) | 66/72 (92%) | 16/24 (67%) |
+| After | 64/72 (89%) | 19/24 (79%) |
+
+The first run scored 41/72, mostly because the grader was wrong (bold "Bottom line", a probability as a fraction, arithmetic on quoted figures). The run found two real faults: a prompt line that kept Ski from calling `portfolio_what_if` for signed-out users (now 9/9 what-if questions call it, from 3/9), and web answers that repeated the cited passage after paraphrasing it (4 replies to 0). The main-set difference is noise at three runs per case; the held-out gain is the what-if fix. One wrong figure remains in the after run, caught by the grounding check.
 
 **Proactive briefing.** Ski doesn't wait to be asked. The moment a signed-in user's holdings load, the dashboard calls `POST /briefing`, which assembles the same live context (macro snapshot + the user's positions, weights, and risk metrics + news for their largest holding) and asks Claude to surface what matters *right now* — 3–4 number-backed bullets plus a "Watch:" line flagging the next thing to keep an eye on (e.g. *"NVDA is 55% of your book with beta 1.4 — concentration risk"*). The result is cached per user for 15 minutes so dashboard loads stay cheap. This turns the assistant from a reactive chat box into the product's spine: portfolio-aware intelligence that meets the user at the door.
 
@@ -622,7 +631,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-306 tests across 27 files:
+321 tests across 27 files:
 
 | File | What it covers |
 |:---|:---|

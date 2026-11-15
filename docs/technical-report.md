@@ -22,7 +22,7 @@ This report describes the architecture as built, the decisions worth defending, 
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
 | Tests | 304, across 27 files, run in GitHub Actions with flake8 |
-| Assistant | Claude Haiku 5.5 with 9 Tradeski tools + web search, a figure-grounding check, and a 24-question eval |
+| Assistant | Claude Haiku 5.5 with 9 Tradeski tools + web search, a figure-grounding check, and a 32-question eval (89% main / 79% held-out) |
 | Deployment | Backend on Render (gunicorn + gevent), frontend static, Postgres |
 
 ---
@@ -312,19 +312,38 @@ and indicator lengths, and it needed a rule for textbook levels: the first live 
 flagged for "70" in "approaching overbought (typically 70+)", which is a rule of thumb, not
 data. For now it only logs.
 
-**Quality is meant to be measured, not asserted.** `tests/ski_eval/` asks 23 questions
-through the real endpoint against fixed fixture data (including a fixture option chain),
-in three groups: lookups, portfolio risk, and honesty traps (short interest, trade-level
-options flow, tomorrow's close). The put/call ratio used to be a trap; with the options
-tools it is now a lookup. Grading is
-deterministic, with no model judging. As of this writing the eval has not been run against
-the live model, so there is no score to report; §9 says so.
+**Quality is measured, not asserted.** `tests/ski_eval/` asks 24 questions through the
+real endpoint against fixed fixture data (including a fixture option chain), in three groups:
+lookups, portfolio risk, and honesty traps (short interest, trade-level options flow,
+tomorrow's close), plus 8 held-out questions written before any fix was made. Grading is
+deterministic, with no model judging.
+
+The first run against the real model (2026-11-15, three runs per case) scored 41/72, and
+most of that was the grader: it rejected a bold "**Bottom line:**" the chat card renders
+fine, and the grounding check didn't recognise "37%" as the probability 0.3684, or a
+difference of two figures quoted in the same sentence. With those fixed, and each fix tested
+so that an invented figure still fails, Ski as it was scored 66/72 on the main set and 16/24
+held-out. The rule for shown arithmetic was measured before it was adopted: on run 1's
+replies, figures perturbed by 2–20% passed 39% of the time under "any two figures may add
+up", and 0.4% under the rule used (same unit, two decimals, inputs grounded and quoted).
+
+The run found two real faults. For signed-out visitors, the prompt said risk metrics were
+"not computed for the sample, so do not mention them", so Ski never called
+`portfolio_what_if` and did the maths itself; after the fix it called the tool on 9 of 9
+what-if questions, up from 3. And web answers repeated themselves: Ski paraphrased a result,
+then wrote the cited passage as a block of its own; such a block is now dropped (4 replies
+to 0), and the chat card links the cited pages. After the fixes: 64/72 main (no real change;
+three runs per case can't separate two replies) and 19/24 held-out, the gain all from the
+what-if fix. Of the 13 failures left, one is a wrong figure the check caught (a spread priced
+at "$8.50 a share" when its legs give $2.52), nine are correct calculations the check refuses
+by design, and three are web figures it can't verify. Results and run links:
+[`docs/ski-eval/`](ski-eval/README.md).
 
 ---
 
 ## 8. Testing
 
-306 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
+321 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -401,11 +420,12 @@ a fix for named failures, not a measured improvement, so the news panel shows "H
 tone" (positive, neutral, negative) with a note that it is a word-list score, not a call on
 the stock.
 
-**The assistant's quality is unmeasured.** The eval in §7 exists and its harness is tested
-end to end with a scripted model, but it has not yet been run against the real one. Until it
-is, "Ski answers better with tools" is a design argument, not a result. The grounding check
-is a heuristic too: an invented figure that happens to equal a number in the data, or a
-textbook level, gets through it.
+**The assistant's eval is small.** 32 hand-written questions on fixture data, three runs
+each, measure whether Ski uses its tools and quotes what they return; they say nothing about
+whether its commentary is good, and they can't resolve a change of a few replies. The
+grounding check is a heuristic: an invented figure that happens to equal a number in the
+data, a textbook level, or the sum of two quoted figures gets through it, and web figures
+are checked only against what the API returns of a citation (about 150 characters).
 
 **There is no backtesting and no strategy evaluation.** Tradeski shows you the present. The
 question of whether any indicator on the screen predicts anything is deliberately out of
@@ -435,5 +455,8 @@ claim. Test features end to end from the first day: alerts were broken for month
 every unit test passed the whole time.
 
 For the assistant, I would have written the eval before the first prompt rather than after
-the feature shipped. Until then, Ski was judged by reading answers and deciding they looked
-right, and that is how a prompt claiming data it never received went unnoticed.
+the feature shipped, and run it the day it was written. Ski was judged by reading answers and
+deciding they looked right, which is how a prompt claiming data it never received went
+unnoticed, and how one prompt line kept signed-out visitors from ever reaching the what-if tool. The first real
+run also showed the grader needs testing as much as the model: most of its failures were
+the grader's.
