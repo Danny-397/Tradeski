@@ -63,7 +63,8 @@ def fixture_bars(symbol: str, period: str = "1y", _interval: str = "1d") -> list
         return []
     start, drift, wobble = _SHAPES[symbol]
     n = {"3mo": 63, "6mo": 126}.get(period, 252)
-    day0 = datetime.date(2025, 11, 3)
+    # The series ends yesterday, as live data would; values don't depend on the date.
+    day0 = datetime.date.today() - datetime.timedelta(days=252)
     bars, price = [], start
     for i in range(252):
         price *= 1 + drift + wobble * math.sin(i / 2.7 + len(symbol))
@@ -187,7 +188,29 @@ def install_fixtures(set_attr=setattr):
     set_attr(app, "get_option_chain", fixture_option_chain)
     set_attr(app, "get_eod_options", lambda s, base: None)
     set_attr(app, "_get_macro_context", lambda: MACRO_CONTEXT)
+    _record_evidence(app, set_attr)
     return app
+
+
+# What the last /chat call checked its numbers against, and the raw text blocks of
+# its answer, so a results file can be re-graded (--regrade) and diagnosed later.
+CAPTURE: dict = {}
+
+
+def _record_evidence(app, set_attr) -> None:
+    real_check, real_reply_text = app.ski_grounding.check, app._reply_text
+
+    def check(reply, texts, objects):
+        CAPTURE["evidence"] = [list(texts), list(objects)]
+        return real_check(reply, texts, objects)
+
+    def reply_text(response):
+        CAPTURE["blocks"] = [{"text": getattr(b, "text", ""), "citations": len(getattr(b, "citations", None) or [])}
+                             for b in response.content if getattr(b, "type", None) == "text"]
+        return real_reply_text(response)
+
+    set_attr(app.ski_grounding, "check", check)
+    set_attr(app, "_reply_text", reply_text)
 
 
 def main():
@@ -216,6 +239,7 @@ def main():
     for case in cases:
         for run in range(args.repeat):
             started = time.time()
+            CAPTURE.clear()
             r = client.post("/chat", json={"message": case["q"], "history": [], "symbol": "AAPL",
                                            "chart_context": ctx, "sample_portfolio": SAMPLE_PORTFOLIO})
             body = r.get_json(silent=True) or {"error": f"HTTP {r.status_code}"}
@@ -225,7 +249,8 @@ def main():
                             "seconds": round(time.time() - started, 1), "passed": not failures,
                             "failures": failures, **{k: body.get(k) for k in
                                                      ("reply", "tools_used", "grounded", "ungrounded_figures",
-                                                      "error")}})
+                                                      "error")},
+                            "evidence": CAPTURE.get("evidence"), "blocks": CAPTURE.get("blocks")})
             mark = "PASS" if not failures else "FAIL"
             print(f"{mark}  {case['id']:<22} {results[-1]['seconds']:>5}s  tools={body.get('tools_used')}")
             for f in failures:
@@ -254,8 +279,7 @@ def summarize(results: list) -> None:
                         ("held-out set", [r for r in results if r.get("held_out")])):
         if not rows:
             continue
-        print(f"
-{label}: {sum(r['passed'] for r in rows)}/{len(rows)} passed")
+        print(f"\n{label}: {sum(r['passed'] for r in rows)}/{len(rows)} passed")
         for group in dict.fromkeys(r["group"] for r in rows):
             g = [r for r in rows if r["group"] == group]
             print(f"  {group:<8} {sum(r['passed'] for r in g)}/{len(g)}")
@@ -277,7 +301,7 @@ def regrade(path: str) -> None:
     results = []
     for r in saved["results"]:
         body = {k: r.get(k) for k in ("reply", "tools_used", "grounded", "ungrounded_figures", "error")}
-        if "evidence" in r:
+        if r.get("evidence"):
             g = ski_grounding.check(r["reply"] or "", *r["evidence"])
             body["grounded"], body["ungrounded_figures"] = g["grounded"], g["ungrounded"]
         failures = grade(by_id[r["id"]], body)

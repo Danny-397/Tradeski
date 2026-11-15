@@ -151,3 +151,73 @@ def test_a_real_reading_or_an_unrelated_figure_is_still_checked():
     assert check("Bottom line: NVDA rallied 70% this year.", [], [])["ungrounded"] == ["70%"]
     assert check("Bottom line: a beta of 1.4.", [], [])["ungrounded"] == ["1.4"]
     assert check("Bottom line: a beta of 1.0 means it moves with the market.", [], [])["grounded"]
+
+
+# ── 2026-11-15 fixes from the first real eval run ───────────
+
+def test_a_probability_stored_as_a_fraction_matches_its_percent():
+    tool = [{"prob_profit": 0.3684, "chance_ends_beyond_target": 0.0799}]
+    assert check("Bottom line: about **37%** to profit, **8%** to end above $140.", ["spot 140"], tool)["grounded"]
+    # Only when written as a percent, and still within rounding.
+    assert check("Bottom line: 37 contracts at risk.", [], tool)["ungrounded"] == ["37"]
+    assert check("Bottom line: about 45% to profit.", [], tool)["ungrounded"] == ["45%"]
+
+
+def test_arithmetic_passes_only_when_its_inputs_are_shown_and_grounded():
+    data = [{"close": 465.07, "high_52w": 470.65, "spot": 127.27, "expected_move": 8.56}]
+    shown = "Bottom line: closed at **$465.07** against a high of **$470.65**, a gap of $5.58."
+    assert check(shown, [], data)["grounded"]
+    assert check("Bottom line: between $118.71 and $135.83 around $127.27 (±$8.56).", [], data)["grounded"]
+    # Same derived figure without its inputs: the reader can't check it.
+    assert check("Bottom line: MSFT is $5.58 below its high.", [], data)["ungrounded"] == ["$5.58"]
+    # Inputs shown but one is invented: the derived figure doesn't launder it.
+    r = check("Bottom line: closed at $465.07 against a high of $480.00, a gap of $14.93.", [], data)
+    assert set(r["ungrounded"]) == {"$480.00", "$14.93"}
+    # An invented figure that isn't a sum or difference of the shown ones still fails.
+    assert check(shown + " Fair value is $512.40.", [], data)["ungrounded"] == ["$512.40"]
+
+
+def test_tolerances_add_for_shown_arithmetic():
+    # $3.12 - $0.61 = $2.51, and each leg was rounded to the cent, so $2.515 is consistent.
+    assert check("Bottom line: buy at $3.12, sell at $0.61, net $2.515 a share.", [],
+                 [{"buy": 3.12, "sell": 0.61}])["grounded"]
+
+
+def test_about_widens_only_trailing_zeros():
+    tool = [{"open_interest": 8806}]
+    assert check("Bottom line: about 8,800 contracts open.", [], tool)["grounded"]
+    assert check("Bottom line: 8,800 contracts open.", [], tool)["ungrounded"] == ["8,800"]
+    assert check("Bottom line: about 8,900 contracts open.", [], tool)["ungrounded"] == ["8,900"]
+    assert check("Bottom line: about 8,812 contracts open.", [], tool)["ungrounded"] == ["8,812"]
+
+
+def test_scale_denominators_and_the_contract_size_are_not_data():
+    assert check("Bottom line: it sits near the top of its band (96/100).", ["position 96"], [])["grounded"]
+    assert check("Bottom line: a covered call needs 100 shares.", [], [])["grounded"]
+    assert check("Bottom line: each options contract covers 100 shares.", [], [])["grounded"]
+    # Elsewhere 100 is still checked.
+    assert check("Bottom line: the stock is up 100% this year.", [], [])["ungrounded"] == ["100%"]
+
+
+def test_bottom_line_in_bold_passes_the_format_check_like_the_ui():
+    case = _case("biggest-position")
+    for reply in ("Bottom line: NVDA.", "**Bottom line:** NVDA.", "**Bottom line**: NVDA."):
+        assert grade(case, {"reply": reply, "tools_used": [], "grounded": True}) == [], reply
+    for reply in ("NVDA. Bottom line: NVDA.", "Bottom line NVDA.", "**Summary:** NVDA."):
+        assert grade(case, {"reply": reply, "tools_used": [], "grounded": True}), reply
+
+
+def test_unknown_ticker_accepts_cant_find():
+    case = _case("unknown-ticker")
+    for reply in ("Bottom line: I can't find any data for ZZZQX.", "Bottom line: I can’t find ZZZQX.",
+                  "Bottom line: I cannot find that symbol."):
+        assert grade(case, {"reply": reply, "tools_used": [], "grounded": True}) == [], reply
+    assert grade(case, {"reply": "Bottom line: ZZZQX is up 3%.", "tools_used": [], "grounded": True})
+
+
+def test_held_out_cases_are_separate_and_marked():
+    from cases import HELD_OUT
+    ids = [c["id"] for c in CASES + HELD_OUT]
+    assert len(ids) == len(set(ids))
+    assert HELD_OUT and all(c.get("held_out") for c in HELD_OUT)
+    assert not any(c.get("held_out") for c in CASES)
