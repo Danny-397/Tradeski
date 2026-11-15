@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "Plotly dashboard"), HERE]
 
-from cases import CASES, SAMPLE_PORTFOLIO  # noqa: E402
+from cases import CASES, HELD_OUT, SAMPLE_PORTFOLIO  # noqa: E402
 from graders import grade  # noqa: E402
 
 # Symbol -> (start price, daily drift, wobble). NVDA rallies, TSLA falls.
@@ -194,14 +194,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--only", nargs="*", help="case ids to run")
     parser.add_argument("--repeat", type=int, default=1, help="runs per case (answers vary run to run)")
+    parser.add_argument("--set", choices=["main", "held-out", "all"], default="all",
+                        help="which cases: the main set, the held-out set (see cases.py), or both")
+    parser.add_argument("--regrade", metavar="RESULTS_JSON",
+                        help="re-grade a saved results file with the current graders; no API calls")
     args = parser.parse_args()
+
+    if args.regrade:
+        return regrade(args.regrade)
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
         sys.exit("Set ANTHROPIC_API_KEY to run the eval (it calls the real Claude API).")
 
     app = install_fixtures()
     client = app.app.test_client()
-    cases = [c for c in CASES if not args.only or c["id"] in args.only]
+    pool = {"main": CASES, "held-out": HELD_OUT, "all": CASES + HELD_OUT}[args.set]
+    cases = [c for c in pool if not args.only or c["id"] in args.only]
     ctx = chart_context()
 
     results = []
@@ -212,7 +220,8 @@ def main():
                                            "chart_context": ctx, "sample_portfolio": SAMPLE_PORTFOLIO})
             body = r.get_json(silent=True) or {"error": f"HTTP {r.status_code}"}
             failures = grade(case, body)
-            results.append({"id": case["id"], "group": case["group"], "run": run, "question": case["q"],
+            results.append({"id": case["id"], "group": case["group"], "held_out": bool(case.get("held_out")),
+                            "run": run, "question": case["q"],
                             "seconds": round(time.time() - started, 1), "passed": not failures,
                             "failures": failures, **{k: body.get(k) for k in
                                                      ("reply", "tools_used", "grounded", "ungrounded_figures",
@@ -237,6 +246,48 @@ def main():
     with open(path, "w", encoding="utf-8") as f:
         json.dump({"model": app.SKI_MODEL, "results": results}, f, indent=2)
     print(f"\nwrote {path}")
+
+
+def summarize(results: list) -> None:
+    """Print pass rates, with the held-out cases reported on their own."""
+    for label, rows in (("main set", [r for r in results if not r.get("held_out")]),
+                        ("held-out set", [r for r in results if r.get("held_out")])):
+        if not rows:
+            continue
+        print(f"
+{label}: {sum(r['passed'] for r in rows)}/{len(rows)} passed")
+        for group in dict.fromkeys(r["group"] for r in rows):
+            g = [r for r in rows if r["group"] == group]
+            print(f"  {group:<8} {sum(r['passed'] for r in g)}/{len(g)}")
+        grounded = [r for r in rows if r["grounded"] is not None]
+        if grounded:
+            print(f"  grounded replies: {sum(r['grounded'] for r in grounded)}/{len(grounded)}")
+
+
+def regrade(path: str) -> None:
+    """Re-grade saved replies with today's graders and grounding check.
+
+    The grounding verdict is recomputed only when the file kept the evidence;
+    otherwise the saved verdict is re-checked against the saved figures alone.
+    """
+    from tracker import ski_grounding
+    with open(path, encoding="utf-8") as f:
+        saved = json.load(f)
+    by_id = {c["id"]: c for c in CASES + HELD_OUT}
+    results = []
+    for r in saved["results"]:
+        body = {k: r.get(k) for k in ("reply", "tools_used", "grounded", "ungrounded_figures", "error")}
+        if "evidence" in r:
+            g = ski_grounding.check(r["reply"] or "", *r["evidence"])
+            body["grounded"], body["ungrounded_figures"] = g["grounded"], g["ungrounded"]
+        failures = grade(by_id[r["id"]], body)
+        results.append({**r, "grounded": body["grounded"], "passed": not failures, "failures": failures})
+        if failures:
+            print(f"FAIL  {r['id']:<22} run {r['run']}")
+            for fail in failures:
+                print(f"        - {fail}")
+    print(f"model: {saved.get('model')}")
+    summarize(results)
 
 
 if __name__ == "__main__":
