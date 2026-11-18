@@ -200,6 +200,17 @@ def get_eod_options(symbol: str, base_url: str) -> dict | None:
         return None
 
 
+def get_eod_index(base_url: str) -> dict | None:
+    """index.json from the options-data branch: which symbols have saved chains, or None."""
+    import requests
+    try:
+        resp = requests.get(f"{base_url.rstrip('/')}/index.json", timeout=10)
+        data = resp.json() if resp.status_code == 200 else None
+        return data if isinstance(data, dict) and isinstance(data.get("symbols"), dict) else None
+    except Exception:
+        return None
+
+
 def get_option_chain(symbol: str, expiry: str) -> dict | None:
     """Raw calls and puts for one expiry, plus the spot price and dividend yield.
 

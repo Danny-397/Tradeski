@@ -36,7 +36,7 @@ from tracker import screens as saved_screens
 from tracker import options as opt
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
-from tracker.price_fetcher import get_option_expirations, get_option_chain, get_eod_options
+from tracker.price_fetcher import get_option_expirations, get_option_chain, get_eod_options, get_eod_index
 from tracker.analyzer import (
     sma,
     ema,
@@ -1040,17 +1040,34 @@ def _options_rate() -> tuple:
         return _DEFAULT_RATE, "an assumed rate: FRED was unavailable"
 
 
-# Where the snapshot workflow publishes end-of-day chains (static files on Vercel).
-_OPTIONS_EOD_BASE = os.environ.get("OPTIONS_EOD_URL", "https://tradeski.dev/data/options")
+# Where end-of-day chains are published, tried in order: the options-data branch
+# (~90 symbols, .github/workflows/options-data.yml), then the snapshot job's
+# files on Vercel (the original 12), then any override from the environment.
+_OPTIONS_DATA_URL = "https://raw.githubusercontent.com/Danny-397/Tradeski/options-data/options"
+_OPTIONS_EOD_BASES = [u for u in dict.fromkeys([
+    _OPTIONS_DATA_URL, "https://tradeski.dev/data/options", os.environ.get("OPTIONS_EOD_URL")]) if u]
 
 
 def _cached_eod(symbol: str) -> Optional[dict]:
     key = f"opt_eod:{symbol}"
     eod = _cache.get(key)
     if eod is None:
-        eod = get_eod_options(symbol, _OPTIONS_EOD_BASE) or {}
+        eod = {}
+        for base in _OPTIONS_EOD_BASES:
+            eod = get_eod_options(symbol, base) or {}
+            if eod:
+                break
         _cache.set(key, eod, ttl=1800)
     return eod or None
+
+
+def _options_coverage() -> list:
+    """Symbols the options-data branch has end-of-day chains for ([] if unknown)."""
+    hit = _cache.get("opt_coverage")
+    if hit is None:
+        hit = sorted((get_eod_index(_OPTIONS_DATA_URL) or {}).get("symbols") or {})
+        _cache.set("opt_coverage", hit, ttl=3600 if hit else 300)
+    return hit
 
 
 def _options_source(symbol: str) -> tuple:
@@ -1128,9 +1145,15 @@ def _option_args(body: dict) -> tuple:
         return None, None, (jsonify({"error": "symbol is required"}), 400)
     expiries = _cached_expiries(sym)
     if not expiries:
-        msg = (f"no option data came back for {sym}: either it has no listed options, "
-               "or the data source is not answering this server right now")
-        return sym, None, (jsonify({"error": msg}), 404)
+        covered = _options_coverage()
+        if covered and sym not in covered:
+            msg = (f"no option data for {sym}: the live data source is not answering this server, "
+                   f"so Tradeski uses end-of-day chains for {len(covered)} of the most-traded stocks "
+                   f"and ETFs, and {sym} is not one of them")
+        else:
+            msg = (f"no option data came back for {sym}: either it has no listed options, "
+                   "or the data source is not answering this server right now")
+        return sym, None, (jsonify({"error": msg, "covered_symbols": covered}), 404)
     expiry = body.get("expiry") or request.args.get("expiry") or ""
     if expiry not in expiries:
         expiry = opt.pick_expiry(expiries, 20, 60) or expiries[0]
