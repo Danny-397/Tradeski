@@ -10,9 +10,11 @@ Model limits, which the UI states next to the numbers:
 - Black-Scholes prices European options. US equity options are American, so
   values are approximate where early exercise matters (deep in-the-money puts,
   calls just before an ex-dividend date).
-- Probabilities use a lognormal distribution at the options' implied
-  volatility, with risk-neutral drift. That is what the market's prices imply,
-  not a forecast of where the stock will go.
+- Probabilities are risk-neutral: what the market's prices imply, not a
+  forecast of where the stock will go. With a chain they come from the
+  volatility smile (``market_cdf``), so a put wing priced at a higher IV than
+  the money gets its fatter tail; without one they fall back to a lognormal at
+  a single volatility.
 - Prices use the bid/ask midpoint. Real fills are usually worse; ``analyze``
   reports how much crossing the spread would cost.
 """
@@ -431,17 +433,150 @@ def _prob_below(x: float, S: float, T: float, r: float, q: float, sigma: float) 
     return norm_cdf(z)
 
 
-def price_odds(x: float, S: float, T: float, r: float, q: float, sigma: Optional[float]) -> Optional[dict]:
+# ─────────────────────────────────────────────────────────────
+# Market-implied distribution from the volatility smile
+# ─────────────────────────────────────────────────────────────
+#
+# The chance the stock ends below K is e^{rT} times the slope of put prices
+# across strikes (Breeden-Litzenberger). Differentiating Black-Scholes with
+# each strike's own IV, sigma(K), gives
+#
+#     P(S_T < K) = N(-d2(sigma(K))) + e^{rT} * vega(K) * dsigma/dK
+#
+# The first term alone is a lognormal at that strike's IV; the second is the
+# skew correction. With the usual equity skew (dsigma/dK < 0) it moves
+# probability out of the middle and into the downside tail, which a single
+# at-the-money volatility misses. A local linear fit smooths quote noise, and a
+# monotone fit stops the distribution from ever going backwards.
+
+SMILE_MIN_POINTS = 5        # fewer quoted out-of-the-money strikes: use the lognormal
+SMILE_MAX_SPREAD = 50.0     # ignore quotes whose spread is over 50% of the mid
+_SMILE_WINDOW = 0.03        # local fit uses strikes within 3% of the stock price
+
+
+def _smile_points(chain: dict) -> list:
+    """(strike, IV) for quoted out-of-the-money options: puts below the stock, calls at or above."""
+    S = chain["spot"]
+    pts = {}
+    for side, below in ((chain.get("puts") or [], True), (chain.get("calls") or [], False)):
+        for c in side:
+            K, iv = c.get("strike"), c.get("iv")
+            if not (K and iv and c.get("mid") and c.get("bid")):
+                continue
+            if c.get("spread_pct") is not None and c["spread_pct"] > SMILE_MAX_SPREAD:
+                continue
+            if (K < S) == below:
+                pts[float(K)] = float(iv)
+    return sorted(pts.items())
+
+
+def _local_fit(pts: list, i: int, h: float) -> tuple:
+    """(level, slope) of a least-squares line through the points within h of pts[i]."""
+    K0 = pts[i][0]
+    near = [(k, v) for k, v in pts if abs(k - K0) <= h]
+    if len(near) < 3:                       # widen to the three nearest strikes
+        near = sorted(pts, key=lambda p: abs(p[0] - K0))[:3]
+    n = len(near)
+    mk = sum(k for k, _ in near) / n
+    mv = sum(v for _, v in near) / n
+    var = sum((k - mk) ** 2 for k, _ in near)
+    slope = sum((k - mk) * (v - mv) for k, v in near) / var if var > 0 else 0.0
+    return mv + slope * (K0 - mk), slope
+
+
+def _monotone(values: list) -> list:
+    """Closest non-decreasing sequence in least squares (pool adjacent violators)."""
+    blocks = []                             # [mean, count]
+    for v in values:
+        blocks.append([v, 1])
+        while len(blocks) > 1 and blocks[-2][0] > blocks[-1][0]:
+            v2, n2 = blocks.pop()
+            v1, n1 = blocks.pop()
+            blocks.append([(v1 * n1 + v2 * n2) / (n1 + n2), n1 + n2])
+    out = []
+    for v, n in blocks:
+        out.extend([v] * n)
+    return out
+
+
+class MarketCDF:
+    """P(S_T < x) implied by one expiry's option prices; call it with a price.
+
+    ``model`` is "smile" when built from the chain's quotes, "lognormal" when
+    the chain was too thin and the single volatility ``sigma`` is used instead.
+    """
+
+    def __init__(self, S: float, T: float, r: float, q: float, sigma: Optional[float],
+                 points: Optional[list] = None):
+        self.S, self.T, self.r, self.q, self.sigma = S, T, r, q, sigma
+        self.strikes, self.cdf, self.ivs = [], [], []
+        self.model = "lognormal"
+        if points and len(points) >= SMILE_MIN_POINTS and T > 0:
+            self._build(points)
+
+    def _build(self, pts: list) -> None:
+        S, T, r, q = self.S, self.T, self.r, self.q
+        h = _SMILE_WINDOW * S
+        raw, ivs = [], []
+        for i, (K, _) in enumerate(pts):
+            iv, slope = _local_fit(pts, i, h)
+            iv = min(max(iv, 0.01), _IV_HI)
+            d1, d2 = _d1_d2(S, K, T, r, iv, q)
+            vega = S * math.exp(-q * T) * norm_pdf(d1) * math.sqrt(T)
+            raw.append(norm_cdf(-d2) + math.exp(r * T) * vega * slope)
+            ivs.append(iv)
+        self.strikes = [p[0] for p in pts]
+        self.cdf = [min(max(v, 0.0), 1.0) for v in _monotone(raw)]
+        self.ivs = ivs
+        self.model = "smile"
+
+    def _lognormal(self, x: float, sigma: float) -> float:
+        return _prob_below(x, self.S, self.T, self.r, self.q, sigma)
+
+    def __call__(self, x: float) -> float:
+        if x <= 0:
+            return 0.0
+        if math.isinf(x):
+            return 1.0
+        if self.model != "smile":
+            return self._lognormal(x, self.sigma) if self.sigma else float("nan")
+        Ks, F = self.strikes, self.cdf
+        if x <= Ks[0]:      # below the quoted strikes: lognormal tail at the wing IV, joined continuously
+            ln0 = self._lognormal(Ks[0], self.ivs[0])
+            return F[0] * self._lognormal(x, self.ivs[0]) / ln0 if ln0 > 0 else 0.0
+        if x >= Ks[-1]:     # above them: the same on the upside
+            ln0 = self._lognormal(Ks[-1], self.ivs[-1])
+            if ln0 >= 1:
+                return 1.0
+            return 1.0 - (1.0 - F[-1]) * (1.0 - self._lognormal(x, self.ivs[-1])) / (1.0 - ln0)
+        j = next(i for i in range(1, len(Ks)) if Ks[i] >= x)
+        w = (x - Ks[j - 1]) / (Ks[j] - Ks[j - 1])
+        return F[j - 1] + w * (F[j] - F[j - 1])
+
+
+def market_cdf(chain: dict) -> MarketCDF:
+    """The market-implied distribution for a cleaned chain (see clean_chain)."""
+    return MarketCDF(chain["spot"], chain["years"], chain["rate"], chain.get("dividend_yield") or 0.0,
+                     chain.get("atm_iv"), _smile_points(chain))
+
+
+def _uses_smile(cdf: Optional[MarketCDF]) -> bool:
+    return cdf is not None and cdf.model == "smile"
+
+
+def price_odds(x: float, S: float, T: float, r: float, q: float, sigma: Optional[float],
+               cdf: Optional[MarketCDF] = None) -> Optional[dict]:
     """What option prices imply about the stock reaching ``x`` by expiry.
 
-    ``above``/``below``: chance it ends above or below x (lognormal at
-    ``sigma``, risk-neutral drift). ``touch``: chance it trades at x at some
-    point before expiry, from the reflection principle (about twice the
-    chance of ending beyond it), so an approximation.
+    ``above``/``below``: chance it ends above or below x, from the chain's
+    smile (``cdf``) when given, else a lognormal at ``sigma``; both use
+    risk-neutral drift. ``touch``: chance it trades at x at some point before
+    expiry, from the reflection principle (about twice the chance of ending
+    beyond it), so an approximation.
     """
-    if not sigma or T <= 0 or x <= 0:
+    if T <= 0 or x <= 0 or not (sigma or _uses_smile(cdf)):
         return None
-    below = _prob_below(x, S, T, r, q, sigma)
+    below = cdf(x) if _uses_smile(cdf) else _prob_below(x, S, T, r, q, sigma)
     beyond = 1 - below if x >= S else below
     return {"above": round(1 - below, 4), "below": round(below, 4), "touch": round(min(1.0, 2 * beyond), 4)}
 
@@ -461,12 +596,20 @@ def profit_zones(legs: list) -> list:
     return zones
 
 
-def prob_of_profit(legs: list, S: float, T: float, r: float, q: float, sigma: Optional[float]) -> Optional[float]:
-    """Chance the position is profitable at expiry, under the market-implied lognormal."""
-    if not sigma or T <= 0:
+def prob_of_profit(legs: list, S: float, T: float, r: float, q: float, sigma: Optional[float],
+                   cdf: Optional[MarketCDF] = None) -> Optional[float]:
+    """Chance the position is profitable at expiry under the market-implied
+    distribution: the chain's smile (``cdf``) when given, else a lognormal at ``sigma``."""
+    if T <= 0:
         return None
-    return sum(_prob_below(b, S, T, r, q, sigma) - _prob_below(a, S, T, r, q, sigma)
-               for a, b in profit_zones(legs))
+    if _uses_smile(cdf):
+        F = cdf
+    elif sigma:
+        def F(x):
+            return _prob_below(x, S, T, r, q, sigma)
+    else:
+        return None
+    return min(max(sum(F(b) - F(a) for a, b in profit_zones(legs)), 0.0), 1.0)
 
 
 def _money(x: float) -> str:
@@ -491,7 +634,7 @@ def _describe_zones(zones: list, symbol: str) -> str:
 
 def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Optional[float] = None,
             symbol: str = "the stock", expiry: str = "", days_forward: Optional[float] = None,
-            points: int = 121, iv_shift: float = 0.0) -> dict:
+            points: int = 121, iv_shift: float = 0.0, cdf: Optional[MarketCDF] = None) -> dict:
     """Everything the strategy builder shows for one set of legs.
 
     ``iv_shift`` (volatility points, e.g. -10) moves every option's implied
@@ -510,7 +653,7 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
     max_loss = None if slope < -1e-9 else min(vals)
     bes = breakevens(legs)
     zones = profit_zones(legs)
-    pop = prob_of_profit(legs, S, T, r, q, sigma)
+    pop = prob_of_profit(legs, S, T, r, q, sigma, cdf)
     spread_cost = sum(abs(leg["qty"]) * MULTIPLIER * (leg["ask"] - leg["bid"]) / 2.0
                       for leg in legs if leg["type"] != "stock" and leg.get("bid") and leg.get("ask"))
 
@@ -579,6 +722,7 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
         "breakevens": bes,
         "profit_zones": [[round(a, 2), None if math.isinf(b) else round(b, 2)] for a, b in zones],
         "prob_profit": None if pop is None else round(pop, 4),
+        "prob_model": None if pop is None else ("smile" if _uses_smile(cdf) else "lognormal"),
         "return_on_risk": (round(max_profit / -max_loss, 4)
                            if max_profit is not None and max_loss is not None and max_loss < 0 else None),
         "spread_cost": round(spread_cost, 2),
@@ -681,13 +825,14 @@ def compare_strategies(chain: dict, presets: Optional[list] = None, target: Opti
     """
     S, T, r, q, sigma = chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"], chain["atm_iv"]
     names = [p for p in (presets or list(PRESETS)) if p in PRESETS]
+    dist = market_cdf(chain)
     out = []
     for name in names:
         try:
             legs = build_preset(name, chain)
         except ValueError:
             continue
-        res = analyze(legs, S, T, r, q, sigma=sigma, symbol=symbol, expiry=chain["expiry"], points=81)
+        res = analyze(legs, S, T, r, q, sigma=sigma, symbol=symbol, expiry=chain["expiry"], points=81, cdf=dist)
         row = {
             "preset": name, "name": PRESETS[name],
             "legs": [{"type": leg["type"], "qty": leg["qty"], "strike": leg["strike"]} for leg in legs],
@@ -828,8 +973,9 @@ def scan_candidate(kind: str, chain: dict, max_delta: float = 0.30, min_oi: int 
             if not w:
                 return None
             legs.append(_leg(w, 1))
-    # The ATM IV, as the strategy builder uses, so both show the same chance of profit.
-    res = analyze(legs, S, T, r, q, sigma=chain.get("atm_iv") or shorts[0]["iv"], points=3)
+    # The chain's distribution, as the strategy builder uses, so both show the same chance of profit.
+    res = analyze(legs, S, T, r, q, sigma=chain.get("atm_iv") or shorts[0]["iv"], points=3,
+                  cdf=market_cdf(chain))
     premium = -res["net_debit"] if kind != "covered_call" else shorts[0]["mid"] * MULTIPLIER
     if premium <= 0:
         return None
@@ -862,6 +1008,7 @@ def scan_candidate(kind: str, chain: dict, max_delta: float = 0.30, min_oi: int 
         "breakeven": res["breakevens"][0] if res["breakevens"] else None,
         "breakevens": res["breakevens"],
         "prob_profit": res["prob_profit"],
+        "prob_model": res["prob_model"],
         "open_interest": min(x["open_interest"] for x in shorts),
         "spread_pct": max(x["spread_pct"] for x in shorts),
         "earnings_before_expiry": bool(chain.get("earnings_before_expiry")),

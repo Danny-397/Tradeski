@@ -179,12 +179,29 @@ mostly intrinsic value.
 A strategy's payoff at expiry is piecewise linear, so its extremes and break-evens are
 exact. Max profit and loss are read at zero and at each strike. The slope above the top
 strike says whether either is unlimited. Break-evens are the roots on each segment.
-"Chance of profit" integrates a lognormal at the ATM implied volatility over the price
-intervals where the payoff is positive. That is the probability the market's prices imply
-under risk-neutral drift, and the window says so: it is not a forecast. The same figure
-appears in the scanner and the builder for the same trade. An earlier version used the
-contract's own IV in one and the ATM IV in the other, and showed 73% and 76% for the same
-put.
+"Chance of profit" integrates the market-implied distribution over the price intervals where
+the payoff is positive. That is the probability the market's prices imply under risk-neutral
+drift, and the window says so: it is not a forecast. The same figure appears in the scanner,
+the builder and Ski for the same trade. An earlier version used the contract's own IV in one
+and the ATM IV in the other, and showed 73% and 76% for the same put.
+
+The distribution comes from the expiry's volatility smile, not from one volatility. The chance
+of ending below a strike K is e^{rT} times the slope of put prices across strikes
+(Breeden-Litzenberger); with each strike's own IV σ(K) that is
+N(−d2(σ(K))) + e^{rT}·vega(K)·σ′(K). The first term is a lognormal at that strike's IV, the
+second the skew correction. `market_cdf` fits σ and σ′ locally from the quoted
+out-of-the-money options (strikes within 3% of the stock price, spreads under 50% of the mid),
+forces the result to be non-decreasing, and outside the quoted strikes continues it with a
+lognormal at the wing IV, joined continuously. With fewer than five usable quotes it falls back
+to the lognormal at the ATM IV, and the response says which (`prob_model`).
+
+Until 2026-11 every probability used the ATM-IV lognormal, which ignores skew. On SPY's
+2026-12-18 chain (captured 2026-11-17, ATM IV 20.9%) it put the chance of finishing 15% lower
+at 0.4% and 10% lower at 4.1%; the slope of the put prices says 3.2% and 6.7%, and the smile
+method gives 3.2% and 6.7%. On the upside it said 89.5% for ending below +8%; call prices and
+the smile both give about 95.5%. On a synthetic chain priced with a known skew, the smile
+method is within 0.6 points of the exact distribution at every strike tested
+(`test_smile_recovers_the_true_distribution_under_skew`).
 
 The page is built to answer "which strategy, and what happens if…?" rather than only
 "what does this strategy do?". Given a target price, `compare_strategies` prices all nine
@@ -343,7 +360,7 @@ by design, and three are web figures it can't verify. Results and run links:
 
 ## 8. Testing
 
-321 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
+327 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
