@@ -9,7 +9,7 @@ Live charts · Market news · Whole-market screener · Options strategy lab · A
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-321%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-327%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 321 tests across 27 files — CI on every push |
+| **Tests** | 327 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 ### Screenshots
@@ -165,7 +165,7 @@ More reading aids:
 - **Paper trades:** each is analysed as held, from its entry prices. It shows how much of a capped best case is locked in (with the common "close at 50%+" guide) and its chance of profit from here.
 - **Phones:** the chain becomes one card per strike with tap-to-trade buttons.
 
-The data source's own IV is often stale out of hours, so Tradeski solves IV from each bid/ask midpoint itself and computes the Greeks with Black-Scholes (written on `math.erf`, no SciPy), using the 3-month Treasury yield from FRED. The window states the model's limits next to the numbers: quotes are delayed, prices are midpoints, Black-Scholes treats options as European, and the chance of profit is what option prices imply, not a forecast.
+The data source's own IV is often stale out of hours, so Tradeski solves IV from each bid/ask midpoint itself and computes the Greeks with Black-Scholes (written on `math.erf`, no SciPy), using the 3-month Treasury yield from FRED. The window states the model's limits next to the numbers: quotes are delayed, prices are midpoints, Black-Scholes treats options as European, and the chance of profit is what option prices imply, not a forecast. It is read from the expiry's volatility smile rather than one volatility, so downside skew counts: on SPY's December chain the old single-volatility figure put a 15% drop at 0.4%, the put prices say 3.2%, and the smile method gives 3.2% ([report §4](docs/technical-report.md)).
 
 On the live site Yahoo refuses option requests from the backend's host (Render), though it answers GitHub's runners. So the same daily snapshot job also saves the closing chains for the ticker-strip symbols and JPM (expiries up to 75 days, strikes within 30% of the price) to [`frontend/data/options/`](frontend/data/options), and the backend falls back to them when the live source returns nothing. The window then says it is showing end-of-day quotes and when they were saved; the builder and scanner work on them as usual. Other symbols need the live source. A trimmed copy of every day's chains (strikes within 20%, quotes, volume and open interest) is kept in [`data/options-archive/`](data/options-archive), outside the deployed site: [AlphaGlyph](https://github.com/Danny-397/Alphaglyph) checks its model option prices against these real quotes.
 
@@ -212,7 +212,7 @@ Tradeski/
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 321 tests across 27 files
+├── tests/                     # pytest suite — 327 tests across 27 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
@@ -296,7 +296,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (321 tests) |
+| Testing | pytest (327 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -631,7 +631,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-321 tests across 27 files:
+327 tests across 27 files:
 
 | File | What it covers |
 |:---|:---|

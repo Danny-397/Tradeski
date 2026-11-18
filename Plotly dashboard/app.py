@@ -1189,7 +1189,8 @@ def options_strategy() -> tuple:
         shift = body.get("iv_shift")
         shift = max(-50.0, min(50.0, float(shift))) if isinstance(shift, (int, float)) and not isinstance(shift, bool) else 0.0
         result = opt.analyze(legs, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
-                             sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days, iv_shift=shift)
+                             sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days, iv_shift=shift,
+                             cdf=opt.market_cdf(chain))
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     if current is not None:
@@ -1216,7 +1217,7 @@ def options_compare() -> tuple:
     target = float(target) if isinstance(target, (int, float)) and not isinstance(target, bool) and target > 0 else None
     rows = opt.compare_strategies(chain, presets, target, symbol=sym)
     odds = opt.price_odds(target, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
-                          chain["atm_iv"]) if target else None
+                          chain["atm_iv"], cdf=opt.market_cdf(chain)) if target else None
     return jsonify({"symbol": sym, "expiry": expiry, "spot": chain["spot"], "dte": chain["dte"],
                     "expected_move": chain.get("expected_move"), "target": target, "target_odds": odds,
                     "strategies": rows})

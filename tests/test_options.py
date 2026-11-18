@@ -26,15 +26,17 @@ def _expiry(days=30):
     return (dt.datetime.now(opt._ET).date() + dt.timedelta(days=days)).isoformat()
 
 
-def raw_chain(days=30, sigma=SIGMA, spot=S, half_spread=0.05, oi=500):
-    """A chain in the data source's shape, every strike priced at ``sigma``."""
+def raw_chain(days=30, sigma=SIGMA, spot=S, half_spread=0.05, oi=500, smile=None):
+    """A chain in the data source's shape, every strike priced at ``sigma``,
+    or at ``smile(K)`` when a volatility smile is given."""
     expiry = _expiry(days)
     T = opt.year_fraction(expiry)
     rows = {"calls": [], "puts": []}
     for i in range(25):
         K = 70.0 + 2.5 * i
+        vol = smile(K) if smile else sigma
         for kind in ("call", "put"):
-            p = opt.bs_price(kind, spot, K, T, R, sigma, Q)
+            p = opt.bs_price(kind, spot, K, T, R, vol, Q)
             rows[kind + "s"].append({
                 "contractSymbol": f"TEST{kind[0].upper()}{K:g}", "strike": K,
                 "bid": max(round(p - half_spread, 2), 0.0), "ask": round(p + half_spread, 2),
@@ -289,8 +291,8 @@ def test_scan_candidate_respects_filters():
     assert 0.5 < best["prob_profit"] < 1
     # Same chance of profit as the strategy builder shows for that trade.
     built = opt.analyze([opt._leg(next(p for p in c["puts"] if p["strike"] == best["strike"]), -1)],
-                        S, c["years"], R, sigma=c["atm_iv"])
-    assert best["prob_profit"] == built["prob_profit"]
+                        S, c["years"], R, sigma=c["atm_iv"], cdf=opt.market_cdf(c))
+    assert best["prob_profit"] == built["prob_profit"] and best["prob_model"] == "smile"
     cc = opt.scan_candidate("covered_call", c, max_delta=0.30)
     assert cc["strike"] > S and cc["capital"] == S * 100
     assert opt.scan_candidate("cash_secured_put", chain(oi=5), min_oi=100) is None
@@ -685,3 +687,78 @@ def test_eod_expiries_keeps_a_holiday_thursday():
     exps = ["2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2026-12-23", "2026-12-24"]
     assert "2026-12-24" in eod_expiries(exps, today=today, nearest=2)
     assert "2026-12-23" not in eod_expiries(exps, today=today, nearest=2)
+
+
+# ── market-implied distribution from the smile ──────────────
+
+def _skew(K):
+    """A typical equity skew: 25% at the money, higher for lower strikes."""
+    return 0.25 - 0.35 * math.log(K / S)
+
+
+def _true_below(x, T, smile, h=0.01):
+    """P(S_T < x) straight from the put prices (Breeden-Litzenberger)."""
+    put = lambda k: opt.bs_price("put", S, k, T, R, smile(k), Q)  # noqa: E731
+    return math.exp(R * T) * (put(x + h) - put(x - h)) / (2 * h)
+
+
+def test_flat_smile_gives_the_lognormal():
+    c = chain(half_spread=0.0)          # exact quotes, one volatility
+    F = opt.market_cdf(c)
+    assert F.model == "smile"
+    for x in (60, 80, 95, 100, 105, 120, 140):
+        assert F(x) == pytest.approx(opt._prob_below(x, S, c["years"], R, Q, SIGMA), abs=0.003)
+
+
+def test_smile_recovers_the_true_distribution_under_skew():
+    c = chain(half_spread=0.0, smile=_skew)
+    F, T = opt.market_cdf(c), c["years"]
+    for x in (80, 85, 90, 95, 100, 105, 110, 115):
+        assert F(x) == pytest.approx(_true_below(x, T, _skew), abs=0.006)
+    # The single at-the-money volatility gets the downside tail wrong; the smile does not.
+    ln = opt._prob_below(85, S, T, R, Q, c["atm_iv"])
+    assert abs(F(85) - _true_below(85, T, _skew)) < abs(ln - _true_below(85, T, _skew)) / 3
+
+
+def test_distribution_is_monotone_bounded_and_continuous_past_the_quotes():
+    c = chain(half_spread=0.03, smile=_skew)
+    F = opt.market_cdf(c)
+    xs = [40 + 0.5 * i for i in range(200)]
+    vals = [F(x) for x in xs]
+    assert all(0.0 <= v <= 1.0 for v in vals)
+    assert all(b >= a - 1e-12 for a, b in zip(vals, vals[1:]))
+    lo, hi = F.strikes[0], F.strikes[-1]
+    assert F(lo - 1e-6) == pytest.approx(F(lo), abs=1e-4) and F(hi + 1e-6) == pytest.approx(F(hi), abs=1e-4)
+    assert F(0) == 0.0 and F(math.inf) == 1.0
+
+
+def test_thin_chain_falls_back_to_the_lognormal():
+    c = chain()
+    c["puts"], c["calls"] = c["puts"][9:11], c["calls"][12:14]   # four quoted strikes
+    F = opt.market_cdf(c)
+    assert F.model == "lognormal"
+    assert F(90) == pytest.approx(opt._prob_below(90, S, c["years"], R, Q, c["atm_iv"]))
+    res = opt.analyze([opt._leg(c["puts"][0], -1)], S, c["years"], R, sigma=c["atm_iv"], cdf=F)
+    assert res["prob_model"] == "lognormal"
+
+
+def test_skew_lowers_a_short_puts_chance_of_profit_far_out():
+    """Under skew the far downside is likelier than one volatility says: a far
+    out-of-the-money short put loses more often."""
+    c = chain(half_spread=0.0, smile=_skew)
+    put = next(p for p in c["puts"] if p["strike"] == 85.0)
+    legs = [opt._leg(put, -1)]
+    smile = opt.analyze(legs, S, c["years"], R, sigma=c["atm_iv"], cdf=opt.market_cdf(c))
+    flat = opt.analyze(legs, S, c["years"], R, sigma=c["atm_iv"])
+    assert smile["prob_model"] == "smile" and flat["prob_model"] == "lognormal"
+    assert smile["prob_profit"] < flat["prob_profit"]
+    be = smile["breakevens"][0]
+    assert smile["prob_profit"] == pytest.approx(1 - _true_below(be, c["years"], _skew), abs=0.006)
+
+
+def test_price_odds_use_the_smile():
+    c = chain(half_spread=0.0, smile=_skew)
+    F = opt.market_cdf(c)
+    odds = opt.price_odds(90, S, c["years"], R, Q, c["atm_iv"], cdf=F)
+    assert odds["below"] == pytest.approx(F(90), abs=1e-4)
+    assert odds["above"] == pytest.approx(1 - F(90), abs=1e-4)

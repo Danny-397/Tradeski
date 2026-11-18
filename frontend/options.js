@@ -1208,7 +1208,9 @@ function optRenderStrategy() {
              a.unlimited_loss ? "losses grow without a cap" : "the most this position can lose", "bad") +
         card("Break-even", a.breakevens.length ? a.breakevens.map(b => "$" + b.toFixed(2)).join(" / ") : "—",
              `${escapeHtml(a.symbol)} at expiry (now $${a.spot.toFixed(2)})`, "") +
-        `<div class="opt-outcome" title="What option prices imply (a lognormal at the at-the-money implied volatility), not a forecast">
+        `<div class="opt-outcome" title="${a.prob_model === "smile"
+            ? "What option prices imply, read from this expiry's volatility smile (so the downside skew counts), not a forecast"
+            : "What option prices imply (a lognormal at the at-the-money implied volatility: too few quoted strikes for the smile), not a forecast"}">
             <span class="opt-outcome-label">Chance of profit</span>
             <span class="opt-outcome-val">${pop === null ? "—" : pop + "%"}</span>
             <span class="opt-meter" aria-hidden="true"><span style="width:${pop || 0}%"></span></span>

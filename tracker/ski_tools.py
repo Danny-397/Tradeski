@@ -482,7 +482,7 @@ def _options_tool(name: str, args: dict, data: SkiData) -> dict:
             raise ValueError("target_price must be a positive number")
         rows = opt.compare_strategies(chain, target=float(target), symbol=sym)
         odds = opt.price_odds(float(target), chain["spot"], chain["years"], chain["rate"],
-                              chain["dividend_yield"], chain["atm_iv"])
+                              chain["dividend_yield"], chain["atm_iv"], cdf=opt.market_cdf(chain))
         return {**base, "target_price": _r(float(target)),
                 "move_to_target_pct": _r((float(target) / chain["spot"] - 1) * 100, 1),
                 "chance_ends_beyond_target":
@@ -525,7 +525,8 @@ def _options_tool(name: str, args: dict, data: SkiData) -> dict:
         raise ValueError(f"strategy must be one of {list(opt.PRESETS)}")
     legs = opt.build_preset(strategy, chain)
     res = opt.analyze(legs, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
-                      sigma=chain["atm_iv"], symbol=sym, expiry=chain["expiry"], points=3)
+                      sigma=chain["atm_iv"], symbol=sym, expiry=chain["expiry"], points=3,
+                      cdf=opt.market_cdf(chain))
     return {**base, "strategy": opt.PRESETS[strategy],
             "legs": [{"action": "buy" if leg["qty"] > 0 else "sell", "quantity": abs(leg["qty"]),
                       "type": leg["type"], "strike": leg["strike"], "price_per_share": _r(leg["price"])}
