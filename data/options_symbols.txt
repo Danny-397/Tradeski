@@ -1,0 +1,105 @@
+# Symbols whose closing option chains .github/workflows/options-data.yml saves
+# each weekday to the options-data branch. Yahoo refuses option requests from
+# Render, so in production these files are what the Options window answers
+# from. Chosen for option volume: the index and sector ETFs, the largest
+# companies, and the names retail options traders follow most. One per line.
+
+# Index, rates, commodity and sector ETFs
+SPY
+QQQ
+IWM
+DIA
+TLT
+GLD
+SLV
+USO
+XLF
+XLE
+XLK
+SMH
+XBI
+KRE
+GDX
+EEM
+FXI
+HYG
+ARKK
+
+# Largest companies
+AAPL
+MSFT
+NVDA
+AMZN
+GOOGL
+META
+TSLA
+AVGO
+NFLX
+AMD
+ORCL
+CRM
+ADBE
+INTC
+MU
+QCOM
+TSM
+ARM
+SMCI
+
+# Financials and payments
+JPM
+BAC
+C
+WFC
+GS
+MS
+SCHW
+V
+MA
+PYPL
+
+# Consumer, industrial, health and energy
+WMT
+COST
+HD
+NKE
+DIS
+SBUX
+MCD
+KO
+PEP
+BA
+CAT
+GE
+F
+GM
+UBER
+ABNB
+PFE
+JNJ
+UNH
+LLY
+MRNA
+ABBV
+XOM
+CVX
+OXY
+T
+VZ
+
+# High-volume retail favourites
+PLTR
+COIN
+MSTR
+HOOD
+SOFI
+RIVN
+LCID
+NIO
+BABA
+SHOP
+SNOW
+MARA
+RIOT
+DKNG
+RDW

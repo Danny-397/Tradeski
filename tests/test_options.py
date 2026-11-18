@@ -315,6 +315,7 @@ def client(monkeypatch):
     monkeypatch.setattr(app, "get_option_expirations", lambda s: list(expiries) if s == "TEST" else [])
     monkeypatch.setattr(app, "get_option_chain", lambda s, e: chains.get(e) if s == "TEST" else None)
     monkeypatch.setattr(app, "get_eod_options", lambda s, base: None)
+    monkeypatch.setattr(app, "get_eod_index", lambda base: None)
     monkeypatch.setattr(app, "_cached_bars", lambda s, p: [])
     app.app.config["TESTING"] = True
     app.limiter.enabled = False
@@ -402,6 +403,7 @@ def test_endpoints_fall_back_to_end_of_day_chains_when_the_live_source_is_empty(
     eod = _eod_file(days=(10, 30))
     calls = []
     monkeypatch.setattr(app, "get_eod_options", lambda s, base: (calls.append(s), eod)[1] if s == "EODX" else None)
+    monkeypatch.setattr(app, "get_eod_index", lambda base: None)
     exp = client.get("/options/expirations?symbol=EODX").get_json()
     assert [e["date"] for e in exp["expirations"]] == list(eod["chains"])
     data = client.get("/options/chain?symbol=EODX").get_json()
@@ -762,3 +764,51 @@ def test_price_odds_use_the_smile():
     odds = opt.price_odds(90, S, c["years"], R, Q, c["atm_iv"], cdf=F)
     assert odds["below"] == pytest.approx(F(90), abs=1e-4)
     assert odds["above"] == pytest.approx(1 - F(90), abs=1e-4)
+
+
+# ── end-of-day coverage (options-data branch) ───────────────
+
+def test_end_of_day_files_are_tried_in_order_and_coverage_is_named(client, monkeypatch):
+    import app
+    eod = _eod_file()
+    tried = []
+
+    def fake(symbol, base):
+        tried.append((symbol, base))
+        return eod if (symbol == "EODX" and base == "https://tradeski.dev/data/options") else None
+    monkeypatch.setattr(app, "get_eod_options", fake)
+    monkeypatch.setattr(app, "get_eod_index",
+                        lambda base: {"symbols": {"SPY": {}, "QQQ": {}, "EODX": {}}})
+    assert client.get("/options/chain?symbol=EODX").get_json()["source"] == "end_of_day"
+    # The options-data branch first, then the snapshot job's files.
+    assert [b for s, b in tried if s == "EODX"][:2] == [app._OPTIONS_DATA_URL, "https://tradeski.dev/data/options"]
+    missing = client.get("/options/chain?symbol=ZZZZ")
+    body = missing.get_json()
+    assert missing.status_code == 404
+    assert "3 of the most-traded" in body["error"] and "ZZZZ is not one of them" in body["error"]
+    assert body["covered_symbols"] == ["EODX", "QQQ", "SPY"]
+
+
+def test_capture_symbol_saves_the_backend_shape():
+    import importlib
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    cap = importlib.import_module("capture_options")
+    expiries = [_expiry(10), _expiry(30), _expiry(200)]
+    chains = {e: raw_chain(d)[1] for e, d in zip(expiries, (10, 30, 200))}
+    out = cap.capture_symbol("TEST", "2026-11-18T21:40:00+00:00",
+                             expirations_fn=lambda s: expiries, chain_fn=lambda s, e: chains[e])
+    assert list(out["chains"]) == expiries[:2]               # 200 days out is past the 75-day window
+    assert out["spot"] == S and out["captured_at"].startswith("2026-11-18")
+    assert opt.eod_raw_chain(out, expiries[0])["spot"] == S  # readable by the backend
+    assert cap.capture_symbol("NONE", "x", expirations_fn=lambda s: [], chain_fn=lambda s, e: None) is None
+
+
+def test_symbol_list_is_clean():
+    import importlib
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    cap = importlib.import_module("capture_options")
+    syms = cap.load_symbols()
+    assert len(syms) == len(set(syms)) >= 80
+    assert all(s.isalnum() and s == s.upper() for s in syms)
+    # Every symbol the snapshot job already saved is still covered.
+    assert {"SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "JPM", "SOFI", "RDW"} <= set(syms)
