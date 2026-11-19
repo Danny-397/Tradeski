@@ -329,6 +329,7 @@ def client(monkeypatch):
     monkeypatch.setattr(app, "get_option_chain", lambda s, e: chains.get(e) if s == "TEST" else None)
     monkeypatch.setattr(app, "get_eod_options", lambda s, base: None)
     monkeypatch.setattr(app, "get_eod_index", lambda base: None)
+    monkeypatch.setattr(app, "get_ex_dividend", lambda s: None)
     monkeypatch.setattr(app, "_cached_bars", lambda s, p: [])
     app.app.config["TESTING"] = True
     app.limiter.enabled = False
@@ -809,11 +810,14 @@ def test_capture_symbol_saves_the_backend_shape():
     expiries = [_expiry(10), _expiry(30), _expiry(200)]
     chains = {e: raw_chain(d)[1] for e, d in zip(expiries, (10, 30, 200))}
     out = cap.capture_symbol("TEST", "2026-11-18T21:40:00+00:00",
-                             expirations_fn=lambda s: expiries, chain_fn=lambda s, e: chains[e])
+                             expirations_fn=lambda s: expiries, chain_fn=lambda s, e: chains[e],
+                             exdiv_fn=lambda s: {"date": "2026-12-01", "amount": 0.5})
+    assert out["ex_dividend"] == {"date": "2026-12-01", "amount": 0.5}
     assert list(out["chains"]) == expiries[:2]               # 200 days out is past the 75-day window
     assert out["spot"] == S and out["captured_at"].startswith("2026-11-18")
     assert opt.eod_raw_chain(out, expiries[0])["spot"] == S  # readable by the backend
-    assert cap.capture_symbol("NONE", "x", expirations_fn=lambda s: [], chain_fn=lambda s, e: None) is None
+    assert cap.capture_symbol("NONE", "x", expirations_fn=lambda s: [], chain_fn=lambda s, e: None,
+                              exdiv_fn=lambda s: None) is None
 
 
 def test_symbol_list_is_clean():
@@ -858,3 +862,52 @@ def test_term_endpoint_gives_atm_iv_for_each_expiry(client):
     assert [r["dte"] for r in data["term"]] == sorted(r["dte"] for r in data["term"])
     assert client.get("/options/term?symbol=NONE").status_code == 404
     assert client.get("/options/term").status_code == 400
+
+
+# ── early assignment around the ex-dividend date ────────────
+
+def _days(n):
+    return (dt.datetime.now(opt._ET).date() + dt.timedelta(days=n)).isoformat()
+
+
+def test_ex_dividend_is_carried_through_the_chain():
+    expiry, raw = raw_chain(30)
+    raw["ex_dividend"] = {"date": _days(10), "amount": 0.5}
+    c = opt.clean_chain(raw, expiry, R)
+    assert c["ex_dividend"] == {"date": _days(10), "amount": 0.5} and c["ex_dividend_before_expiry"]
+    raw["ex_dividend"] = {"date": _days(40), "amount": 0.5}            # after expiry
+    assert not opt.clean_chain(raw, expiry, R)["ex_dividend_before_expiry"]
+    raw["ex_dividend"] = {"date": _days(-3), "amount": 0.5}            # already past
+    assert opt.clean_chain(raw, expiry, R)["ex_dividend"] is None
+
+
+def test_short_call_assignment_risk_follows_time_value_against_the_dividend():
+    exp, ex = _days(30), {"date": _days(10), "amount": 0.75}
+    deep = {"type": "call", "qty": -1, "strike": 80.0, "price": 20.3, "bid": 20.2, "ask": 20.4}   # 0.30 time value
+    otm = {"type": "call", "qty": -1, "strike": 110.0, "price": 0.9, "bid": 0.85, "ask": 0.95}
+    rich = {"type": "call", "qty": -1, "strike": 95.0, "price": 6.5, "bid": 6.4, "ask": 6.6}     # 1.50 time value
+    long_call = {"type": "call", "qty": 1, "strike": 80.0, "price": 20.3, "bid": 20.2, "ask": 20.4}
+    risks = opt.assignment_risk([deep, otm, rich, long_call], S, ex, exp)
+    assert [(r["strike"], r["level"]) for r in risks] == [(80.0, "likely"), (110.0, "watch"), (95.0, "watch")]
+    assert risks[0]["time_value"] == pytest.approx(0.30) and risks[0]["ex_date"] == ex["date"]
+    assert opt.assignment_risk([deep], S, {"date": _days(40), "amount": 0.75}, exp) == []   # ex-date after expiry
+    assert opt.assignment_risk([deep], S, None, exp) == []
+
+
+def test_scanner_and_builder_flag_calls_over_the_ex_date():
+    expiry, raw = raw_chain(30, half_spread=0.02)
+    raw["ex_dividend"] = {"date": _days(10), "amount": 0.5}
+    c = opt.clean_chain(raw, expiry, R)
+    cc = opt.scan_candidate("covered_call", c, max_delta=0.30)
+    assert cc["ex_dividend"] == _days(10) and cc["assignment"] == "watch"    # out of the money today
+    csp = opt.scan_candidate("cash_secured_put", c, max_delta=0.30)
+    assert csp["assignment"] is None                                        # no short call
+    legs = opt.legs_from_request([{"type": "call", "qty": -1, "strike": 80}], c)
+    res = opt.analyze(legs, S, c["years"], R, sigma=c["atm_iv"], expiry=expiry, ex_dividend=c["ex_dividend"])
+    assert res["assignment"][0]["level"] in ("likely", "watch") and res["assignment"][0]["strike"] == 80
+
+
+def test_spreads_rank_by_return_on_risk_puts_by_annualised():
+    rows = [{"return_pct": 30.0, "annualized_pct": 200.0}, {"return_pct": 25.0, "annualized_pct": 400.0}]
+    assert sorted(rows, key=opt.scan_rank_key("iron_condor"))[0]["return_pct"] == 30.0
+    assert sorted(rows, key=opt.scan_rank_key("cash_secured_put"))[0]["annualized_pct"] == 400.0

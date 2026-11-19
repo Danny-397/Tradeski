@@ -278,3 +278,22 @@ test("optScanFromAll: one strategy from the nightly scan, earnings box applied",
     assert.match(skip.skipped[1].skipped, /earnings on 2026-11-25/);
     assert.deepEqual(plain(optScanFromAll(data, "iron_condor", true)).results, []);
 });
+
+test("optDayBefore: the trading day before an ex-date skips weekends", () => {
+    const { optDayBefore } = load(["optDayBefore"]);
+    assert.equal(optDayBefore("2026-11-30"), "2026-11-27");   // Monday -> Friday
+    assert.equal(optDayBefore("2026-12-03"), "2026-12-02");   // Thursday -> Wednesday
+});
+
+test("optAssignmentNote: likely beats watch, and nothing for no rows", () => {
+    const ctx = load(["optDayBefore", "optAssignmentNote"]);
+    const env = { optDate: d => d, escapeHtml: s => s };
+    const note = (rows) => new Function("optDate", "escapeHtml", "optDayBefore",
+        `return (${ctx.optAssignmentNote.toString()})`)(env.optDate, env.escapeHtml, ctx.optDayBefore)(rows, "KO");
+    const likely = { strike: 60, level: "likely", time_value: 0.2, dividend: 0.53, ex_date: "2026-11-30" };
+    const watch = { strike: 75, level: "watch", time_value: 1.1, dividend: 0.53, ex_date: "2026-11-30" };
+    assert.equal(note([]), "");
+    assert.match(note([likely, watch]), /Early assignment likely.*\$60 call is in the money with \$0\.20.*2026-11-27/);
+    assert.match(note([watch]), /Ex-dividend before expiry.*rises above \$75.*2026-11-27/);
+    assert.match(note([{ ...likely, time_value: 0 }]), /in the money with no time value left, so expect it/);
+});

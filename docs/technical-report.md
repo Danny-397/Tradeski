@@ -360,7 +360,7 @@ by design, and three are web figures it can't verify. Results and run links:
 
 ## 8. Testing
 
-333 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
+337 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -423,6 +423,18 @@ pattern), and the backend falls back to them. Until 2026-11 it was twelve symbol
 like AMD, COIN or IWM had no options on the live site. The same job records each symbol's
 at-the-money IV for the IV-percentile history and precomputes the scanner for every symbol at
 its default filters, so the window can scan all of them without touching the backend.
+
+Short calls are checked against the next ex-dividend date (Yahoo's calendar, saved nightly with
+each chain). A call owner gains by exercising the day before the ex-date when the dividend is
+worth more than the time value given up, so `assignment_risk` marks a short call whose expiry
+spans the ex-date "likely" if it is in the money with time value (mid minus intrinsic) below the
+dividend, and "watch" otherwise. Black-Scholes treats the option as European and so never prices
+this; the note is the honest substitute. An ex-date of today counts as passed: the dividend has
+already detached.
+
+For spreads and condors the scanner reports return on risk (premium over maximum loss) instead
+of annualising it: a 26% return on risk over 30 days annualises to over 300%, a number that
+compares nothing useful and reads like a sales pitch.
 
 The scanner takes the standard monthly expiry nearest the middle of its window when one falls
 inside it. It used to take whichever expiry was nearest, often a weekly: on 2026-11-18 that gave

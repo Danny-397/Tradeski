@@ -36,7 +36,8 @@ from tracker import screens as saved_screens
 from tracker import options as opt
 from tracker.news import fetch_news, aggregate_sentiment, format_news_context
 from tracker.price_fetcher import get_stock_price, get_ohlc_history, get_screener_data
-from tracker.price_fetcher import get_option_expirations, get_option_chain, get_eod_options, get_eod_index
+from tracker.price_fetcher import (get_option_expirations, get_option_chain, get_eod_options, get_eod_index,
+                                   get_ex_dividend)
 from tracker.analyzer import (
     sma,
     ema,
@@ -1104,6 +1105,12 @@ def _cached_chain(symbol: str, expiry: str) -> Optional[dict]:
         raw = opt.eod_raw_chain(eod, expiry) if eod else get_option_chain(symbol, expiry)
         if not raw:
             return None
+        if not eod:                 # saved files carry it; live chains look it up, once a day
+            exdiv = _cache.get(f"opt_exdiv:{symbol}")
+            if exdiv is None:
+                exdiv = get_ex_dividend(symbol) or {}
+                _cache.set(f"opt_exdiv:{symbol}", exdiv, ttl=43200)
+            raw["ex_dividend"] = exdiv or None
         rate, rate_source = _options_rate()
         # Saved quotes are priced at the moment they were saved: measuring time to
         # expiry from now would read Friday's prices against a shorter clock over a
@@ -1235,7 +1242,7 @@ def options_strategy() -> tuple:
         shift = max(-50.0, min(50.0, float(shift))) if isinstance(shift, (int, float)) and not isinstance(shift, bool) else 0.0
         result = opt.analyze(legs, chain["spot"], chain["years"], chain["rate"], chain["dividend_yield"],
                              sigma=chain["atm_iv"], symbol=sym, expiry=expiry, days_forward=days, iv_shift=shift,
-                             cdf=opt.market_cdf(chain))
+                             cdf=opt.market_cdf(chain), ex_dividend=chain.get("ex_dividend"))
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     if current is not None:
@@ -1304,7 +1311,7 @@ def options_scan() -> tuple:
     skip_earnings = request.args.get("skip_earnings", "").lower() in ("1", "true", "yes")
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = list(pool.map(one, syms))
-    found = sorted((r for r in rows if "skipped" not in r), key=lambda r: -r["annualized_pct"])
+    found = sorted((r for r in rows if "skipped" not in r), key=opt.scan_rank_key(kind))
     return jsonify({"kind": kind, "filters": {**filters, "min_dte": min_dte, "max_dte": max_dte,
                                               "skip_earnings": skip_earnings},
                     "results": found, "skipped": [r for r in rows if "skipped" in r]})

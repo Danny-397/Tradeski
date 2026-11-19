@@ -166,6 +166,7 @@
                     <h3 class="opt-step"><span class="opt-step-n">3</span> See the outcome</h3>
                     <p class="opt-strategy-summary" id="opt-strategy-summary"></p>
                     <p class="opt-warning" id="opt-earnings-warning" role="note" hidden></p>
+                    <p class="opt-warning" id="opt-assign-warning" role="note" hidden></p>
                     <div class="opt-outcomes" id="opt-stats"></div>
 
                     <div class="opt-chart-card">
@@ -316,8 +317,8 @@
                             <th class="sortable" data-col="iv">IV <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="premium">Premium <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="capital" title="Cash to secure the put, the cost of 100 shares, or the most a spread can lose">Capital at risk <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="return_pct">Return <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-col="annualized_pct">Annualised <span class="sort-icon">↓</span></th>
+                            <th class="sortable" data-col="return_pct"><span id="opt-scan-ret-label">Return</span> <span class="sort-icon">↕</span></th>
+                            <th class="sortable opt-col-ann" data-col="annualized_pct">Annualised <span class="sort-icon">↓</span></th>
                             <th class="sortable" data-col="breakeven">Break-even <span class="sort-icon">↕</span></th>
                             <th class="sortable" data-col="prob_profit">Chance of profit <span class="sort-icon">↕</span></th>
                         </tr></thead>
@@ -325,7 +326,7 @@
                     </table>
                 </div>
                 <p class="opt-note" id="opt-scan-skipped"></p>
-                <p class="opt-note">Annualised return assumes the trade could be repeated all year, which it usually can't; use it to compare, not as a forecast.</p>
+                <p class="opt-note" id="opt-scan-ann-note">Annualised return assumes the trade could be repeated all year, which it usually can't; use it to compare, not as a forecast.</p>
             </section>
     </main>
 

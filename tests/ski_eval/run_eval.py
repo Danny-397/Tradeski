@@ -188,6 +188,7 @@ def install_fixtures(set_attr=setattr):
     set_attr(app, "get_option_chain", fixture_option_chain)
     set_attr(app, "get_eod_options", lambda s, base: None)
     set_attr(app, "get_eod_index", lambda base: None)
+    set_attr(app, "get_ex_dividend", lambda s: None)
     set_attr(app, "_get_macro_context", lambda: MACRO_CONTEXT)
     _record_evidence(app, set_attr)
     return app

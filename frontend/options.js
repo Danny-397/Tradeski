@@ -182,6 +182,39 @@ function optIvRank(rows, current, today, minDays) {
     return out;
 }
 
+// The trading day before an ISO date (weekends skipped): when an in-the-money
+// call is exercised to collect a dividend, it happens the day before the ex-date.
+function optDayBefore(iso) {
+    const d = new Date(iso + "T12:00:00Z");
+    do { d.setUTCDate(d.getUTCDate() - 1); } while (d.getUTCDay() === 0 || d.getUTCDay() === 6);
+    return d.toISOString().slice(0, 10);
+}
+
+// The strategy builder's note about short calls spanning the ex-dividend date
+// (rows from the backend's assignment_risk), or "" when there are none.
+function optAssignmentNote(rows, symbol) {
+    if (!rows || !rows.length) return "";
+    const r0 = rows[0];
+    const when = optDate(r0.ex_date);
+    const exercise = optDate(optDayBefore(r0.ex_date));
+    const div = `$${r0.dividend.toFixed(2)} a share`;
+    const likely = rows.filter(r => r.level === "likely");
+    if (likely.length) {
+        const strikes = likely.map(r => `$${r.strike}`).join(" and ");
+        const most = Math.max(...likely.map(r => r.time_value));
+        const tv = most < 0.005 ? "no time value left"
+            : `${likely.map(r => `$${r.time_value.toFixed(2)}`).join(" and ")} of time value, less than the dividend`;
+        return `<strong>Early assignment likely.</strong> ${escapeHtml(symbol)} goes ex-dividend on ${when} (${div}). ` +
+            `The short ${strikes} call${likely.length > 1 ? "s are" : " is"} in the money with ${tv}, ` +
+            `so expect ${likely.length > 1 ? "them" : "it"} to be exercised on ${exercise}: ` +
+            "you would deliver the shares a day early and miss (or owe) the dividend.";
+    }
+    const strikes = rows.map(r => `$${r.strike}`).join(" and ");
+    return `<strong>Ex-dividend before expiry.</strong> ${escapeHtml(symbol)} goes ex-dividend on ${when} (${div}). ` +
+        `If the stock rises above ${strikes} and the short call's time value falls below the dividend, ` +
+        `expect early exercise on ${exercise}.`;
+}
+
 // ---- paper trades: pure helpers ----
 
 // A saved trade from a strategy analysis (prices are the entry mids).
@@ -902,6 +935,15 @@ async function optLoadIvHistory() {
     if (optState.chain) optRenderSummary();
 }
 
+function optExDividendStat(c) {
+    if (!c.ex_dividend) return "";
+    return `<div class="opt-stat${c.ex_dividend_before_expiry ? " opt-stat-warn" : ""}" title="${c.ex_dividend_before_expiry
+        ? "Before this expiry: in-the-money short calls may be exercised the day before to collect the dividend"
+        : "After this expiry"}">
+        <span class="opt-stat-label">Ex-dividend</span>
+        <span class="opt-stat-val">${optDate(c.ex_dividend.date)} <span class="opt-dim">· $${c.ex_dividend.amount.toFixed(2)}</span></span></div>`;
+}
+
 function optEarningsStat(c) {
     if (!c.earnings) return "";
     const today = new Date().toISOString().slice(0, 10);
@@ -967,6 +1009,7 @@ function optRenderSummary() {
             <span class="opt-stat-val">${c.put_call_volume ?? "—"} · ${c.put_call_oi ?? "—"}</span></div>
         ${optIvRankStat(c)}
         ${optEarningsStat(c)}
+        ${optExDividendStat(c)}
         <p class="opt-note">${ivVsHv ? `Options are pricing volatility ${ivVsHv} what the stock has actually done lately. ` : ""}
             ${c.source === "end_of_day"
                 ? `These are <strong>end-of-day quotes</strong> saved at ${escapeHtml((c.quotes_as_of || "").slice(0, 10))}: the live option feed doesn't answer this server, so the chain updates once a day, after the close.`
@@ -1279,6 +1322,10 @@ function optRenderStrategy() {
     } else {
         warn.hidden = true;
     }
+    const assign = document.getElementById("opt-assign-warning");
+    const note = optAssignmentNote(a.assignment, a.symbol);
+    assign.hidden = !note;
+    assign.innerHTML = note;
     const range = optExpectedRange(c);
     document.getElementById("opt-range-note").textContent = range
         ? `Shaded: the range the market expects by expiry, $${range.lo.toFixed(2)} to $${range.hi.toFixed(2)} ` +
@@ -1505,10 +1552,21 @@ async function optRunScan() {
     }
 }
 
+const OPT_DEFINED_RISK = ["bull_put_spread", "bear_call_spread", "iron_condor"];
+
 function optRenderScan() {
     const s = optState.scan;
     const body = document.getElementById("opt-scan-body");
     if (!s) return;
+    // Defined-risk trades read as return on the most they can lose; annualising
+    // that (often several hundred percent) says more about the arithmetic than the trade.
+    const risk = OPT_DEFINED_RISK.includes(s.kind);
+    document.getElementById("opt-scan-table").classList.toggle("opt-scan-risk", risk);
+    document.getElementById("opt-scan-ret-label").textContent = risk ? "Return on risk" : "Return";
+    document.getElementById("opt-scan-ann-note").textContent = risk
+        ? "Return on risk is the premium collected divided by the most the trade can lose."
+        : "Annualised return assumes the trade could be repeated all year, which it usually can't; use it to compare, not as a forecast.";
+    if (risk && optState.scanSort.col === "annualized_pct") optState.scanSort = { col: "return_pct", dir: -1 };
     const { col, dir } = optState.scanSort;
     const rows = [...s.results].sort((a, b) =>
         typeof a[col] === "string" ? dir * a[col].localeCompare(b[col]) : dir * ((a[col] ?? -Infinity) - (b[col] ?? -Infinity)));
@@ -1522,13 +1580,15 @@ function optRenderScan() {
             <td class="sc-symbol">${escapeHtml(r.symbol)}</td>
             <td class="opt-num">${r.expiry} <span class="opt-dim">(${r.dte}d)</span></td>
             <td class="opt-num" title="${escapeHtml(r.strikes || "")}: + bought, - sold; P put, C call">${escapeHtml(r.strikes || String(r.strike))}${
-                r.earnings_before_expiry ? ` <span class="opt-earn-flag" title="Earnings before expiry">earnings</span>` : ""}</td>
+                r.earnings_before_expiry ? ` <span class="opt-earn-flag" title="Earnings before expiry">earnings</span>` : ""}${
+                r.assignment ? ` <span class="opt-earn-flag" title="Goes ex-dividend on ${r.ex_dividend}, before expiry: ${
+                    r.assignment === "likely" ? "the short call is likely to be exercised early" : "the short call could be exercised early if it goes in the money"}">ex-div</span>` : ""}</td>
             <td class="opt-num">${r.delta.toFixed(2)}</td>
             <td class="opt-num">${optPct(r.iv)}</td>
             <td class="opt-num">${optMoney(r.premium)}</td>
             <td class="opt-num">${optMoney(r.capital)}</td>
             <td class="opt-num">${r.return_pct.toFixed(2)}%</td>
-            <td class="opt-num positive">${r.annualized_pct.toFixed(1)}%</td>
+            <td class="opt-num positive opt-col-ann">${r.annualized_pct.toFixed(1)}%</td>
             <td class="opt-num">${r.breakeven === null ? "—" : "$" + r.breakeven.toFixed(2)}</td>
             <td class="opt-num">${optPct(r.prob_profit, 0)}</td>
         </tr>`).join("")

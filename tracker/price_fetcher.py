@@ -200,6 +200,27 @@ def get_eod_options(symbol: str, base_url: str) -> dict | None:
         return None
 
 
+def get_ex_dividend(symbol: str) -> dict | None:
+    """The next ex-dividend date and the latest dividend per share, or None.
+
+    Yahoo's calendar gives the date; the amount is the most recent dividend paid
+    (or a quarter of the annual rate). None for non-payers and when Yahoo
+    doesn't answer, which is the usual case from Render.
+    """
+    try:
+        t = yf.Ticker(symbol)
+        date = (t.calendar or {}).get("Ex-Dividend Date")
+        if not date:
+            return None
+        divs = t.dividends
+        amount = float(divs.iloc[-1]) if divs is not None and len(divs) else None
+        if not amount:
+            return None
+        return {"date": date.isoformat()[:10], "amount": round(amount, 4)}
+    except Exception:
+        return None
+
+
 def get_eod_index(base_url: str) -> dict | None:
     """index.json from the options-data branch: which symbols have saved chains, or None."""
     import requests
