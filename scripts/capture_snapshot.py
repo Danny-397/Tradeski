@@ -163,7 +163,11 @@ def record_iv(endpoints):
     except (OSError, ValueError):
         history = {"note": "At-the-money implied volatility of the expiry nearest 30 days out, recorded by "
                            "scripts/capture_snapshot.py after each US close. Rows are [date, iv, days to expiry]."}
-    day = dt.datetime.now(dt.timezone.utc).date().isoformat()
+    # The New York trading day, not the UTC date: GitHub often starts this job
+    # hours late, past midnight UTC, which used to stamp a close a day late.
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tracker import options as opt
+    day = dt.datetime.now(opt._ET).date().isoformat()
     merge_iv(history, day, readings)
     os.makedirs(os.path.dirname(IV_OUT), exist_ok=True)
     with io.open(IV_OUT, "w", encoding="utf-8", newline="\n") as f:
