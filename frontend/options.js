@@ -494,7 +494,7 @@ function optShowTab(tab) {
     document.querySelectorAll(".opt-pane").forEach(p => { p.hidden = p.id !== `opt-pane-${tab}`; });
     optSyncUrl();
     if (tab === "strategy" && optState.analysis) { optDrawPayoff(optState.analysis); optDrawDecay(optState.analysis); }
-    if (tab === "chain" && optState.chain) optDrawSmile(optState.chain);
+    if (tab === "chain" && optState.chain) { optDrawSmile(optState.chain); optLoadTerm(); }
     if (tab === "compare") optEnsureCompare();
     if (tab === "paper") optRenderPaper();
 }
@@ -1026,7 +1026,7 @@ function optRenderChain() {
             <td class="opt-strike">${r.strike}</td>${optCells(r.put, "put")}</tr>`;
     }).join("") + (spotDone ? "" : `<tr class="opt-spot-row"><td colspan="13">Stock $${c.spot.toFixed(2)}</td></tr>`);
     optRenderChainCards(rows, c);
-    if (optState.tab === "chain") optDrawSmile(c);
+    if (optState.tab === "chain") { optDrawSmile(c); optLoadTerm(); }
 }
 
 // Phones: one card per strike instead of a 13-column table (CSS shows one or the other).
@@ -1085,6 +1085,53 @@ function optDrawSmile(c) {
         yaxis: { title: { text: "IV %", font: { size: 11 } }, gridcolor: "rgba(255,255,255,0.05)", zeroline: false },
         shapes: [{ type: "line", x0: c.spot, x1: c.spot, yref: "paper", y0: 0, y1: 1,
                    line: { color: "rgba(255,255,255,0.35)", width: 1, dash: "dot" } }],
+    }), { responsive: true, displayModeBar: false });
+}
+
+// At-the-money IV across expiries, fetched once per symbol. The selected expiry
+// is highlighted and the next earnings date marked.
+async function optLoadTerm() {
+    const sym = optState.symbol;
+    if (!sym || (optState.term && optState.term.symbol === sym)) return optDrawTerm();
+    optState.term = { symbol: sym, rows: null };
+    try {
+        const t = await optFetch(`/options/term?symbol=${encodeURIComponent(sym)}`);
+        if (optState.symbol !== sym) return;
+        optState.term = { symbol: sym, rows: t.term, earnings: t.earnings };
+    } catch (_) {
+        optState.term = { symbol: sym, rows: [] };
+    }
+    optDrawTerm();
+}
+
+function optDrawTerm() {
+    const el = document.getElementById("opt-term");
+    const t = optState.term;
+    if (!el || typeof Plotly === "undefined" || !t || !t.rows) return;
+    if (t.rows.length < 2) { el.innerHTML = `<div class="feed-empty">Not enough expiries to draw the term structure</div>`; return; }
+    const sel = t.rows.find(r => r.expiry === optState.expiry);
+    const shapes = [];
+    if (t.earnings) {
+        const d = optDaysBetween(new Date().toISOString().slice(0, 10), t.earnings.date);
+        if (d >= 0 && d <= t.rows[t.rows.length - 1].dte) {
+            shapes.push({ type: "line", x0: d, x1: d, yref: "paper", y0: 0, y1: 1,
+                          line: { color: "rgba(245,158,11,0.6)", width: 1, dash: "dot" } });
+        }
+    }
+    Plotly.react(el, [{
+        x: t.rows.map(r => r.dte), y: t.rows.map(r => r.atm_iv * 100), mode: "lines+markers", type: "scatter",
+        line: { color: "#60A5FA", width: 2 }, marker: { size: 5 },
+        text: t.rows.map(r => r.expiry),
+        hovertemplate: "%{text} (%{x}d)<br>ATM IV %{y:.1f}%<extra></extra>",
+    }, ...(sel ? [{
+        x: [sel.dte], y: [sel.atm_iv * 100], mode: "markers", type: "scatter",
+        marker: { size: 10, color: "#60A5FA", line: { color: "#E5E7EB", width: 2 } }, hoverinfo: "skip",
+    }] : [])], optPlotTheme({
+        xaxis: { title: { text: "Days to expiry", font: { size: 11 } }, gridcolor: "rgba(255,255,255,0.05)", zeroline: false },
+        yaxis: { title: { text: "IV %", font: { size: 11 } }, gridcolor: "rgba(255,255,255,0.05)", zeroline: false },
+        shapes,
+        annotations: shapes.length ? [{ x: shapes[0].x0, yref: "paper", y: 1, text: "earnings", showarrow: false,
+                                        font: { size: 10, color: "#F59E0B" }, xanchor: "left", yanchor: "top" }] : [],
     }), { responsive: true, displayModeBar: false });
 }
 

@@ -1187,6 +1187,28 @@ def options_chain() -> tuple:
     return jsonify(chain) if chain else _chain_error(sym, expiry)
 
 
+_OPTIONS_TERM_MAX = 12      # expiries in the term structure (the nearest ones)
+
+
+@app.route("/options/term")
+@limiter.limit("30 per minute")
+def options_term() -> tuple:
+    """At-the-money IV for each expiry: the volatility term structure."""
+    sym = _clean_symbol(request.args.get("symbol"))
+    if not sym:
+        return jsonify({"error": "symbol is required"}), 400
+    expiries = _cached_expiries(sym)[:_OPTIONS_TERM_MAX]
+    if not expiries:
+        return jsonify({"error": f"no option data for {sym}"}), 404
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        chains = list(pool.map(lambda e: _cached_chain(sym, e), expiries))
+    rows = [{"expiry": c["expiry"], "dte": c["dte"], "atm_iv": c["atm_iv"], "expected_move": c.get("expected_move")}
+            for c in chains if c and c.get("atm_iv")]
+    first = next((c for c in chains if c), None) or {}
+    return jsonify({"symbol": sym, "spot": first.get("spot"), "earnings": first.get("earnings"),
+                    "source": first.get("source"), "term": rows})
+
+
 @app.route("/options/strategy", methods=["POST"])
 @limiter.limit("60 per minute")
 def options_strategy() -> tuple:

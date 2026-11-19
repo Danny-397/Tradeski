@@ -18,7 +18,7 @@ This report describes the architecture as built, the decisions worth defending, 
 
 | | |
 |---|---|
-| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 31 HTTP endpoints |
+| Backend | Python 3.12, Flask + Flask-SocketIO on gevent, 32 HTTP endpoints |
 | Frontend | Static HTML/CSS/JS, ~7,000 lines (`dashboard.js` alone is 2,750), Plotly.js, no framework and no build step |
 | Indicators | 10, hand-implemented on NumPy arrays — no TA-Lib, no pandas |
 | Tests | 304, across 27 files, run in GitHub Actions with flake8 |
@@ -360,7 +360,7 @@ by design, and three are web figures it can't verify. Results and run links:
 
 ## 8. Testing
 
-332 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
+333 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
