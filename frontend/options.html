@@ -114,9 +114,15 @@
                         <input type="number" id="opt-f-spread" class="filter-input" placeholder="Any" min="0" step="1"></div>
                     <button class="btn-secondary filter-reset" id="opt-f-reset">Reset</button>
                 </div>
-                <div class="opt-smile-wrap">
-                    <span class="filter-label">Implied volatility by strike <span class="badge" id="opt-chain-count"></span></span>
-                    <div id="opt-smile" class="opt-smile"></div>
+                <div class="opt-vol-charts">
+                    <div class="opt-smile-wrap">
+                        <span class="filter-label">Implied volatility by strike <span class="badge" id="opt-chain-count"></span></span>
+                        <div id="opt-smile" class="opt-smile"></div>
+                    </div>
+                    <div class="opt-smile-wrap">
+                        <span class="filter-label" title="At-the-money IV of each expiry. A bump marks an expected event, usually earnings; near-term IV above longer-term IV means the market expects a move soon">At-the-money IV by expiry</span>
+                        <div id="opt-term" class="opt-smile"></div>
+                    </div>
                 </div>
                 <p class="opt-hint">Click an <strong>ask</strong> to buy or a <strong>bid</strong> to sell; it goes into the strategy builder. Shaded = in the money.</p>
                 <div class="opt-chain-cards" id="opt-chain-cards" aria-label="Option chain"></div>

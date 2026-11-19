@@ -849,3 +849,12 @@ def test_nightly_job_records_iv_and_builds_the_all_symbol_scan(tmp_path):
     (prev / "iv_history.json").write_text('{"symbols": {"EODX": [["2026-11-17", 0.24, 31]]}}')
     h = cap.merge_iv(cap.load_history(str(tmp_path)), "2026-11-18", {"EODX": reading})
     assert [row[0] for row in h["symbols"]["EODX"]] == ["2026-11-17", "2026-11-18"]
+
+
+def test_term_endpoint_gives_atm_iv_for_each_expiry(client):
+    data = client.get("/options/term?symbol=TEST").get_json()
+    assert [r["expiry"] for r in data["term"]] == client.expiries
+    assert all(r["atm_iv"] == pytest.approx(SIGMA, abs=0.01) for r in data["term"])
+    assert [r["dte"] for r in data["term"]] == sorted(r["dte"] for r in data["term"])
+    assert client.get("/options/term?symbol=NONE").status_code == 404
+    assert client.get("/options/term").status_code == 400
