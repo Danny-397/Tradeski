@@ -117,17 +117,10 @@ def nearest_expiry(expirations, target):
 
 
 def merge_iv(history, day, readings):
-    """Add one day's {symbol: {iv, expiry, dte}} to history, replacing a rerun of the same day.
-
-    history is {"symbols": {SYM: [[date, iv, dte], ...]}} with dates ascending.
-    """
-    symbols = history.setdefault("symbols", {})
-    for sym, r in readings.items():
-        rows = [row for row in symbols.get(sym, []) if row[0] != day]
-        rows.append([day, round(r["iv"], 4), r["dte"]])
-        symbols[sym] = sorted(rows)
-    history["updated"] = day
-    return history
+    """Add one day's readings to the IV history (shared with capture_options)."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from capture_options import merge_iv as merge
+    return merge(history, day, readings)
 
 
 def record_iv(endpoints):

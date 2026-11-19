@@ -281,6 +281,8 @@
                             <option value="iron_condor">Iron condors (defined risk)</option></select></div>
                     <div class="filter-group opt-scan-syms"><label class="filter-label" for="opt-scan-symbols">Symbols (up to 10)</label>
                         <input type="text" id="opt-scan-symbols" class="filter-input" autocomplete="off" spellcheck="false"></div>
+                    <label class="opt-scan-check" title="Every symbol with saved option data (about 90), from tonight's closing quotes at the default filters"><input type="checkbox" id="opt-scan-all">
+                        All symbols (~90, default filters)</label>
                     <div class="filter-group"><label class="filter-label" for="opt-scan-delta">Max |delta|</label>
                         <input type="number" id="opt-scan-delta" class="filter-input" value="0.30" min="0.05" max="0.6" step="0.05"></div>
                     <div class="filter-group"><label class="filter-label">Days to expiry</label>
@@ -297,7 +299,7 @@
                         Skip stocks reporting earnings before expiry</label>
                     <button class="btn-primary" id="opt-scan-run">Scan</button>
                 </div>
-                <p class="opt-hint" id="opt-scan-hint">For each symbol: the expiry nearest the middle of the window, and the strike with the most premium whose |delta| stays under the limit. Click a row to open it in the strategy builder.</p>
+                <p class="opt-hint" id="opt-scan-hint">For each symbol: the monthly expiry nearest the middle of the window (any expiry if no monthly falls inside it), and the strike with the most premium whose |delta| stays under the limit. Click a row to open it in the strategy builder.</p>
                 <div class="opt-table-wrap">
                     <table class="screener-table" id="opt-scan-table">
                         <thead><tr>

@@ -281,6 +281,19 @@ def test_pick_expiry_prefers_the_target_inside_the_window():
     assert opt.pick_expiry(exp, 100, 200, 150, today) is None
 
 
+def test_scanner_prefers_the_monthly_expiry_in_the_window():
+    today = dt.date(2026, 11, 18)
+    exp = ["2026-12-04", "2026-12-11", "2026-12-18", "2026-12-24", "2026-12-31", "2027-01-15"]
+    assert [e for e in exp if opt.is_monthly(e)] == ["2026-12-18", "2027-01-15"]
+    # 35 days out is the 12-24 weekly, but the 12-18 monthly is inside the window.
+    assert opt.pick_expiry(exp, 20, 50, 35, today) == "2026-12-24"
+    assert opt.scan_expiry(exp, 20, 50, 35, today) == "2026-12-18"
+    # No monthly inside the window: the nearest expiry, as before.
+    assert opt.scan_expiry(exp, 40, 50, 45, today) == "2026-12-31"
+    assert opt.is_monthly("2025-04-17")          # Good Friday 2025: the Thursday before
+    assert not opt.is_monthly("2026-12-24")
+
+
 def test_scan_candidate_respects_filters():
     c = chain(half_spread=0.02)
     best = opt.scan_candidate("cash_secured_put", c, max_delta=0.30)
@@ -812,3 +825,27 @@ def test_symbol_list_is_clean():
     assert all(s.isalnum() and s == s.upper() for s in syms)
     # Every symbol the snapshot job already saved is still covered.
     assert {"SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "JPM", "SOFI", "RDW"} <= set(syms)
+
+
+def test_nightly_job_records_iv_and_builds_the_all_symbol_scan(tmp_path):
+    import importlib
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    cap = importlib.import_module("capture_options")
+    eod = _eod_file(days=(10, 30, 45))
+    reading, scans = cap.analyse_symbol(eod, R)
+    assert reading["iv"] == pytest.approx(SIGMA, abs=0.01) and reading["dte"] in (29, 30, 31)
+    assert set(scans) == set(opt.SCAN_KINDS)
+    assert scans["covered_call"]["symbol"] == "EODX" and "earnings" in scans["covered_call"]
+    # The test quotes are 10 cents wide, over 10% of the cheap out-of-the-money puts.
+    assert scans["cash_secured_put"] == {"skipped": "nothing passes the filters"}
+    scan = cap.build_scan({"EODX": scans, "NONE": {k: {"skipped": "x"} for k in opt.SCAN_KINDS}},
+                          eod["captured_at"], "test")
+    cc = scan["kinds"]["covered_call"]
+    assert [r["symbol"] for r in cc["results"]] == ["EODX"] and cc["skipped"] == [{"symbol": "NONE", "skipped": "x"}]
+    assert scan["filters"]["max_delta"] == 0.30
+    # The history carries forward from the previous run.
+    prev = tmp_path / "options"
+    prev.mkdir()
+    (prev / "iv_history.json").write_text('{"symbols": {"EODX": [["2026-11-17", 0.24, 31]]}}')
+    h = cap.merge_iv(cap.load_history(str(tmp_path)), "2026-11-18", {"EODX": reading})
+    assert [row[0] for row in h["symbols"]["EODX"]] == ["2026-11-17", "2026-11-18"]

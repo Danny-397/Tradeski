@@ -1269,7 +1269,7 @@ def options_scan() -> tuple:
                "max_spread_pct": num("max_spread", 10, 1, 100)}
 
     def one(sym):
-        expiry = opt.pick_expiry(_cached_expiries(sym), min_dte, max_dte, (min_dte + max_dte) // 2)
+        expiry = opt.scan_expiry(_cached_expiries(sym), min_dte, max_dte, (min_dte + max_dte) // 2)
         if not expiry:
             return {"symbol": sym, "skipped": f"no expiry between {min_dte} and {max_dte} days"}
         chain = _cached_chain(sym, expiry)
