@@ -58,12 +58,13 @@ def load_symbols(path: str = SYMBOLS_FILE) -> list:
     return list(dict.fromkeys(s for s in syms if s))
 
 
-def capture_symbol(symbol: str, now: str, expirations_fn=None, chain_fn=None) -> dict | None:
+def capture_symbol(symbol: str, now: str, expirations_fn=None, chain_fn=None, exdiv_fn=None) -> dict | None:
     """One symbol's closing chains in the saved-file shape, or None if nothing came back."""
-    if expirations_fn is None or chain_fn is None:
-        from tracker.price_fetcher import get_option_chain, get_option_expirations
+    if expirations_fn is None or chain_fn is None or exdiv_fn is None:
+        from tracker.price_fetcher import get_ex_dividend, get_option_chain, get_option_expirations
         expirations_fn = expirations_fn or get_option_expirations
         chain_fn = chain_fn or get_option_chain
+        exdiv_fn = exdiv_fn or get_ex_dividend
     chosen = opt.eod_expiries(expirations_fn(symbol), max_dte=MAX_DTE,
                               nearest=MAX_EXPIRIES, weekly_dte=WEEKLY_DTE)
     out = {"symbol": symbol, "captured_at": now, "chains": {}}
@@ -75,7 +76,10 @@ def capture_symbol(symbol: str, now: str, expirations_fn=None, chain_fn=None) ->
         out["earnings_ts"], out["earnings_estimated"] = raw.get("earnings_ts"), raw.get("earnings_estimated")
         out["chains"][e] = {"calls": opt.compact_rows(raw["calls"], raw["spot"]),
                             "puts": opt.compact_rows(raw["puts"], raw["spot"])}
-    return out if out["chains"] and out.get("spot") else None
+    if not (out["chains"] and out.get("spot")):
+        return None
+    out["ex_dividend"] = exdiv_fn(symbol)       # {date, amount} or None (non-payers)
+    return out
 
 
 def merge_iv(history: dict, day: str, readings: dict) -> dict:
@@ -151,7 +155,7 @@ def build_scan(per_symbol: dict, updated: str, rate_source: str) -> dict:
                 skipped.append({"symbol": sym, "skipped": r["skipped"]})
             else:
                 found.append({**r, "symbol": sym})
-        found.sort(key=lambda r: -r["annualized_pct"])
+        found.sort(key=opt.scan_rank_key(kind))
         kinds[kind] = {"results": found, "skipped": skipped}
     return {"updated": updated, "filters": {**SCAN_DEFAULTS}, "rate_source": rate_source, "kinds": kinds}
 

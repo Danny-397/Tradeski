@@ -233,6 +233,41 @@ def next_earnings(timestamps: Iterable, estimated: bool = False,
     return {"date": upcoming[0].isoformat(), "estimated": bool(estimated)} if upcoming else None
 
 
+def upcoming_ex_dividend(exdiv: Optional[dict], now: Optional[_dt.datetime] = None) -> Optional[dict]:
+    """``{date, amount}`` if the ex-dividend date is still ahead (New York), else None: on the
+    ex-date itself the dividend has already detached, so there is nothing left to exercise for."""
+    if not exdiv or not exdiv.get("date") or not exdiv.get("amount"):
+        return None
+    today = (now or _dt.datetime.now(_dt.timezone.utc)).astimezone(_ET).date()
+    return dict(exdiv) if exdiv["date"] > today.isoformat() else None
+
+
+def assignment_risk(legs: list, S: float, ex_dividend: Optional[dict], expiry: str) -> list:
+    """Short calls that the ex-dividend date puts at risk of early assignment.
+
+    A call owner gains by exercising the day before the ex-date when the
+    dividend is worth more than the time value they give up. So a short call
+    whose expiry spans the ex-date is "likely" to be assigned if it is in the
+    money with less time value (mid minus intrinsic) than the dividend, and
+    worth watching otherwise.
+    """
+    if not ex_dividend or not expiry or ex_dividend["date"] > expiry:
+        return []
+    out = []
+    for leg in legs:
+        if leg["type"] != "call" or leg["qty"] >= 0:
+            continue
+        bid, ask = leg.get("bid"), leg.get("ask")
+        mid = (bid + ask) / 2.0 if bid and ask else leg["price"]
+        intrinsic = max(S - leg["strike"], 0.0)
+        time_value = max(mid - intrinsic, 0.0)
+        likely = intrinsic > 0 and time_value < ex_dividend["amount"]
+        out.append({"strike": leg["strike"], "qty": leg["qty"], "time_value": round(time_value, 2),
+                    "dividend": ex_dividend["amount"], "ex_date": ex_dividend["date"],
+                    "level": "likely" if likely else "watch"})
+    return out
+
+
 def clean_chain(raw: dict, expiry: str, r: float, now: Optional[_dt.datetime] = None) -> dict:
     """Turn a raw chain (see price_fetcher.get_option_chain) into the API shape."""
     S = float(raw["spot"])
@@ -244,6 +279,7 @@ def clean_chain(raw: dict, expiry: str, r: float, now: Optional[_dt.datetime] = 
                   key=lambda c: c["strike"])
     atm = atm_iv(calls, puts, S)
     earnings = next_earnings(raw.get("earnings_ts") or [], raw.get("earnings_estimated", False), now)
+    exdiv = upcoming_ex_dividend(raw.get("ex_dividend"), now)
     return {
         "symbol": raw.get("symbol"),
         "expiry": expiry,
@@ -255,6 +291,8 @@ def clean_chain(raw: dict, expiry: str, r: float, now: Optional[_dt.datetime] = 
         "market_state": raw.get("market_state"),
         "earnings": earnings,
         "earnings_before_expiry": bool(earnings and earnings["date"] <= expiry),
+        "ex_dividend": exdiv,
+        "ex_dividend_before_expiry": bool(exdiv and exdiv["date"] <= expiry),
         "atm_iv": _r(atm),
         "expected_move": _r(S * atm * math.sqrt(T), 2) if atm else None,
         "calls": calls,
@@ -357,6 +395,7 @@ def eod_raw_chain(eod: dict, expiry: str) -> Optional[dict]:
     return {"symbol": eod.get("symbol"), "spot": float(eod["spot"]),
             "dividend_yield": float(eod.get("dividend_yield") or 0.0), "market_state": "CLOSED",
             "earnings_ts": eod.get("earnings_ts") or [], "earnings_estimated": eod.get("earnings_estimated", False),
+            "ex_dividend": eod.get("ex_dividend"),
             "calls": chain.get("calls", []), "puts": chain.get("puts", [])}
 
 
@@ -634,7 +673,8 @@ def _describe_zones(zones: list, symbol: str) -> str:
 
 def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Optional[float] = None,
             symbol: str = "the stock", expiry: str = "", days_forward: Optional[float] = None,
-            points: int = 121, iv_shift: float = 0.0, cdf: Optional[MarketCDF] = None) -> dict:
+            points: int = 121, iv_shift: float = 0.0, cdf: Optional[MarketCDF] = None,
+            ex_dividend: Optional[dict] = None) -> dict:
     """Everything the strategy builder shows for one set of legs.
 
     ``iv_shift`` (volatility points, e.g. -10) moves every option's implied
@@ -723,6 +763,7 @@ def analyze(legs: list, S: float, T: float, r: float, q: float = 0.0, sigma: Opt
         "profit_zones": [[round(a, 2), None if math.isinf(b) else round(b, 2)] for a, b in zones],
         "prob_profit": None if pop is None else round(pop, 4),
         "prob_model": None if pop is None else ("smile" if _uses_smile(cdf) else "lognormal"),
+        "assignment": assignment_risk(legs, S, ex_dividend, expiry),
         "return_on_risk": (round(max_profit / -max_loss, 4)
                            if max_profit is not None and max_loss is not None and max_loss < 0 else None),
         "spread_cost": round(spread_cost, 2),
@@ -906,6 +947,16 @@ def value_now(legs: list) -> float:
 # ─────────────────────────────────────────────────────────────
 
 SCAN_KINDS = ("cash_secured_put", "covered_call", "bull_put_spread", "bear_call_spread", "iron_condor")
+# Defined-risk kinds are ranked by return on risk (premium / max loss); annualising
+# that gives hundreds of percent. The others by annualised return on the capital.
+DEFINED_RISK = ("bull_put_spread", "bear_call_spread", "iron_condor")
+
+
+def scan_rank_key(kind: str):
+    col = "return_pct" if kind in DEFINED_RISK else "annualized_pct"
+    return lambda r: -r[col]
+
+
 SPREAD_WIDTH = 0.025          # protective leg about 2.5% of the stock price beyond the short one
 
 
@@ -991,7 +1042,7 @@ def scan_candidate(kind: str, chain: dict, max_delta: float = 0.30, min_oi: int 
             legs.append(_leg(w, 1))
     # The chain's distribution, as the strategy builder uses, so both show the same chance of profit.
     res = analyze(legs, S, T, r, q, sigma=chain.get("atm_iv") or shorts[0]["iv"], points=3,
-                  cdf=market_cdf(chain))
+                  cdf=market_cdf(chain), ex_dividend=chain.get("ex_dividend"), expiry=chain["expiry"])
     premium = -res["net_debit"] if kind != "covered_call" else shorts[0]["mid"] * MULTIPLIER
     if premium <= 0:
         return None
@@ -1028,4 +1079,7 @@ def scan_candidate(kind: str, chain: dict, max_delta: float = 0.30, min_oi: int 
         "open_interest": min(x["open_interest"] for x in shorts),
         "spread_pct": max(x["spread_pct"] for x in shorts),
         "earnings_before_expiry": bool(chain.get("earnings_before_expiry")),
+        "ex_dividend": (chain.get("ex_dividend") or {}).get("date") if chain.get("ex_dividend_before_expiry") else None,
+        "assignment": ("likely" if any(a["level"] == "likely" for a in res["assignment"])
+                       else "watch" if res["assignment"] else None),
     }
