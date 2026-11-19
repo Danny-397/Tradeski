@@ -262,3 +262,19 @@ test("optAlphaGlyphUrl: unnamed custom legs and a same-day expiry", () => {
     assert.equal(url.searchParams.get("dte"), "1");
     assert.equal(url.searchParams.get("legs"), "long_call_1_0");
 });
+
+test("optScanFromAll: one strategy from the nightly scan, earnings box applied", () => {
+    const { optScanFromAll } = load(["optScanFromAll"]);
+    const data = { updated: "2026-11-18T21:52:00+00:00", kinds: { cash_secured_put: {
+        results: [{ symbol: "SPY", annualized_pct: 14, earnings_before_expiry: false },
+                  { symbol: "NVDA", annualized_pct: 30, earnings_before_expiry: true, earnings: "2026-11-25" }],
+        skipped: [{ symbol: "RDW", skipped: "nothing passes the filters" }] } } };
+    const kept = plain(optScanFromAll(data, "cash_secured_put", false));
+    assert.deepEqual(kept.results.map(r => r.symbol), ["SPY", "NVDA"]);
+    assert.equal(kept.results[0].kind, "cash_secured_put");
+    const skip = plain(optScanFromAll(data, "cash_secured_put", true));
+    assert.deepEqual(skip.results.map(r => r.symbol), ["SPY"]);
+    assert.deepEqual(skip.skipped.map(r => r.symbol), ["RDW", "NVDA"]);
+    assert.match(skip.skipped[1].skipped, /earnings on 2026-11-25/);
+    assert.deepEqual(plain(optScanFromAll(data, "iron_condor", true)).results, []);
+});

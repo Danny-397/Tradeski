@@ -41,6 +41,9 @@ const OPT_COMPARE_MAX = 3;
 const OPT_SKI_KEY = "tradeski-ski-prompt";   // read by dashboard.js on load
 // Fewer daily readings than this and a percentile says more about the sample than the stock.
 const OPT_IV_MIN_DAYS = 20;
+// The nightly options-data job's files (~90 symbols): IV history and a precomputed
+// scan. Static files on GitHub, so reading them costs the backend nothing.
+const OPT_DATA_URL = "https://raw.githubusercontent.com/Danny-397/Tradeski/options-data/options";
 
 const optState = {
     symbol: null,
@@ -455,6 +458,7 @@ function initOptions() {
 
     document.getElementById("opt-scan-symbols").value = OPT_SCAN_DEFAULT;
     document.getElementById("opt-scan-run").addEventListener("click", optRunScan);
+    document.getElementById("opt-scan-all").addEventListener("change", optScanAllToggle);
     document.querySelectorAll("#opt-scan-table th.sortable").forEach(th =>
         th.addEventListener("click", () => {
             const s = optState.scanSort;
@@ -883,15 +887,17 @@ async function optLoadChain(expiry) {
     }
 }
 
-// The recorded IV history is a static file deployed with the site, so reading
-// it costs the backend nothing.
+// The recorded IV history is a static file (the options-data branch's, ~90
+// symbols, else the snapshot job's copy deployed with the site), so reading it
+// costs the backend nothing.
 async function optLoadIvHistory() {
     if (optState.ivHistory !== undefined) return;
-    try {
-        const res = await fetch("/data/iv_history.json", { cache: "no-cache" });
-        optState.ivHistory = res.ok ? await res.json() : null;
-    } catch (_) {
-        optState.ivHistory = null;
+    optState.ivHistory = null;
+    for (const url of [`${OPT_DATA_URL}/iv_history.json`, "/data/iv_history.json"]) {
+        try {
+            const res = await fetch(url, { cache: "no-cache" });
+            if (res.ok) { optState.ivHistory = await res.json(); break; }
+        } catch (_) { /* try the next copy */ }
     }
     if (optState.chain) optRenderSummary();
 }
@@ -1372,8 +1378,62 @@ function optAskSki() {
 
 // ---------- scanner ----------
 
+// "All symbols": the nightly job's precomputed scan at the default filters. Only
+// the strategy and the earnings box apply; the other filters are fixed.
+function optScanAllToggle() {
+    const all = document.getElementById("opt-scan-all").checked;
+    for (const id of ["opt-scan-symbols", "opt-scan-delta", "opt-scan-dmin", "opt-scan-dmax", "opt-scan-oi", "opt-scan-spread"]) {
+        document.getElementById(id).disabled = all;
+    }
+    if (all) {
+        document.getElementById("opt-scan-delta").value = "0.30";
+        document.getElementById("opt-scan-dmin").value = "20";
+        document.getElementById("opt-scan-dmax").value = "50";
+        document.getElementById("opt-scan-oi").value = "100";
+        document.getElementById("opt-scan-spread").value = "10";
+    }
+}
+
+// Rows for one strategy from scan.json, with the earnings box applied.
+function optScanFromAll(data, kind, skipEarnings) {
+    const k = (data.kinds || {})[kind] || { results: [], skipped: [] };
+    const skipped = [...k.skipped];
+    const results = [];
+    for (const r of k.results) {
+        if (skipEarnings && r.earnings_before_expiry) {
+            skipped.push({ symbol: r.symbol, skipped: `earnings on ${r.earnings}, before expiry` });
+        } else {
+            results.push({ ...r, kind });
+        }
+    }
+    return { kind, results, skipped, updated: data.updated };
+}
+
+async function optRunScanAll(kind, body) {
+    body.innerHTML = `<tr><td colspan="11" class="screener-loading"><div class="loading-spinner"></div>
+        Loading tonight's scan of every covered symbol…</td></tr>`;
+    try {
+        const res = await fetch(`${OPT_DATA_URL}/scan.json`, { cache: "no-cache" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        optState.scan = optScanFromAll(data, kind, document.getElementById("opt-scan-earnings").checked);
+        optRenderScan();
+        const n = optState.scan.results.length + optState.scan.skipped.length;
+        document.getElementById("opt-scan-skipped").textContent =
+            `All ${n} symbols, from closing quotes saved ${new Date(data.updated).toLocaleString()}. ` +
+            document.getElementById("opt-scan-skipped").textContent;
+    } catch (e) {
+        body.innerHTML = `<tr><td colspan="11" class="feed-empty">The all-symbol scan isn't available right now (${escapeHtml(e.message)}). Untick "All symbols" to scan up to 10.</td></tr>`;
+    }
+}
+
 async function optRunScan() {
     const kind = document.getElementById("opt-scan-kind").value;
+    const body0 = document.getElementById("opt-scan-body");
+    if (document.getElementById("opt-scan-all").checked) {
+        document.getElementById("opt-scan-skipped").textContent = "";
+        return optRunScanAll(kind, body0);
+    }
     const params = new URLSearchParams({
         kind,
         symbols: document.getElementById("opt-scan-symbols").value.replace(/\s+/g, ""),

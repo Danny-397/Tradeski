@@ -360,7 +360,7 @@ by design, and three are web figures it can't verify. Results and run links:
 
 ## 8. Testing
 
-330 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
+332 tests across 27 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the
@@ -420,7 +420,15 @@ Render's servers (as it does company fundamentals) but answers GitHub's runners,
 GitHub job saves closing chains for about 90 of the most-traded stocks and ETFs each weekday
 and publishes them to a data branch that is overwritten, not appended to (the screener's
 pattern), and the backend falls back to them. Until 2026-11 it was twelve symbols, so names
-like AMD, COIN or IWM had no options on the live site. The window says the quotes are
+like AMD, COIN or IWM had no options on the live site. The same job records each symbol's
+at-the-money IV for the IV-percentile history and precomputes the scanner for every symbol at
+its default filters, so the window can scan all of them without touching the backend.
+
+The scanner takes the standard monthly expiry nearest the middle of its window when one falls
+inside it. It used to take whichever expiry was nearest, often a weekly: on 2026-11-18 that gave
+AMD's 24 December weekly, where every candidate put's spread was 12-18% and nothing passed the
+10% filter, while the 18 December monthly two expiries away had spreads of 4-6% and open
+interest in the thousands. The window says the quotes are
 end-of-day and dates them. Any symbol outside the list still has none until a data source
 that serves this host is wired in. A trimmed copy of each day's chains is
 kept in `data/options-archive/`, a history of real quotes that no free source offers;

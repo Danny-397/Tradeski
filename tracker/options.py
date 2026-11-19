@@ -917,6 +917,22 @@ def pick_expiry(expiries: list, min_dte: int, max_dte: int, target: int = 30,
     return min(ok)[1] if ok else None
 
 
+def is_monthly(expiry: str) -> bool:
+    """A standard monthly expiry: the third Friday (or the Thursday before, when
+    that Friday is a market holiday). Weeklies are every other expiry."""
+    d = _dt.date.fromisoformat(expiry)
+    return 15 <= d.day <= 21 and d.weekday() == 4 or 15 <= d.day <= 20 and d.weekday() == 3
+
+
+def scan_expiry(expiries: list, min_dte: int, max_dte: int, target: int = 30,
+                today: Optional[_dt.date] = None) -> Optional[str]:
+    """The scanner's expiry: a monthly inside the window when there is one (that is
+    where open interest and tight spreads are), else any expiry; closest to target."""
+    monthly = [e for e in expiries if is_monthly(e)]
+    return (pick_expiry(monthly, min_dte, max_dte, target, today)
+            or pick_expiry(expiries, min_dte, max_dte, target, today))
+
+
 def _short_pick(side: list, S: float, puts: bool, max_delta: float, min_oi: int, max_spread_pct: float):
     """The out-of-the-money short option with the most premium the filters allow."""
     pool = [c for c in _quoted(side)
