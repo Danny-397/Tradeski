@@ -7,6 +7,18 @@ services:
     # so the free plan's spin-down is survivable here.
     plan: free
     buildCommand: pip install -r requirements.txt
+    # Rebuild only when the backend changes. Every push to main used to rebuild
+    # it, including the nightly bot commits that only touch frontend/ (served by
+    # Vercel), which spent the free plan's monthly build minutes.
+    buildFilter:
+      paths:
+        - wsgi.py
+        - requirements.txt
+        - render.yaml
+        - Procfile
+        - "Plotly dashboard/**"
+        - tracker/**
+        - frontend/symbols.js    # tracker/news.py reads the company names
     startCommand: gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --bind 0.0.0.0:$PORT wsgi:app
     healthCheckPath: /health
     envVars:
