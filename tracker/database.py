@@ -293,11 +293,12 @@ def get_recent_prices(symbol: str, limit: int = 200) -> List[Tuple[float, float,
         SELECT timestamp, price, volume
         FROM prices
         WHERE symbol = ?
-        ORDER BY timestamp ASC
+        ORDER BY timestamp DESC
         LIMIT ?
         """,
         (symbol, limit),
     )
+    rows = list(reversed(rows))  # the newest `limit` rows, returned oldest first
     conn.close()
     return rows
 
