@@ -360,7 +360,7 @@ by design, and three are web figures it can't verify. Results and run links:
 
 ## 8. Testing
 
-342 tests across 28 files run on every push through GitHub Actions, alongside flake8 linting.
+343 tests across 28 files run on every push through GitHub Actions, alongside flake8 linting.
 Coverage is weighted toward the code where correctness is checkable rather than the code
 that is merely tedious: indicator boundary conditions, authentication and token handling,
 database access and user scoping, the FRED and news clients against recorded payloads, the

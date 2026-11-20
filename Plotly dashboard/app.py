@@ -2007,6 +2007,22 @@ except Exception as exc:
     app.logger.error("database unavailable at startup: %s", _db_error)
 socketio.start_background_task(_background_tracker)
 
+DB_DOWN_MSG = ("Accounts are temporarily unavailable while the database is down. "
+               "Charts, options, the screener and Ski still work.")
+
+
+def _db_down(_exc):
+    """A lost database connection is an outage, not a crash: say so in JSON (503)."""
+    app.logger.warning("database unavailable: %s", str(_exc).strip().splitlines()[0][:200] if str(_exc) else _exc)
+    return jsonify({"error": DB_DOWN_MSG, "db_unavailable": True}), 503
+
+
+try:
+    import psycopg2
+    app.register_error_handler(psycopg2.OperationalError, _db_down)
+except ImportError:  # SQLite-only installs
+    pass
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host="0.0.0.0", port=port)

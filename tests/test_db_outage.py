@@ -3,6 +3,8 @@
 import os
 import sys
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "Plotly dashboard"))
@@ -21,6 +23,17 @@ def test_health_ok_with_the_database(monkeypatch):
     monkeypatch.setattr(app, "_db_error", None)
     body = app.app.test_client().get("/health").get_json()
     assert body["status"] == "ok" and "db_error" not in body
+
+
+def test_lost_database_is_a_clear_503(monkeypatch):
+    psycopg2 = pytest.importorskip("psycopg2")
+
+    def refuse(*_a, **_k):
+        raise psycopg2.OperationalError("Your account or project has exceeded the quota.")
+    monkeypatch.setattr(app.database, "get_user_by_email", refuse)
+    res = app.app.test_client().post("/auth/login", json={"email": "a@b.co", "password": "longenough1"})
+    assert res.status_code == 503
+    assert res.get_json()["error"] == app.DB_DOWN_MSG
 
 
 def test_latest_prices_keep_the_last_two_ticks(monkeypatch):
