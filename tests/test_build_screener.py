@@ -72,13 +72,16 @@ def test_rsi_matches_the_dashboards_own_rsi():
 
 
 def test_fundamentals_and_price_derived_ratios():
+    import datetime as dt
+    # A report date relative to now: a fixed one starts failing once it has passed.
+    report = dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=30)
     info = {"sharesOutstanding": 1_000_000, "trailingEps": 5.0, "forwardEps": 6.0, "totalRevenue": 50_000_000,
             "bookValue": 20.0, "dividendRate": 2.0, "profitMargins": 0.25, "debtToEquity": 84.0,
-            "targetMeanPrice": 120.0, "earningsTimestamp": 1795000000, "shortName": "Example",
+            "targetMeanPrice": 120.0, "earningsTimestamp": report.timestamp(), "shortName": "Example",
             "recommendationMean": 1.9}
     fund = bs.fundamentals_from_info(info, "2026-11-07")
     assert fund["profit_margin"] == 25.0 and fund["debt_equity"] == 0.84
-    assert fund["earnings_date"] == "2026-11-18"
+    assert fund["earnings_date"] == report.date().isoformat()
     d = bs.derive({"price": 100.0}, fund)
     assert d == {"market_cap": 100_000_000, "pe": 20.0, "forward_pe": 16.67, "ps": 2.0, "pb": 5.0,
                  "dividend_yield": 2.0, "upside": 20.0}
