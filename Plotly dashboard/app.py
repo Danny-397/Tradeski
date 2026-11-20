@@ -94,7 +94,18 @@ limiter = Limiter(
 )
 
 _cache = SimpleCache()
-_FRED_TTL     = 3600   # refresh FRED data at most once per hour
+
+# The tracker's latest ticks: symbol -> [(timestamp, price, volume)], oldest first, last two.
+_latest_prices: dict = {}
+
+
+def _remember_price(symbol: str, price: float) -> None:
+    ticks = _latest_prices.setdefault(symbol, [])
+    ticks.append((time.time(), float(price), 0.0))
+    del ticks[:-2]
+
+
+_FRED_TTL    = 3600   # refresh FRED data at most once per hour
 _CHART_TTL    = 300    # price history / stats cache: 5 minutes
 _NEWS_TTL     = 1800   # news + sentiment cache: 30 minutes
 _SCREENER_TTL = 600    # screener fundamentals cache: 10 minutes
@@ -234,8 +245,9 @@ def me() -> tuple:
 @app.route("/health")
 def health() -> tuple:
     return jsonify({
-        "status": "ok",
+        "status": "degraded" if _db_error else "ok",
         "db": database.db_backend(),
+        **({"db_error": _db_error} if _db_error else {}),
         "services": {
             "fred":      "configured" if os.environ.get("FRED_API_KEY")      else "missing",
             "news":      "configured" if os.environ.get("NEWS_API_KEY")       else "missing",
@@ -369,7 +381,7 @@ def watchlist() -> tuple:
     result = {}
 
     for sym in symbols:
-        rows = database.get_recent_prices(sym, limit=2)
+        rows = _latest_prices.get(sym)
         if not rows:
             result[sym] = None
             continue
@@ -613,9 +625,9 @@ def _enrich_holding(h: dict) -> dict:
     shares = h["shares"]
     avg_cost = h.get("avg_cost")
 
-    rows = database.get_recent_prices(symbol, limit=1)
+    rows = _latest_prices.get(symbol)
     if rows:
-        current_price = rows[0][1]
+        current_price = rows[-1][1]
     else:
         current_price = get_stock_price(symbol)
 
@@ -1939,18 +1951,26 @@ def briefing() -> tuple:
 # Background price tracker
 # ─────────────────────────────────────────────────────────────
 
+# Alerts are evaluated against price history, so checking every ten minutes misses
+# nothing. Checking every minute queried the database every minute, which kept Neon's
+# compute from ever suspending while the server was awake (it suspends after five idle
+# minutes) and spent the free plan's monthly compute hours.
+_ALERT_CHECK_SECS = 600
+
+
 def _background_tracker() -> None:
-    """Fetch prices on an interval and push WebSocket updates."""
+    """Fetch prices on an interval, keep the latest in memory and push WebSocket updates."""
     raw_symbols = os.environ.get("STOCK_SYMBOLS", "AAPL,MSFT,TSLA,NVDA,AMZN")
     symbols = [s.strip().upper() for s in raw_symbols.split(",") if s.strip()]
     interval = int(os.environ.get("CHECK_INTERVAL", "60"))
+    last_alert_check = 0.0
 
     while True:
         for sym in symbols:
             try:
                 price = get_stock_price(sym)
                 if price is not None:
-                    database.insert_price(sym, price)
+                    _remember_price(sym, price)
                     socketio.emit(
                         "price_update",
                         {
@@ -1963,10 +1983,12 @@ def _background_tracker() -> None:
                 pass
         # Check alerts while awake. Moves made while asleep are caught too,
         # because alerts are evaluated against price history, not ticks.
-        try:
-            _check_alerts(database.get_active_alerts_for_eval())
-        except Exception:
-            app.logger.exception("background alert check failed")
+        if time.time() - last_alert_check >= _ALERT_CHECK_SECS:
+            last_alert_check = time.time()
+            try:
+                _check_alerts(database.get_active_alerts_for_eval())
+            except Exception:
+                app.logger.exception("background alert check failed")
         time.sleep(interval)
 
 
@@ -1974,7 +1996,15 @@ def _background_tracker() -> None:
 # Runner
 # ─────────────────────────────────────────────────────────────
 
-database.init_db()
+# A database outage (for example Neon's free plan running out of compute hours) must not
+# stop the server: market data, options and Ski's research still work without it, and
+# /health says the database is down instead of the service never answering at all.
+_db_error: Optional[str] = None
+try:
+    database.init_db()
+except Exception as exc:
+    _db_error = str(exc).strip().splitlines()[0][:200] if str(exc).strip() else type(exc).__name__
+    app.logger.error("database unavailable at startup: %s", _db_error)
 socketio.start_background_task(_background_tracker)
 
 if __name__ == "__main__":

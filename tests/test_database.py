@@ -1,4 +1,5 @@
 import os
+import time
 from tracker import database
 
 TEST_DB = "data/test_prices.db"
@@ -25,6 +26,15 @@ def test_insert_and_fetch_prices() -> None:
     assert len(rows) == 2
     assert rows[0][1] == 150.0
     assert rows[1][1] == 151.0
+
+
+def test_recent_prices_are_the_newest() -> None:
+    """With more rows than the limit, the newest come back (oldest first), not the oldest."""
+    for p in (150.0, 151.0, 152.0):
+        database.insert_price("MSFT", p)
+        time.sleep(0.01)
+    rows = database.get_recent_prices("MSFT", limit=2)
+    assert [r[1] for r in rows] == [151.0, 152.0]
 
 
 def test_insert_and_fetch_alerts() -> None:
