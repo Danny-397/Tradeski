@@ -173,6 +173,9 @@ async function validateSession() {
             authState.user = data.user;
             updateAuthUI();
             onSignedIn();
+        } else if (res.status === 503) {
+            // Database outage: the session is still valid, so keep it.
+            updateAuthUI();
         } else {
             clearSession();
             onSignedOut();
