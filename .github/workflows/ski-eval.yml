@@ -19,8 +19,8 @@ jobs:
   eval:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@v5
+    - uses: actions/setup-python@v6
       with:
         python-version-file: .python-version
     - name: Install dependencies
@@ -40,7 +40,7 @@ jobs:
       if: always()
       run: |
         { echo '```'; cat eval.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       if: always()
       with:
         name: ski-eval-results
