@@ -23,11 +23,13 @@ class SimpleCache:
 
         return value
 
+    # get() only drops an expired entry when that same key is read again, so
+    # keys nobody asks for twice would stay until the server restarts.
+    MAX_ENTRIES = 5000
+
     def set(self, key, value, ttl=60):
         """Store a value with a time-to-live (TTL)."""
-        expires_at = time.time() + ttl
-        self.store[key] = (value, expires_at)
-
-    def clear(self):
-        """Clear all cached entries."""
-        self.store.clear()
+        now = time.time()
+        if len(self.store) >= self.MAX_ENTRIES:
+            self.store = {k: v for k, v in self.store.items() if v[1] > now}
+        self.store[key] = (value, now + ttl)

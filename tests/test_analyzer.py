@@ -7,7 +7,6 @@ from tracker.analyzer import (
     zscore,
     volatility,
     linear_regression_prediction,
-    analyze_series,
 )
 
 
@@ -86,8 +85,3 @@ def test_linear_regression_prediction_basic():
     assert pred is not None
     # For a perfect line y = x, next prediction should be close to 50
     assert 49.0 <= pred <= 51.0
-
-
-def test_analyze_series_empty():
-    result = analyze_series([])
-    assert result == {}

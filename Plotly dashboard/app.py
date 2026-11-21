@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
+import math
 import re
 import threading
 import time
@@ -138,24 +139,6 @@ _TF_MAP: dict[str, tuple[str, str]] = {
 
 
 # ─────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────
-
-def rows_to_dict(
-    rows: List[Tuple[str, float, float]],
-    limit: Optional[int],
-) -> Tuple[List[str], List[float], List[float]]:
-    """Convert (timestamp, price, volume) rows into labeled lists."""
-    if limit:
-        rows = rows[-limit:]
-
-    timestamps = [row[0] for row in rows]
-    prices = [row[1] for row in rows]
-    volume = [row[2] for row in rows]
-    return timestamps, prices, volume
-
-
-# ─────────────────────────────────────────────────────────────
 # Authentication
 # ─────────────────────────────────────────────────────────────
 
@@ -259,7 +242,7 @@ def health() -> tuple:
 @app.route("/stats")
 def stats() -> tuple:
     """Return OHLC + real 52-week range for a symbol (yfinance, cached 5 min)."""
-    symbol = request.args.get("symbol", "AAPL").upper()
+    symbol = _clean_symbol(request.args.get("symbol", "AAPL"))  # also bounds the cache key
     cache_key = f"stats:{symbol}"
 
     cached = _cache.get(cache_key)
@@ -296,7 +279,7 @@ def stats() -> tuple:
 @app.route("/price_history")
 def price_history() -> tuple:
     """Return real OHLC history + computed indicators (yfinance, cached 5 min)."""
-    symbol = request.args.get("symbol", "AAPL").upper()
+    symbol = _clean_symbol(request.args.get("symbol", "AAPL"))  # also bounds the cache key
     # Accept either ?tf=1M (new) or ?limit=300 (legacy — map to nearest tf)
     tf = (request.args.get("tf") or request.args.get("timeframe") or "1M").upper()
     if tf not in _TF_MAP:
@@ -334,7 +317,6 @@ def price_history() -> tuple:
         "high":       highs,
         "low":        lows,
         "close":      closes,
-        "prices":     closes,     # keep for any legacy callers
         "volume":     volume,
         "sma20":      sma20_vals,
         "sma50":      sma50_vals,
@@ -353,63 +335,6 @@ def price_history() -> tuple:
     return jsonify(result)
 
 
-@app.route("/sparkline")
-def sparkline() -> tuple:
-    """Return 30-day close prices for a symbol (used by watchlist sparklines)."""
-    symbol = request.args.get("symbol", "AAPL").upper()
-    cache_key = f"sparkline:{symbol}"
-
-    cached = _cache.get(cache_key)
-    if cached is not None:
-        return jsonify(cached)
-
-    bars = get_ohlc_history(symbol, "1mo", "1d")
-    result = {
-        "timestamps": [b["timestamp"] for b in bars],
-        "close":      [b["close"]     for b in bars],
-    }
-    _cache.set(cache_key, result, ttl=_CHART_TTL)
-    return jsonify(result)
-
-
-@app.route("/watchlist")
-def watchlist() -> tuple:
-    """Return latest price + pct_change for a comma‑separated list of symbols."""
-    raw = request.args.get("symbols", "AAPL,MSFT,TSLA,NVDA,AMZN")
-    symbols = [s.strip().upper() for s in raw.split(",") if s.strip()]
-
-    result = {}
-
-    for sym in symbols:
-        rows = _latest_prices.get(sym)
-        if not rows:
-            result[sym] = None
-            continue
-
-        prices = [row[1] for row in rows]
-        open_price = prices[0]
-        close_price = prices[-1]
-
-        pct_change = (
-            (close_price - open_price) / open_price * 100
-            if open_price else 0.0
-        )
-
-        result[sym] = {
-            "price": round(close_price, 4),
-            "change_pct": round(pct_change, 4),
-        }
-
-    return jsonify(result)
-
-
-@app.route("/watchlist/saved", methods=["GET"])
-@require_auth
-def get_saved_watchlist() -> tuple:
-    """Return the signed-in user's persistent watchlist symbols."""
-    return jsonify({"symbols": database.get_watchlist(g.user_id)})
-
-
 def _clean_symbol(raw) -> str:
     """Normalise a user-supplied ticker before it is stored or looked up.
 
@@ -418,27 +343,6 @@ def _clean_symbol(raw) -> str:
     is dropped, so the value is safe to render back into the dashboard.
     """
     return re.sub(r"[^A-Z0-9.\-]", "", str(raw or "").upper())[:10]
-
-
-@app.route("/watchlist/saved", methods=["POST"])
-@require_auth
-def add_saved_watchlist() -> tuple:
-    """Add a symbol to the signed-in user's persistent watchlist."""
-    data = request.json or {}
-    symbol = _clean_symbol(data.get("symbol"))
-    if not symbol:
-        return jsonify({"error": "symbol is required"}), 400
-    database.add_to_watchlist(g.user_id, symbol)
-    return jsonify({"status": "ok", "symbols": database.get_watchlist(g.user_id)})
-
-
-@app.route("/watchlist/saved/<symbol>", methods=["DELETE"])
-@require_auth
-def delete_saved_watchlist(symbol: str) -> tuple:
-    """Remove a symbol from the signed-in user's persistent watchlist."""
-    clean = _clean_symbol(symbol)
-    database.remove_from_watchlist(g.user_id, clean)
-    return jsonify({"status": "deleted", "symbols": database.get_watchlist(g.user_id)})
 
 
 @app.route("/screens", methods=["GET"])
@@ -467,25 +371,6 @@ def put_screens() -> tuple:
         return jsonify({"error": str(e)}), 400
     database.set_saved_screens(g.user_id, json.dumps(screens, separators=(",", ":")))
     return jsonify({"status": "ok", "screens": screens})
-
-
-@app.route("/market_status")
-def market_status() -> tuple:
-    """Return simple market‑open heuristic based on server UTC time."""
-    now = datetime.datetime.utcnow()
-    day = now.weekday()
-    hour = now.hour + now.minute / 60
-
-    if day >= 5:
-        status = "closed"
-    elif 13.5 <= hour < 20:
-        status = "open"
-    elif 8 <= hour < 13.5 or 20 <= hour < 24:
-        status = "extended"
-    else:
-        status = "closed"
-
-    return jsonify({"status": status, "utc": now.isoformat()})
 
 
 @app.route("/alerts", methods=["GET"])
@@ -687,14 +572,14 @@ def add_holding_route() -> tuple:
         return jsonify({"error": "symbol is required"}), 400
     try:
         shares = float(shares)
-        if shares <= 0:
+        if not (math.isfinite(shares) and shares > 0):  # NaN passed `<= 0`
             raise ValueError
     except (TypeError, ValueError):
         return jsonify({"error": "shares must be a positive number"}), 400
     if avg_cost is not None:
         try:
             avg_cost = float(avg_cost)
-            if avg_cost < 0:
+            if not (math.isfinite(avg_cost) and avg_cost >= 0):
                 raise ValueError
         except (TypeError, ValueError):
             return jsonify({"error": "avg_cost must be a non-negative number"}), 400
@@ -727,7 +612,7 @@ def _parse_sample_portfolio(raw) -> list:
     for row in raw[:_SAMPLE_MAX_HOLDINGS]:
         if not isinstance(row, dict):
             continue
-        symbol = re.sub(r"[^A-Z0-9.-]", "", str(row.get("symbol") or "").upper())[:10]
+        symbol = _clean_symbol(row.get("symbol"))
         try:
             shares = float(row.get("shares"))
             avg_cost = float(row["avg_cost"]) if row.get("avg_cost") is not None else None
@@ -826,10 +711,6 @@ def _get_portfolio_context(user_id: Optional[int], sample: Optional[list] = None
             f"beta vs S&P 500 {risk['beta']}, "
             f"annualized volatility {risk['volatility']}%."
         )
-
-    watch = database.get_watchlist(user_id)
-    if watch:
-        lines.append(f"  WATCHLIST (not held): {', '.join(watch[:15])}")
 
     return "\n".join(lines)
 

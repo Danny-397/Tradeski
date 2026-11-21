@@ -9,7 +9,7 @@ Live charts · Market news · Whole-market screener · Options strategy lab · A
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-344%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-336%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 344 tests across 28 files — CI on every push |
+| **Tests** | 336 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 ### Screenshots
@@ -173,7 +173,7 @@ No free source has implied-volatility history, so Tradeski keeps its own. After 
 
 ### Accounts & Saved Data
 
-Browsing, charting, the screener, and Ski work without an account. Creating a free account (email + password) persists your **portfolio, alerts, watchlist and saved screens** server-side so they survive across sessions and devices. Passwords are stored only as salted PBKDF2 hashes; sessions use signed, expiring bearer tokens (no server-side session table). Every personal record is scoped to its owner — the portfolio and alert tables are keyed by `user_id`, so one account can never read or mutate another's data. A published [Privacy Policy](frontend/privacy.html) documents exactly what is collected and why.
+Browsing, charting, the screener, and Ski work without an account. Creating a free account (email + password) persists your **portfolio, alerts and saved screens** server-side so they survive across sessions and devices. Passwords are stored only as salted PBKDF2 hashes; sessions use signed, expiring bearer tokens (no server-side session table). Every personal record is scoped to its owner — the portfolio and alert tables are keyed by `user_id`, so one account can never read or mutate another's data. A published [Privacy Policy](frontend/privacy.html) documents exactly what is collected and why.
 
 ---
 
@@ -185,16 +185,13 @@ Tradeski/
 ├── tracker/                   # Core Python backend module
 │   ├── analyzer.py            # 10 quantitative indicators, written by hand on NumPy
 │   ├── auth.py                # Password hashing (PBKDF2) + signed bearer tokens
-│   ├── database.py            # SQLite persistence — prices, alerts, portfolio, users, watchlist, saved screens
+│   ├── database.py            # SQLite persistence — users, alerts, portfolio, saved screens
 │   ├── price_fetcher.py       # yfinance: live prices, OHLC history, screener data
 │   ├── fred.py                # FRED API client — 7 macro series with trend detection
 │   ├── news.py                # NewsAPI + VADER sentiment with financial lexicon
 │   ├── ski_tools.py           # Ski's tools: price summary, fundamentals, news, correlation, what-if, macro
 │   ├── alert_eval.py          # Alert checks against price history since each alert was set
 │   ├── screens.py             # Saved screener setups: validation before storage
-│   ├── notifier.py            # Pushover push notification handler
-│   ├── config.py              # Environment variable configuration
-│   ├── logger.py              # Rotating file + console logger
 │
 ├── Plotly dashboard/          # Flask + Socket.IO application server
 │   ├── app.py                 # REST API, WebSocket emitters, Ski /chat + /briefing endpoints
@@ -212,16 +209,14 @@ Tradeski/
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 344 tests across 28 files
+├── tests/                     # pytest suite — 336 tests across 27 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
-│   ├── test_database.py       # SQLite round-trips for prices, alerts, portfolio
 │   ├── test_fred.py           # FRED client with mocked HTTP — trend detection
 │   ├── test_news.py           # VADER: financial lexicon augmentation, aggregation
 │   ├── test_portfolio.py      # CRUD operations, UPSERT behavior
 │   ├── test_screener.py       # Data normalization, ETF fallback, edge cases
 │   ├── test_screens.py        # Saved screens: validation, per-user storage, /screens API
-│   ├── test_notifier.py       # Pushover mock: correct POST structure
 │   └── test_price_fetcher.py  # Live yfinance smoke test
 │
 ├── .github/workflows/ci.yml   # GitHub Actions: lint → test on every push
@@ -290,13 +285,12 @@ Tradeski/
 | AI Assistant | Anthropic Claude Haiku 5.5 |
 | Parallel Fetching | `concurrent.futures.ThreadPoolExecutor` |
 | Scheduler | APScheduler |
-| Notifications | Pushover API (optional) |
 | Frontend Charting | Plotly.js |
 | Frontend Runtime | Vanilla JavaScript (ES2020) |
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (344 tests) |
+| Testing | pytest (336 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -332,7 +326,7 @@ Ski is powered by **Anthropic Claude Haiku 5.5**. It starts every request with l
 |:---|:---|:---|
 | System prompt | Static | Financial knowledge: equities, macro, sector rotation, indicator signals |
 | Macro context | FRED API (cached 1h) | CPI, Fed Funds Rate, GDP, unemployment, yield curve, credit spreads |
-| Portfolio context | Postgres/SQLite (live) | Per-holding weight, live P&L, portfolio risk (Sharpe/beta/vol), concentration flag, watchlist |
+| Portfolio context | Postgres/SQLite (live) | Per-holding weight, live P&L, portfolio risk (Sharpe/beta/vol), concentration flag |
 | News context | NewsAPI + VADER (cached 30m) | Recent headlines for the viewed symbol with sentiment scores |
 
 **Tools** ([`tracker/ski_tools.py`](tracker/ski_tools.py)). Ski calls these (several at once if it needs to, at most 4 rounds per question) instead of guessing:
@@ -558,9 +552,6 @@ Body: `{ "symbol": "NVDA", "expiry": "2026-12-04", "target": 205 }` (both option
 ### `GET /options/scan?kind=cash_secured_put&symbols=AAPL,MSFT&max_delta=0.3&min_dte=20&max_dte=50`
 The best trade per symbol, up to 10 symbols: `kind` is `cash_secured_put`, `covered_call`, `bull_put_spread`, `bear_call_spread` or `iron_condor`, with `min_oi`, `max_spread` and `skip_earnings=1` filters. Each result has its legs, a strikes label and whether earnings fall before expiry. Rate-limited to 10 a minute.
 
-### `GET /watchlist/saved` · `POST /watchlist/saved` · `DELETE /watchlist/saved/<symbol>`
-Read, add to, or remove from the signed-in user's persistent watchlist. **Requires authentication.**
-
 ### `GET /screens` · `PUT /screens`
 Read or replace the signed-in user's saved screener setups: `{ "screens": [{ "name", "filters", "sort", "view", "seen", "seen_at" }] }`. Up to 10 screens with unique names; `seen` is the symbols matched when the screen was last opened (at most 3,000), from which the browser finds new matches. Everything is validated before it is stored. **Requires authentication.**
 
@@ -634,22 +625,21 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-344 tests across 28 files:
+336 tests across 27 files:
 
 | File | What it covers |
 |:---|:---|
 | `test_analyzer.py` | Indicator shape, value range, arithmetic correctness |
 | `test_analyzer_basic.py` | Edge cases: empty input, flat series, single-element arrays |
 | `test_auth.py` | Registration, login, token handling, per-user scoping |
-| `test_database.py` | SQLite round-trips for prices, alerts, portfolio |
 | `test_demo_mode.py` | Demo fallback when no credentials are configured |
+| `test_input_limits.py` | NaN/Infinity holdings refused; the cache drops expired entries once full |
 | `test_fred.py` | FRED client with mocked HTTP — trend detection, missing series |
 | `test_news.py` | VADER: financial lexicon augmentation, aggregation |
 | `test_portfolio.py` | CRUD operations, UPSERT behavior, case-insensitive symbols |
 | `test_build_screener.py` | Screener data build: the symbol directory keeps only common stocks, technicals from known price paths, RSI identical to the chart's, price-derived ratios, row layout |
 | `test_screener.py` | Normalization, ETF sector fallback, and the history fallback for when Yahoo blocks `.info` |
 | `test_screens.py` | Saved screens: validation (names, filter fields and bounds, symbol lists, limits), per-user storage and the `/screens` API |
-| `test_notifier.py` | Pushover mock: correct POST structure, skip without credentials |
 | `test_ohlc_history.py` | Dropping yfinance's NaN placeholder bar; JSON-safe numbers |
 | `test_price_fetcher.py` | Live yfinance smoke test |
 | `test_stream_contract.py` | Shape of the streamed payload the dashboard consumes |
@@ -685,7 +675,7 @@ GitHub Actions runs lint and the full test suite on every push and pull request 
 
 ### Persistence — Postgres in production
 
-**The live deployment runs on Postgres, so accounts, portfolios, alerts, and watchlists persist across redeploys, sleeps, and devices** — `GET /health` on the production backend returns `"db": "postgres"`. SQLite is used only as the local-development default: it needs zero setup, but on Render's free tier the SQLite file lives on an **ephemeral disk that is wiped on every redeploy and sleep**, so any real deployment should point at Postgres. To wire it up:
+**The live deployment runs on Postgres, so accounts, portfolios and alerts persist across redeploys, sleeps, and devices** — `GET /health` on the production backend returns `"db": "postgres"`. SQLite is used only as the local-development default: it needs zero setup, but on Render's free tier the SQLite file lives on an **ephemeral disk that is wiped on every redeploy and sleep**, so any real deployment should point at Postgres. To wire it up:
 
 1. Create a free Postgres database (e.g. [Neon](https://neon.tech)) and copy its connection string.
 2. Set **`DATABASE_URL`** to that string in the Render dashboard.

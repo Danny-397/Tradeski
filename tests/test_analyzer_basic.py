@@ -10,7 +10,6 @@ from tracker.analyzer import (
     volatility,
     stochastic,
     linear_regression_prediction,
-    analyze_series,
 )
 
 
@@ -76,7 +75,7 @@ def test_rsi_pure_downtrend_is_min():
     assert all(v == 0.0 for v in numeric)
 
 
-# ── Stochastic uses real high/low, and analyze_series stays honest ───────
+# ── Stochastic uses real high/low ───────
 
 def test_stochastic_uses_high_low_range():
     highs = [float(i) + 1 for i in range(20)]
@@ -86,25 +85,3 @@ def test_stochastic_uses_high_low_range():
     assert len(k_vals) == len(closes)
     numeric = [v for v in k_vals if v is not None]
     assert all(0 <= v <= 100 for v in numeric)
-
-
-def test_analyze_series_omits_stochastic_without_ohlc():
-    # Close-only series: stochastic can't be computed, so it must be None
-    # rather than fabricated from close-as-high/low.
-    data = [("t", float(i)) for i in range(60)]
-    result = analyze_series(data)
-    assert result["stoch_k"] is None
-    assert result["stoch_d"] is None
-    assert result["rsi14"] is not None
-
-
-def test_analyze_series_computes_stochastic_with_ohlc():
-    data = [("t", float(i)) for i in range(60)]
-    highs = [float(i) + 1 for i in range(60)]
-    lows = [float(i) - 1 for i in range(60)]
-    result = analyze_series(data, highs=highs, lows=lows)
-    assert result["stoch_k"] is not None
-
-
-def test_analyze_series_empty():
-    assert analyze_series([]) == {}
