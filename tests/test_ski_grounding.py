@@ -130,6 +130,24 @@ def test_harness_flags_an_invented_number(monkeypatch):
     assert body["grounded"] is False and body["ungrounded_figures"] == ["$999.99"]
 
 
+def test_chat_caps_each_history_turn(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    app = run_eval.install_fixtures(monkeypatch.setattr)
+    sent = {}
+
+    def fake_run(client, system, messages, data, web_search=True):
+        sent["messages"] = messages
+        return {"reply": "ok", "search_texts": [], "tool_outputs": [], "tools_used": [], "lookups": []}
+
+    monkeypatch.setattr(app, "_run_ski", fake_run)
+    huge = "x" * 1_000_000
+    r = app.app.test_client().post("/chat", json={
+        "message": "hi", "history": [{"role": "user", "content": huge},
+                                     {"role": "assistant", "content": huge}]})
+    assert r.status_code == 200
+    assert [len(m["content"]) for m in sent["messages"]] == [app.SKI_HISTORY_TURN_CHARS] * 2 + [2]
+
+
 def test_fixture_bars_tell_the_story_the_cases_assume():
     closes = {s: [b["close"] for b in run_eval.fixture_bars(s)] for s in ("NVDA", "TSLA")}
     assert closes["NVDA"][-1] > closes["NVDA"][0] and closes["TSLA"][-1] < closes["TSLA"][0]

@@ -1551,6 +1551,7 @@ ANSWER FORMAT (the chat panel renders this as a card):
 
 # Ski's tools. Code computes every number; the model picks what to look up.
 SKI_MAX_TOOL_ROUNDS = 4
+SKI_HISTORY_TURN_CHARS = 4000   # the longest of 264 eval replies was 1,606 characters
 # Haiku 5.5 takes the basic web search variant (the _20260209 one with
 # dynamic filtering is for Opus/Sonnet).
 _SKI_WEB_SEARCH = {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
@@ -1798,7 +1799,9 @@ def chat() -> tuple:
     expected_role = "user"
     for turn in history[-10:]:
         role = (turn.get("role") or "").strip()
-        content = (turn.get("content") or "").strip()
+        # The history comes from the browser, so it is capped like the message:
+        # uncapped, one request could send megabytes to Claude on every tool round.
+        content = (turn.get("content") or "").strip()[:SKI_HISTORY_TURN_CHARS]
         if not content:
             continue
         if role != expected_role:
