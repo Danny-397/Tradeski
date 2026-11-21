@@ -104,11 +104,9 @@ I learned how much a product is shaped by deployment constraints. Render's free 
 
 ## What's Next
 
-**Accounts & saved data** — Shipped: optional email/password accounts (PBKDF2-hashed) now persist each user's portfolio, alerts, and watchlist server-side via signed bearer tokens, with every record scoped by `user_id`. Next: surface the persistent watchlist in the dashboard UI and add password reset.
+**Accounts & saved data** — Shipped: optional email/password accounts (PBKDF2-hashed) now persist each user's portfolio and alerts server-side via signed bearer tokens, with every record scoped by `user_id`. Next: add password reset.
 
 **Options chain data** — Integrate IV, Greeks, and open interest from a free options API alongside the underlying price chart.
-
-**Alert notifications** — Pushover integration is already built in (`notifier.py`); the production deployment just needs the credentials wired up.
 
 **More tickers in the correlation matrix** — The heatmap is currently limited to 11 symbols. Expanding to user-defined watchlists would make it more personalized.
 

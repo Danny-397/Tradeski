@@ -179,7 +179,6 @@ def install_fixtures(set_attr=setattr):
     set_attr(app.limiter, "enabled", False)
     set_attr(app, "get_ohlc_history", fixture_bars)
     set_attr(app, "get_stock_price", lambda s: fixture_bars(s)[-1]["close"] if fixture_bars(s) else None)
-    set_attr(app.database, "get_recent_prices", lambda s, limit=1: [])
     set_attr(app, "_fetch_screener_row", fixture_fundamentals)
     set_attr(app, "_cached_filings", fixture_filings)
     set_attr(app, "_fetch_cached_news", fixture_news)

@@ -119,6 +119,7 @@ def init_db() -> None:
     conn = _connect()
     cursor = conn.cursor()
 
+    # Unused since the tracker keeps ticks in memory (#69); kept so existing rows are not lost.
     _execute(cursor, f"""
         CREATE TABLE IF NOT EXISTS prices (
             id {_PK},
@@ -188,7 +189,8 @@ def init_db() -> None:
         """)
         _execute(cursor, "DROP TABLE portfolio_legacy")
 
-    # Per-user persistent watchlist (previously in-memory only).
+    # Saved watchlists: the UI no longer has one, so nothing reads or writes this;
+    # kept so existing rows are not lost.
     _execute(cursor, f"""
         CREATE TABLE IF NOT EXISTS watchlist (
             id       {_PK},
@@ -264,92 +266,8 @@ def get_user_by_id(user_id: int) -> Optional[dict]:
 
 
 # ------------------------------------------------------------------------------
-# Price Storage
-# ------------------------------------------------------------------------------
-
-def insert_price(symbol: str, price: float, volume: float = 0.0) -> None:
-    """Insert a price row with timestamp."""
-    conn = _connect()
-    cursor = conn.cursor()
-    _execute(
-        cursor,
-        "INSERT INTO prices (symbol, price, volume, timestamp) VALUES (?, ?, ?, ?)",
-        (symbol, price, volume, time.time()),
-    )
-    conn.commit()
-    conn.close()
-
-
-def get_recent_prices(symbol: str, limit: int = 200) -> List[Tuple[float, float, float]]:
-    """
-    Return recent prices for a symbol as (timestamp, price, volume) tuples.
-    Ordered oldest → newest.
-    """
-    conn = _connect()
-    cursor = conn.cursor()
-    rows = _fetchall(
-        cursor,
-        """
-        SELECT timestamp, price, volume
-        FROM prices
-        WHERE symbol = ?
-        ORDER BY timestamp DESC
-        LIMIT ?
-        """,
-        (symbol, limit),
-    )
-    rows = list(reversed(rows))  # the newest `limit` rows, returned oldest first
-    conn.close()
-    return rows
-
-
-def get_prices_in_range(
-    symbol: str,
-    start_ts: float,
-    end_ts: float,
-) -> List[Tuple[float, float, float]]:
-    """
-    Return prices in a time range as (timestamp, price, volume).
-    """
-    conn = _connect()
-    cursor = conn.cursor()
-    rows = _fetchall(
-        cursor,
-        """
-        SELECT timestamp, price, volume
-        FROM prices
-        WHERE symbol = ?
-          AND timestamp >= ?
-          AND timestamp <= ?
-        ORDER BY timestamp ASC
-        """,
-        (symbol, start_ts, end_ts),
-    )
-    conn.close()
-    return rows
-
-
-# ------------------------------------------------------------------------------
 # Alerts
 # ------------------------------------------------------------------------------
-
-def insert_alert(symbol: str, alert_type: str, message: str) -> None:
-    """
-    Insert a simple alert (used by tests).
-    """
-    conn = _connect()
-    cursor = conn.cursor()
-    _execute(
-        cursor,
-        """
-        INSERT INTO alerts (symbol, alert_type, message, created_at)
-        VALUES (?, ?, ?, ?)
-        """,
-        (symbol, alert_type, message, time.time()),
-    )
-    conn.commit()
-    conn.close()
-
 
 def create_alert(
     symbol: str,
@@ -377,27 +295,6 @@ def create_alert(
     conn.commit()
     conn.close()
     return alert_id
-
-
-def get_recent_alerts(symbol: str, limit: int = 10):
-    """
-    Return recent alerts for a symbol as (timestamp, alert_type, message).
-    """
-    conn = _connect()
-    cursor = conn.cursor()
-    rows = _fetchall(
-        cursor,
-        """
-        SELECT created_at, alert_type, message
-        FROM alerts
-        WHERE symbol = ?
-        ORDER BY created_at DESC
-        LIMIT ?
-        """,
-        (symbol, limit),
-    )
-    conn.close()
-    return rows
 
 
 def get_alerts(user_id: int):
@@ -572,54 +469,6 @@ def delete_holding(holding_id: int, user_id: int) -> None:
         cursor,
         "DELETE FROM portfolio WHERE id = ? AND user_id = ?",
         (holding_id, user_id),
-    )
-    conn.commit()
-    conn.close()
-
-
-# ------------------------------------------------------------------------------
-# Watchlist (per-user, persistent)
-# ------------------------------------------------------------------------------
-
-def get_watchlist(user_id: int) -> List[str]:
-    """Return a user's watchlist symbols, newest first."""
-    conn = _connect()
-    cursor = conn.cursor()
-    rows = _fetchall(
-        cursor,
-        "SELECT symbol FROM watchlist WHERE user_id = ? ORDER BY added_at DESC",
-        (user_id,),
-    )
-    conn.close()
-    return [r[0] for r in rows]
-
-
-def add_to_watchlist(user_id: int, symbol: str) -> None:
-    """Add a symbol to a user's watchlist (no-op if already present)."""
-    sym = symbol.upper().strip()
-    conn = _connect()
-    cursor = conn.cursor()
-    _execute(
-        cursor,
-        """
-        INSERT INTO watchlist (user_id, symbol) VALUES (?, ?)
-        ON CONFLICT(user_id, symbol) DO NOTHING
-        """,
-        (user_id, sym),
-    )
-    conn.commit()
-    conn.close()
-
-
-def remove_from_watchlist(user_id: int, symbol: str) -> None:
-    """Remove a symbol from a user's watchlist."""
-    sym = symbol.upper().strip()
-    conn = _connect()
-    cursor = conn.cursor()
-    _execute(
-        cursor,
-        "DELETE FROM watchlist WHERE user_id = ? AND symbol = ?",
-        (user_id, sym),
     )
     conn.commit()
     conn.close()

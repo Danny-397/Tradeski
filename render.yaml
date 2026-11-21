@@ -46,7 +46,3 @@ services:
         sync: false
       - key: SEC_USER_AGENT
         sync: false
-      - key: PUSHOVER_USER_KEY
-        sync: false
-      - key: PUSHOVER_API_TOKEN
-        sync: false

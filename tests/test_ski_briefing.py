@@ -80,7 +80,6 @@ def _briefing(monkeypatch, client):
     holdings = [{"id": 1, **h} for h in run_eval.SAMPLE_PORTFOLIO]
     monkeypatch.setattr(app, "_resolve_user", lambda: 7)
     monkeypatch.setattr(app.database, "get_portfolio", lambda uid: holdings)
-    monkeypatch.setattr(app.database, "get_watchlist", lambda uid: [])
     monkeypatch.setattr(app.anthropic, "Anthropic", lambda api_key: client)
     r = app.app.test_client().post("/briefing?refresh=1")
     assert r.status_code == 200, r.get_json()

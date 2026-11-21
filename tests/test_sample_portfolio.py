@@ -23,7 +23,7 @@ def _load_parser():
         if isinstance(node, ast.Assign) and any(
                 isinstance(t, ast.Name) and t.id == "_SAMPLE_MAX_HOLDINGS" for t in node.targets):
             exec(compile(ast.Module([node], []), SERVER, "exec"), ns)
-        if isinstance(node, ast.FunctionDef) and node.name == "_parse_sample_portfolio":
+        if isinstance(node, ast.FunctionDef) and node.name in ("_parse_sample_portfolio", "_clean_symbol"):
             exec(compile(ast.Module([node], []), SERVER, "exec"), ns)
     return ns["_parse_sample_portfolio"]
 

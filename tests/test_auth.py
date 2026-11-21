@@ -89,16 +89,6 @@ def test_alerts_are_user_scoped():
     assert len(db.get_alerts(u2)) == 0
 
 
-def test_watchlist_roundtrip_and_dedupe():
-    uid = db.create_user("w@example.com", "h")
-    db.add_to_watchlist(uid, "AAPL")
-    db.add_to_watchlist(uid, "aapl")   # duplicate (case-insensitive) — ignored
-    db.add_to_watchlist(uid, "MSFT")
-    assert set(db.get_watchlist(uid)) == {"AAPL", "MSFT"}
-    db.remove_from_watchlist(uid, "AAPL")
-    assert db.get_watchlist(uid) == ["MSFT"]
-
-
 # ── Legacy schema migration ──────────────────────────────────────────────
 
 def test_legacy_portfolio_migrates_to_per_user():
