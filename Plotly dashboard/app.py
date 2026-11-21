@@ -1835,11 +1835,12 @@ def briefing() -> tuple:
 # Background price tracker
 # ─────────────────────────────────────────────────────────────
 
-# Alerts are evaluated against price history, so checking every ten minutes misses
-# nothing. Checking every minute queried the database every minute, which kept Neon's
-# compute from ever suspending while the server was awake (it suspends after five idle
-# minutes) and spent the free plan's monthly compute hours.
-_ALERT_CHECK_SECS = 600
+# This loop never touches the database. Alerts are checked when their owner's
+# dashboard asks for them (GET /alerts), replaying price history since each alert
+# was created, so a move made in between still fires, stamped with its real time.
+# A background check found nothing that view wouldn't, and woke Neon every ten
+# minutes the server was up (it suspends after five idle minutes), spending the
+# free plan's 100 compute-hours a month on an empty alerts table.
 
 
 def _background_tracker() -> None:
@@ -1847,7 +1848,6 @@ def _background_tracker() -> None:
     raw_symbols = os.environ.get("STOCK_SYMBOLS", "AAPL,MSFT,TSLA,NVDA,AMZN")
     symbols = [s.strip().upper() for s in raw_symbols.split(",") if s.strip()]
     interval = int(os.environ.get("CHECK_INTERVAL", "60"))
-    last_alert_check = 0.0
 
     while True:
         for sym in symbols:
@@ -1865,14 +1865,6 @@ def _background_tracker() -> None:
                     )
             except Exception:
                 pass
-        # Check alerts while awake. Moves made while asleep are caught too,
-        # because alerts are evaluated against price history, not ticks.
-        if time.time() - last_alert_check >= _ALERT_CHECK_SECS:
-            last_alert_check = time.time()
-            try:
-                _check_alerts(database.get_active_alerts_for_eval())
-            except Exception:
-                app.logger.exception("background alert check failed")
         time.sleep(interval)
 
 
