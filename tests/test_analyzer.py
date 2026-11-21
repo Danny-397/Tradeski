@@ -85,5 +85,3 @@ def test_linear_regression_prediction_basic():
     assert pred is not None
     # For a perfect line y = x, next prediction should be close to 50
     assert 49.0 <= pred <= 51.0
-
-

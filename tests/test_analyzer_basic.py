@@ -85,5 +85,3 @@ def test_stochastic_uses_high_low_range():
     assert len(k_vals) == len(closes)
     numeric = [v for v in k_vals if v is not None]
     assert all(0 <= v <= 100 for v in numeric)
-
-

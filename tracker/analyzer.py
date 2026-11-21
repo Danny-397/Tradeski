@@ -240,5 +240,3 @@ def linear_regression_prediction(values: List[float]) -> Optional[float]:
     slope, intercept = np.linalg.lstsq(matrix, y_vals, rcond=None)[0]
 
     return float(slope * len(values) + intercept)
-
-

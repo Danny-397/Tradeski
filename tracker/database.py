@@ -7,7 +7,7 @@
 import os
 import sqlite3
 import time
-from typing import List, Tuple, Optional
+from typing import List, Optional
 
 DB_PATH = "data/prices.db"
 
