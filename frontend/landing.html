@@ -289,6 +289,13 @@
             .section, .cta { padding: 72px 0; }
             .footer-inner { flex-direction: column; align-items: flex-start; }
         }
+        /* Touch screens: same look, finger-sized targets. The nav button grows;
+           text links get a larger invisible hit area so the layout stays put. */
+        @media (pointer: coarse) {
+            .nav-cta { min-height: 44px; }
+            .nav-logo, .footer-inner a { position: relative; }
+            .nav-logo::after, .footer-inner a::after { content: ""; position: absolute; inset: -12px -6px; }
+        }
             /* Links inside sentences are underlined so they don't rely on colour alone. */
         .demo-note a, .privacy-more a { text-decoration: underline; text-underline-offset: 2px; }
     </style>
