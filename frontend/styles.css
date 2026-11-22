@@ -1284,6 +1284,20 @@ select.form-input {
     .ski-input, .filter-input, .filter-select { font-size: 16px; }
 }
 
+/* ===== TOUCH: finger-sized targets (about 44px) =====
+   Controls grow; text-style links and buttons keep their look and get a
+   larger invisible hit area instead, so nothing reflows. */
+@media (pointer: coarse) {
+    .screener-btn { height: 44px; min-width: 44px; justify-content: center; }
+    .sidebar-tab, .sidebar-tab.opt-tab { height: 40px; }
+    .text-btn, #demo-banner .demo-link, .logo { position: relative; }
+    .text-btn::after, #demo-banner .demo-link::after, .logo::after {
+        content: ""; position: absolute; inset: -12px -8px;
+    }
+}
+/* Phones: the smallest labels are 12px, not 11. */
+@media (max-width: 768px) { :root { --fs-micro: 12px; } }
+
 /* ===== PHONE (portrait): one natural vertical scroll =====
    search + chart -> indicators / news -> portfolio / alerts. Every feature
    stays reachable by scrolling; nothing is buried in a drawer. */
