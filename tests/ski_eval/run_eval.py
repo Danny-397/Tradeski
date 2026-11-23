@@ -66,9 +66,15 @@ def fixture_bars(symbol: str, period: str = "1y", _interval: str = "1d") -> list
     n = {"3mo": 63, "6mo": 126}.get(period, 252)
     # The series ends yesterday, as live data would; values don't depend on the date.
     day0 = datetime.date.today() - datetime.timedelta(days=252)
+    # Each day's move = a wave every symbol shares (the market) + one of its own,
+    # so symbols correlate partly, as real ones do. (Seeding the wave by ticker
+    # length alone made NVDA, AAPL and TSLA move identically: correlation 1.0.)
+    seed = sum(map(ord, symbol))
+    own_period, own_phase = 1.7 + (seed % 7) * 0.45, seed % 11
     bars, price = [], start
     for i in range(252):
-        price *= 1 + drift + wobble * math.sin(i / 2.7 + len(symbol))
+        move = 0.9 * math.sin(i / 2.7) + 0.45 * math.sin(i / own_period + own_phase)
+        price *= 1 + drift + wobble * move
         bars.append({"timestamp": f"{day0 + datetime.timedelta(days=i)}T00:00:00", "open": price,
                      "high": price * 1.012, "low": price * 0.988, "close": round(price, 4), "volume": 1_000_000})
     return bars[-n:]
