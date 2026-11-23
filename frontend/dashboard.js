@@ -450,7 +450,8 @@ function onPriceUpdate(msg) {
 // handler as "AAPL". Any ticker not in the list still goes through as typed.
 // Ties go to the names people look up most, so "micro" lists Microsoft first.
 const POPULAR_SYMS = new Set([...TICKER_SYMS, "AMD", "NFLX", "JPM", "V", "MA", "BRK-B", "COIN",
-    "PLTR", "DIS", "KO", "WMT", "COST", "BA", "INTC", "UBER", "HOOD", "AVGO", "ORCL", "CRM"]);
+    "PLTR", "DIS", "KO", "WMT", "COST", "BA", "INTC", "UBER", "HOOD", "AVGO", "ORCL", "CRM",
+    "ETH-USD", "SOL-USD", "XRP-USD", "BNB-USD", "DOGE-USD", "ADA-USD", "AVAX-USD", "LINK-USD", "LTC-USD"]);
 
 function searchSymbols(query, limit = 8) {
     const list = window.TRADESKI_SYMBOLS || [];
@@ -460,7 +461,9 @@ function searchSymbols(query, limit = 8) {
     for (const [sym, name] of list) {
         const n = name.toUpperCase();
         let score = -1;
-        if (sym === q || sym === q + "-USD") score = 0;   // "BTC" means the coin
+        // "BTC" matches both Bitcoin (BTC-USD) and the ETF listed as BTC; both are
+        // listed, and the suggestion labels the coin "(crypto)".
+        if (sym === q || sym === q + "-USD") score = 0;
         else if (sym.startsWith(q)) score = 1;
         else if (n.startsWith(q)) score = 2;
         else if (n.includes(" " + q)) score = 3;
@@ -510,7 +513,7 @@ function attachSymbolSuggest(input, onPick) {
         if (!items.length) { close(); return; }
         box.innerHTML = items.map((it, i) => `
             <li id="${box.id}-${i}" role="option" data-i="${i}">
-                <span class="ss-sym">${it.sym}</span><span class="ss-name">${escapeHtml(it.name)}</span>
+                <span class="ss-sym">${it.sym}</span><span class="ss-name">${escapeHtml(it.name)}${isCrypto(it.sym) ? " (crypto)" : ""}</span>
             </li>`).join("");
         box.hidden = false;
         input.setAttribute("aria-expanded", "true");
@@ -1339,7 +1342,7 @@ async function buildTickerTape() {
         const dir   = pct >= 0 ? "up" : "down";
         const sign  = pct >= 0 ? "+" : "";
         return `<span class="ticker-item">
-            <span class="ticker-symbol">${symbol.replace(/-USD$/, "")}</span>
+            <span class="ticker-symbol">${symbol}</span>
             <span class="ticker-price">$${fmt(price)}</span>
             <span class="ticker-change ${dir}">${sign}${pct.toFixed(2)}%</span>
         </span>`;
