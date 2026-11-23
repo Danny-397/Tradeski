@@ -1,0 +1,1762 @@
+{
+ "model": "claude-haiku-5-5",
+ "workflow_run": "https://github.com/Danny-397/Tradeski/actions/runs/45103147001",
+ "commit": "736187f",
+ "what": "After BLS/EIA macro data (#76) and crypto support (#78, #79); adds oil-trend, crypto-vs-stocks, crypto-trend",
+ "repeat": 3,
+ "note": "Re-graded with the index-name grounding fix (\"Nasdaq-100\" is not a figure). Evidence and raw blocks are in the workflow artifact.",
+ "results": [
+  {
+   "id": "other-ticker-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "How has NVDA done over the last month?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA is up about **10.4%** over the past month, roughly **7.6 points** ahead of the S&P 500, and trading within about 1.2% of its 52-week high.\n\n- The close is **$127.27**, against a 52-week high of **$128.79** and a low of **$57.00**.\n- The S&P 500 returned about **2.8%** over the same month, so most of the gain is stock-specific rather than market-driven.\n- Over one week NVDA gained **6.4%**, and its RSI(14) rose to **80.6**, which is typically read as overbought and raises the odds of a near-term pullback.\n- The stock sits about **5.7%** above its 20-day average and **10.9%** above its 50-day average, and its beta is **1.32**, so it tends to amplify market moves.\n- At 61% of your sample portfolio, NVDA is a heavy single-name concentration, so its moves dominate your overall returns.\n\nThis is educational information, not a recommendation to buy or sell. For momentum context, watch RSI and MACD on the Tradeski dashboard.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "other-ticker-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "How has NVDA done over the last month?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA is up about **10.4%** over the past month, roughly **7.6 points** ahead of the S&P 500, and it is trading within 1.2% of its 52-week high.\n\n- Price is **$127.27** (as of 2026-11-22), up **6.4%** over the last week alone, which suggests the rally is accelerating.\n- Momentum is stretched: RSI(14) is **80.6** (above the usual 70 overbought line, up from 65 five days ago), and the price sits about **10.9%** above its 50-day average.\n- Realised volatility is **13.5%** annualised, and the stock has a beta of **1.32** to the S&P 500, so it moves more than the market in both directions.\n- For your sample portfolio, NVDA is **61%** of the book, so this run-up has driven most of your portfolio's gains. That also means a pullback would hit you hard. Concentration is the main risk to watch.\n\nWatch the RSI, MACD histogram and Bollinger Band position on the Tradeski dashboard for signs of exhaustion. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "other-ticker-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "How has NVDA done over the last month?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA is up about **10.4%** over the past month, roughly 7.6 points ahead of the S&P 500, and trading within about 1.2% of its 52-week high.\n\n- Price is **$127.27** (close as of 2026-11-22), against a 52-week high of **$128.79** and a low of **$57.00**.\n- Over the last week it gained **6.4%** versus **2.1%** for SPY, so the move is mostly stock-specific rather than market-wide.\n- Momentum is stretched: RSI(14) is **80.6** (above the 70 overbought threshold, up from 65.0 five days ago), and the price sits about **5.7%** above its 20-day SMA.\n- Its beta to the S&P 500 is **1.32**, so it tends to amplify market moves. Realised volatility is about **13.5%** annualised over the last month.\n- Your position is 40 shares at a $90.00 average cost, now **+41.4%**. It is **61%** of your sample portfolio, so a pullback in NVDA would weigh heavily on the whole book.\n\nUseful dashboard indicators: RSI and Bollinger position for overbought readings, and MACD for momentum changes.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "rsi-direction",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Is NVDA's RSI rising or falling this week?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA's RSI is rising, up from **65.0** five trading days ago to **80.6** on the latest bar (as of 2026-11-22), which is deep into overbought territory.\n\n- The RSI reading is above the conventional 70 threshold, so the stock has run hard in a short period.\n- MACD confirms the momentum: its histogram moved from **-0.416** to **+0.622** over the same stretch, so the MACD line is now above its signal line.\n- Price is at **$127.27**, just **1.2%** below its 52-week high of **$128.79**, and about **5.7%** above its 20-day SMA.\n- Stochastic %K at **88.8** and a Bollinger position of **107** (above the upper band) point the same way: short-term stretched.\n- Overbought readings often precede pullbacks or consolidation, but they can persist in strong trends. Watch whether RSI turns down while price keeps making highs (a bearish divergence).\n\nEducational information only, not a recommendation to buy or sell. Useful Tradeski dashboard indicators here: RSI (14), MACD histogram, and Bollinger Bands.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "rsi-direction",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Is NVDA's RSI rising or falling this week?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA's RSI is rising. It has climbed from **65.0** five days ago to **80.6** as of the November 22 close, which puts it in overbought territory (conventionally above 70).\n\n- The move is stock-specific: NVDA gained **6.4%** over the past week versus **2.1%** for the S&P 500.\n- The stock is **1.2%** below its 52-week high of $128.79, and its price sits **107** on the Bollinger position scale, above the upper band.\n- Momentum indicators agree: MACD histogram turned positive (**+0.622** from **-0.416**), and the stochastic %K is at **88.8**.\n- Because NVDA is **61%** of your sample portfolio, a pullback from these overbought levels would weigh heavily on the whole book. Its beta of **1.32** means it moves more than the market in both directions.\n\nOverbought readings can persist in strong trends, so RSI alone doesn't signal a reversal. On Tradeski, the RSI and Bollinger Bands on the chart are the most useful for tracking this. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "rsi-direction",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Is NVDA's RSI rising or falling this week?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "**Bottom line:** NVDA's RSI is rising, up from **65.0** five trading days ago to **80.6** as of the November 22 close.\n\n- That puts RSI well above the conventional 70 overbought line, so the stock has been gaining momentum quickly.\n- The stock is up **6.4%** over the past week, versus **2.1%** for the S&P 500, and sits about **1.2%** below its 52-week high of $128.79.\n- MACD histogram turned positive (**+0.622** from **-0.416** five days ago), which confirms the upward momentum.\n- Overbought readings can persist in strong trends, but they also raise the odds of a pullback. Watch the RSI on your Tradeski dashboard alongside the price against the Bollinger Bands, which NVDA is currently trading above.\n- Given NVDA is **61%** of your sample portfolio, this short-term move has an outsized effect on your total value.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "off-chart-52w",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "How far is MSFT from its 52-week high?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: MSFT is about **1.2%** below its 52-week high, trading near the top of its range.\n\n- Last close was **$465.07** (as of Nov 22, 2026), against a 52-week high of **$470.65** and a 52-week low of **$364.87**.\n- The stock is about **27.5%** above its 52-week low.\n- RSI(14) is **72.5**, which is in overbought territory, and the stock sits at the **96** position within its Bollinger Bands, so short-term momentum is stretched.\n- It has outperformed the S&P 500 over the past week (**+3.2%** vs **+2.1%**) and month (**+3.9%** vs **+2.8%**).\n\nEducational information only, not a recommendation to buy or sell. On Tradeski, the RSI and Bollinger Band position on the chart are the most useful indicators for judging how stretched a near-high move is.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "off-chart-52w",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "How far is MSFT from its 52-week high?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: MSFT is about **1.2%** below its 52-week high, trading near the top of its range.\n\n- Last close was **$465.07** (as of 2026-11-22) versus a 52-week high of **$470.65**, a gap of roughly $5.58.\n- The stock is **27.5%** above its 52-week low of **$364.87**.\n- RSI(14) is **72.5**, up from 54.0 five days ago, so momentum is strong and approaching overbought territory. Bollinger position is **96/100**, near the upper band.\n- Over the past month MSFT returned **3.9%** versus **2.8%** for the S&P 500, with a beta of **0.77**.\n\nThis is educational information, not a recommendation to buy or sell. On Tradeski, the RSI and Bollinger Bands are the most useful indicators for judging whether a stock near its high is stretched.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "off-chart-52w",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "How far is MSFT from its 52-week high?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: MSFT is about **1.2%** below its 52-week high, trading near the top of its range.\n\n- Last close (Nov 22, 2026) was **$465.07** against a 52-week high of **$470.65** and a 52-week low of **$364.87**.\n- The stock is **27.5%** above its 52-week low.\n- RSI(14) is **72.5**, which is in overbought territory, and the Bollinger position is **96/100**, so the price is hugging the upper band. Watch RSI and Bollinger Bands on the Tradeski dashboard for signs of a pullback.\n- Over the past week MSFT gained **3.2%** versus **2.1%** for the S&P 500, so the move is mostly stock-specific rather than market-driven.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "valuation",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Compare the P/E of MSFT and AAPL.",
+   "tools_used": [
+    "get_fundamentals",
+    "get_fundamentals"
+   ],
+   "reply": "Bottom line: MSFT trades at a higher P/E than AAPL, about **35.6x** versus **31.4x**.\n\n- MSFT: P/E **35.6**, market cap about **$3.2 trillion**, price **$465.07**, sitting at its 52-week high (52-week range **$369.30–$465.07**, up **22.9%** over 52 weeks).\n- AAPL: P/E **31.4**, market cap about **$3.0 trillion**, price **$197.75**, also at its 52-week high (range **$164.23–$197.75**, up **17.0%** over 52 weeks).\n- The gap is about 4 turns. Investors are paying more per dollar of earnings for Microsoft, which usually signals stronger expected earnings growth or a premium for its software and cloud franchise.\n- A P/E alone doesn't settle which is cheaper. Compare it against each company's expected growth, and check the Fundamentals and EPS trends on the dashboard.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "valuation",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Compare the P/E of MSFT and AAPL.",
+   "tools_used": [
+    "get_fundamentals",
+    "get_fundamentals"
+   ],
+   "reply": "Bottom line: MSFT trades at a higher P/E than AAPL, roughly 35.6x versus 31.4x trailing.\n\n- **MSFT:** P/E of **35.6**, market cap about **$3.2 trillion**, price **$465.07**, at its 52-week high and up **22.9%** over 52 weeks.\n- **AAPL:** P/E of **31.4**, market cap about **$3.0 trillion**, price **$197.75**, also at its 52-week high (its 52-week low was $164.23), up **17.0%** over 52 weeks.\n- The roughly 4-point gap means investors pay about 13% more per dollar of MSFT earnings, which typically reflects higher expected growth.\n- Both sit at elevated multiples for mega-cap tech, so their sensitivity to rate moves matters: the 10-year yield is at **4.1%**, down from 4.2%, which supports growth-stock valuations.\n- For a sample check on your AAPL position, the RSI on the chart is **70.0**, near overbought territory.\n\nThis is educational information, not a recommendation to buy or sell either stock.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "13%"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['13%']"
+   ],
+   "error": null
+  },
+  {
+   "id": "valuation",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Compare the P/E of MSFT and AAPL.",
+   "tools_used": [
+    "get_fundamentals",
+    "get_fundamentals"
+   ],
+   "reply": "Bottom line: MSFT trades at a higher P/E than AAPL, roughly **35.6x** versus **31.4x**.\n\n- MSFT: P/E **35.6**, market cap about **$3.2 trillion**, price **$465.07**, sitting at its 52-week high (52-week low **$369.30**).\n- AAPL: P/E **31.4**, market cap about **$3.0 trillion**, price **$197.75**, also at its 52-week high (52-week low **$164.23**).\n- The gap is about 4 turns, so MSFT carries a richer multiple, which usually means the market is pricing in more growth.\n- Both are in the Technology sector and have similar market caps, so the P/E gap is a fair like-for-like comparison, though trailing P/E alone doesn't capture growth or earnings quality.\n\nThis is educational information, not a recommendation to buy or sell. For your sample portfolio, AAPL is 24% of the book and NVDA is 61%, so you have no MSFT exposure; the P/E screen is useful on the Tradeski fundamentals panel if you add it to your watchlist.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "valuation-from-filings",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "What's GOOGL's P/E, and is its revenue growing?",
+   "tools_used": [
+    "get_fundamentals"
+   ],
+   "reply": "Bottom line: GOOGL trades at a trailing P/E of about **22.4**, and its revenue is growing **13.2%** year over year.\n\n- Price is **$203.78**, against a 52-week range of **$157.08** to **$204.78**, with the stock up **28.4%** over 52 weeks.\n- Trailing EPS is **$9.10** over the last four reported quarters, and market cap is about **$2.47 trillion**.\n- Trailing revenue is about **$402 billion**, with a net margin of **28.4%**.\n- Growth at 13.2% against a 22.4 P/E suggests the stock is not priced for rapid expansion, though that is a rough read, not a valuation call.\n\nThis is educational information, not a recommendation to buy or sell. For context on the chart, RSI and the Bollinger Bands on the Tradeski dashboard are useful for timing, while the P/E and revenue growth matter more for valuation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "valuation-from-filings",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "What's GOOGL's P/E, and is its revenue growing?",
+   "tools_used": [
+    "get_fundamentals"
+   ],
+   "reply": "Bottom line: GOOGL trades at about **22.4x** trailing earnings, and its revenue is growing at **13.2%** year over year.\n\n- Price is **$203.78**, just under its 52-week high of **$204.78**, and the stock is up **28.4%** over 52 weeks.\n- Trailing 4-quarter EPS is **$9.10**, and market cap is about **$2.47 trillion** (SEC-filing based, through the quarter ended September 30, 2026).\n- Trailing revenue is about **$402 billion**, with a net margin of **28.4%**, so growth is coming with strong profitability.\n- Educational information only, not a recommendation to buy or sell. For timing, the MACD and RSI on the Tradeski dashboard are useful; for valuation context, compare the P/E against peers in the same sector.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "valuation-from-filings",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "What's GOOGL's P/E, and is its revenue growing?",
+   "tools_used": [
+    "get_fundamentals"
+   ],
+   "reply": "Bottom line: GOOGL trades at a trailing P/E of about **22.4x**, and revenue is growing **13.2%** year over year.\n\n- Price is **$203.78**, close to its 52-week high of **$204.78**, and the stock is up **28.4%** over 52 weeks.\n- Trailing EPS is **$9.10** over the last four quarters, and market cap is roughly **$2.47 trillion**.\n- Trailing revenue is about **$402 billion**, with a net margin of **28.4%**.\n- Source: P/E and growth are computed by Tradeski from SEC 10-Q/10-K filings through the quarter ended September 30, 2026.\n\nEducational information only, not a recommendation to buy or sell. For a sense of how the price is moving, check the price and RSI indicators on the Tradeski dashboard.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "vs-market",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Is NVDA beating the market, or is everything just up?",
+   "tools_used": [
+    "get_price_summary",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA is beating the market by a wide margin, so this is not just a rising tide, though the stock is also more volatile than the index.\n\n- **Excess return:** NVDA is up **24.3%** over 3 months versus **2.4%** for SPY, an excess of about **21.9 points**. Over the full year it returned **113.4%** against **12.2%** for the S&P 500.\n- **Beta:** NVDA's beta is **1.32**, so it amplifies market moves. Its correlation with the S&P 500 is only **0.55**, meaning a large share of its moves are stock-specific.\n- **Momentum is stretched:** RSI(14) is **80.6** (above the 70 overbought line), and the stock is **1.2%** below its 52-week high of $128.79. The short-term pullback risk is higher after a run like this.\n- **Concentration:** NVDA is **61%** of your sample portfolio, so its outperformance is also your portfolio's main driver and its main risk.\n\nEducational information only, not a recommendation to buy or sell. Useful dashboard indicators here are RSI, Bollinger position, and the excess return versus SPY.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "vs-market",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Is NVDA beating the market, or is everything just up?",
+   "tools_used": [
+    "get_price_summary",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA is beating the market by a wide margin, so this isn't just a rising tide, though its beta and recent run mean it could also fall harder.\n\n- Over the past year, NVDA is up **113.4%** versus **12.2%** for the S&P 500 (SPY), an excess return of about **101 points**.\n- Over the last month it's **+10.4%** against SPY's **+2.8%**; over three months, **+24.3%** against **+2.4%**.\n- NVDA's beta is **1.32** with a correlation of **0.55** to the S&P 500, so it amplifies market moves and only partly tracks them. Its 1-month realised volatility is **13.5%** versus **5.7%** for SPY.\n- Caution on timing: NVDA is **1.2%** below its 52-week high of $128.79, and its RSI is **80.6**, which is overbought territory. Its Bollinger position is above the upper band, so a pullback is plausible even though the trend is strong.\n- Concentration matters for you: NVDA is **61%** of your sample portfolio, so its outperformance is also your biggest risk. Watch RSI and the 20-day SMA (**5.7%** below price) on the dashboard for signs of exhaustion.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "vs-market",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Is NVDA beating the market, or is everything just up?",
+   "tools_used": [
+    "get_price_summary",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: NVDA is beating the market by a wide margin, so it isn't just a rising tide, though its beta means it also amplifies market moves.\n\n- Over the full period, NVDA returned **113.4%** versus **12.2%** for SPY, an excess of about **101 points**.\n- Over the last month, NVDA gained **10.4%** against **2.8%** for SPY; over three months, **24.3%** against **2.4%**.\n- NVDA has a beta of **1.32** to the S&P 500 and a correlation of **0.55**, so roughly half its daily moves are market-driven and the rest is stock-specific.\n- Caution: NVDA's RSI is **80.6** (overbought territory) and it sits **1.2%** below its 52-week high of $128.79, so the recent run is stretched.\n- Concentration matters here: NVDA is **61%** of your sample portfolio, so its excess returns carry most of your portfolio's risk.\n\nThis is educational information, not a recommendation to buy or sell. On your dashboard, the RSI and Bollinger Band position are the most useful gauges of how stretched the move is.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "news-other",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Any recent news on TSLA?",
+   "tools_used": [
+    "get_news",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: TSLA's recent headlines are mostly negative (weak deliveries, China price cuts), but the stock has rallied about 7.6% over the past week, outpacing the S&P 500.\n\n- **Deliveries:** Tesla deliveries fall short of estimates (Fixture Wire, Nov 1, 2026).\n- **China pricing:** Tesla cuts Model Y prices in China (Fixture Wire, Nov 2, 2026), a sign of pressure on margins or demand there.\n- **Price action:** TSLA closed at **$218.33** on Nov 22, up **7.6%** over one week versus **2.1%** for the S&P 500, though still **27.5%** below its 52-week high of **$301.22**.\n- **Trend:** RSI moved to **60.2** from 39.4 five days ago, and the MACD histogram turned positive, suggesting momentum has improved. Price sits about **7.6%** below its 200-day average.\n- **Risk:** Beta vs. the S&P 500 is **2.19**, so TSLA tends to amplify market moves. Your 6 shares are at a **-16.0%** P&L against your $260 cost basis.\n\nHeadlines are sparse, so check for more recent items before acting. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "news-other",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Any recent news on TSLA?",
+   "tools_used": [
+    "get_news",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: TSLA's recent headlines are mostly negative (weak deliveries, China price cuts), but the stock has rallied about 7.6% over the past week, outpacing the S&P 500.\n\n- **Deliveries:** Tesla deliveries fall short of estimates (Fixture Wire, Nov 1, 2026).\n- **China pricing:** Tesla cuts Model Y prices in China (Fixture Wire, Nov 2, 2026), a sign of margin pressure in its key market.\n- **Price action:** TSLA closed at **$218.33** on Nov 22, up **7.6%** over 1 week versus **2.1%** for the S&P 500, but still **27.5%** below its 52-week high of **$301.22**.\n- **Momentum:** RSI(14) rose to **60.2** from 39.4 five days ago, and the MACD histogram turned positive. Check these on the Tradeski dashboard.\n- **Risk:** Beta vs. the S&P 500 is **2.19**, so TSLA moves more than the market in both directions. It is also **-26.0%** over the full period.\n\nNote: the headline feed is thin (two items, both early November), so check for newer coverage before acting. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "news-other",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Any recent news on TSLA?",
+   "tools_used": [
+    "get_news",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: TSLA's recent headlines are mostly negative (weak deliveries and China price cuts), but the stock has rallied about 7.6% over the past week, outpacing the S&P 500.\n\n- Headlines: Tesla deliveries fall short of estimates (Nov 1), and Tesla cuts Model Y prices in China (Nov 2). Price cuts can signal demand pressure, though they can also support volume.\n- Price: TSLA closed at **$218.33** (as of Nov 22), **27.5%** below its 52-week high of **$301.22**, and **11.5%** above its 52-week low of **$195.85**.\n- Momentum: RSI(14) rose to **60.2** from **39.4** five days ago, and MACD histogram turned positive. The stock is above its 20- and 50-day averages but **7.6%** below its 200-day average.\n- Risk: beta vs. the S&P 500 is **2.19**, so moves are amplified. Over the past week, it returned **5.5** points more than the S&P 500, but it trails by **38.2** points over the full period.\n- Your position: you hold 6 TSLA shares at a $260 average cost, a **-16.0%** loss, and it's about **16%** of the sample portfolio.\n\nNote: the news feed has only two headlines, both from early November, so it may not capture the latest developments. Check the Tradeski dashboard's RSI and MACD panels for trend changes. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "unemployment-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Is unemployment trending up over the last year?",
+   "tools_used": [
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: Yes, unemployment has trended up over the past year, rising from **3.9%** in November 2025 to **4.4%** in October 2026, the latest reading in the data.\n\n- The rise has been gradual, not a spike. It has moved up roughly 0.1 to 0.2 points at a time, with a brief dip in between (4.1% in May and April, back to 4.0% in February and March).\n- The latest move was up: 4.3% in September to 4.4% in October, the highest in this 12-month window.\n- Historically, rising unemployment signals a slowdown. It can also push the Fed toward rate cuts, which tends to help rate-sensitive growth stocks.\n- For your sample portfolio, NVDA is 61% of the book, so a growth slowdown would hit it hardest. A rate-cut expectation could still support it. Watch the 10-year yield and the fed funds rate on the dashboard alongside unemployment, since the Fed's next move depends on them together.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "0.1",
+    "0.2"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['0.1', '0.2']"
+   ],
+   "error": null
+  },
+  {
+   "id": "unemployment-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Is unemployment trending up over the last year?",
+   "tools_used": [
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: Yes, unemployment has trended up over the past year, from 3.9% to 4.4%, though the rise has been gradual.\n\n- The series rose from **3.9%** in November 2025 to **4.4%** in October 2026, per BLS data via FRED. The latest reading is the highest in this 12-month window.\n- Most of the move came in small steps of 0.1 point. Readings stayed flat for stretches, such as 4.3% in both August and September, and 4.1% in both April and May.\n- For markets, a rising unemployment rate signals a slowdown. It also raises the odds of Fed rate cuts, which would be supportive for growth and rate-sensitive names. The current fed funds rate is **3.88%**, so the Fed has room to respond if the trend continues.\n- Note that the October reading is the latest in this series. Check for the November release, since a new print can change the picture quickly.\n\nEducational information only, not a recommendation to buy or sell. On your dashboard, the macro panel and the 10Y-2Y spread are the most useful companions to this trend.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "0.1"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['0.1']"
+   ],
+   "error": null
+  },
+  {
+   "id": "unemployment-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Is unemployment trending up over the last year?",
+   "tools_used": [
+    "get_macro_history"
+   ],
+   "reply": "**Bottom line:** Yes, unemployment has drifted higher over the past year, from **3.9%** in November 2025 to **4.4%** in October 2026, though the rise has been gradual.\n\n- The rate has risen in small steps, with a few flat months, and the latest reading is the highest in the 12-month series.\n- Rising unemployment usually signals a slowdown, but it can also push the Fed toward rate cuts, which tends to support growth stocks.\n- For your sample portfolio, NVDA is **61%** of the book, so its valuation is the main exposure. Lower rate expectations would generally help growth names like NVDA, while a sharper rise in unemployment would raise demand worries.\n- The Fed funds rate is **3.88%** (per the macro snapshot), so the next move in the labor data will matter for rate-cut expectations. Watch the Tradeski macro panel and the 10Y-2Y spread for how the market is pricing that.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "inflation-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Has inflation been cooling recently?",
+   "tools_used": [
+    "get_macro_history",
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: Yes, headline inflation has cooled steadily over the past year, with CPI at 2.6% year over year in the latest reading.\n\n- Headline CPI fell from **3.5%** in November 2025 to **2.6%** in October 2026, a decline in 11 of the last 12 months' readings (the series dipped only in flat stretches, not reversals).\n- The latest reading slipped from **2.7%** to **2.6%**, so the pace of cooling has slowed recently.\n- Core CPI data didn't load, so I can't confirm whether underlying inflation is falling at the same rate as headline.\n- Why it matters for your book: cooler inflation lowers the odds of Fed hikes, which usually helps high-multiple names like **NVDA** (61% of the sample portfolio) and **TSLA**. The Fed funds rate is **3.88%**, unchanged from the prior reading.\n\nThis is educational context, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "inflation-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Has inflation been cooling recently?",
+   "tools_used": [
+    "get_macro_history",
+    "get_macro_history"
+   ],
+   "reply": "**Bottom line:** Yes. Headline CPI has fallen steadily for about a year, from **3.5%** year over year in November 2025 to **2.6%** in October 2026.\n\n- The decline has been nearly continuous. The rate peaked at **3.5%** (Nov 2025), eased to **3.3%** in early 2026, and reached **3.0%** by mid-year before dropping to **2.6%**.\n- The latest reading slipped from **2.7%** in September, so the trend is still down.\n- I couldn't retrieve core CPI (which excludes food and energy), so I can't confirm whether underlying inflation is cooling at the same pace. That matters because the Fed watches core closely.\n- For AAPL, cooler inflation generally helps the stock. It lowers the odds of Fed hikes, which supports high-multiple names. The Fed funds rate is currently **3.88%**, and the 10-year yield is **4.1%**, down from **4.2%**.\n- Your portfolio is **61%** NVDA, so it is most sensitive to this rate backdrop. Lower yields tend to support growth names, but a surprise rebound in inflation would hit them hardest.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "inflation-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Has inflation been cooling recently?",
+   "tools_used": [
+    "get_macro_history",
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: Yes, headline inflation has cooled steadily over the past year, falling from 3.5% to 2.6% year over year.\n\n- Headline CPI was **3.5%** in November 2025 and has declined in almost every month since, reaching **2.6%** in October 2026 (the latest reading, down from **2.7%** in September).\n- Core CPI data was unavailable from my data source, so I can't confirm whether underlying inflation is cooling at the same pace. Headline CPI can also be pushed around by energy prices.\n- The Fed funds rate has held at **3.88%**, so policy has not yet eased, even as inflation moved lower.\n- For your portfolio, the usual pattern is that cooler inflation lowers the odds of Fed hikes, which tends to support growth and tech names. NVDA is **61%** of the sample portfolio, so its valuation is especially sensitive to rate expectations. Watch the 10-year yield (**4.1%**, down from **4.2%**) and the CPI release calendar on the dashboard.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "crypto-vs-stocks",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Is bitcoin moving with the stock market lately?",
+   "tools_used": [
+    "get_correlation"
+   ],
+   "reply": "Bottom line: Over the last roughly three months, bitcoin has moved **opposite** to the stock market, not with it.\n\n- The correlation of daily returns between BTC-USD and SPY is **-0.67** over 62 trading days. QQQ shows the same **-0.67**, so the result holds for tech-heavy stocks too.\n- A reading that strong and negative is unusual. Bitcoin has often traded with risk assets, so treat this as a shift in the recent pattern rather than a permanent relationship.\n- Correlations from a single three-month window are noisy and can change quickly. A short-term move in either direction could flip the reading.\n- For diversification, a negative correlation would have offset equity losses in this period. That says nothing about future behavior.\n- To check whether this is a short-term quirk, compare the BTC-USD and SPY price summaries over 1 month and 1 year. The Tradeski dashboard's volatility and Z-Score indicators are useful for judging how far each has moved from its norm.\n\nThis is educational information, not a recommendation to buy or sell either asset.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "crypto-vs-stocks",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Is bitcoin moving with the stock market lately?",
+   "tools_used": [
+    "get_correlation",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: No, bitcoin has recently moved against the stock market, not with it. Over the last roughly 3 months, its daily returns were negatively correlated with the S&P 500.\n\n- **Correlation:** Bitcoin vs. SPY is **-0.67**, and vs. QQQ (Nasdaq-100) also **-0.67**, over **62 trading days**. That is a strong negative reading, but the window is short and such readings can change quickly.\n- **Recent price action:** BTC-USD closed at **$72,514.37** on Nov 22, down **14.0%** over the past week while the S&P 500 gained **2.1%**. It sits **15.0%** below its 52-week high of **$85,318.61**.\n- **Trend:** It is **6.0%** below its 20-day average and **5.8%** below its 50-day average. RSI fell from **59.5** five days ago to **37.4**, so momentum has weakened sharply.\n- **Volatility:** Realised volatility is about **41.9%** annualised over one month, far above typical equity levels.\n- **Caveat:** The reported beta of **-3.97** is an extreme figure from a small sample and should not be read as a stable hedge. Check the correlation on the Tradeski dashboard over longer windows before relying on it.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "crypto-vs-stocks",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Is bitcoin moving with the stock market lately?",
+   "tools_used": [
+    "get_correlation",
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: Bitcoin has recently moved opposite to the stock market, not with it, though the sample is short.\n\n- Over the last **62 trading days**, bitcoin's daily returns had a correlation of **-0.67** with SPY and with QQQ. A value near -1 means moves tend to run in opposite directions, so this is an unusually strong inverse relationship.\n- Bitcoin fell **14.0%** over the past week while the S&P 500 gained **2.1%**. Over one month it trailed the S&P 500 by **4.2 percentage points**.\n- Bitcoin is now **15.0%** below its 52-week high of about $85,319, and its RSI has dropped to **37.4** from **59.5** five days ago, which is a weakening trend rather than a stable one.\n- Treat the -0.67 figure with caution. A 3-month window is short, and the correlation can flip when the drivers change. Its reported beta of **-3.97** versus the S&P 500 is also unusually large and should not be read as a stable hedge ratio.\n- To check whether the relationship holds, compare BTC-USD with SPY on the Tradeski chart over a longer timeframe, and watch the 20-day and 50-day moving averages, which bitcoin is currently trading below.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "crypto-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "How has Ethereum done over the last month?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: Ethereum is down **7.4%** over the past month, trailing the S&P 500's **+2.8%** by about 10 points, and it sits near its 52-week low.\n\n- **Recent move:** ETH closed at **$2,253.96** on Nov 22, after a **-17.3%** drop over the past week. Its 1-month realised volatility is **48.8%** annualised.\n- **Trend:** Price is **8.7%** below its 20-day average and **11.3%** below its 50-day average. It is **37.3%** below its 52-week high of **$3,595.02**, and only **1.2%** above its 52-week low of **$2,226.91**.\n- **Momentum:** RSI fell from **54.6** five days ago to **33.7**, approaching oversold territory. MACD is below its signal line, with the histogram at **-31.96**, so selling momentum is still active.\n- **Longer view:** Over three months ETH is down **24.0%**, versus the S&P 500's **+2.4%**.\n\nUseful dashboard indicators here are RSI, MACD, and Bollinger Bands for timing, and the 50-day and 200-day averages for trend. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "crypto-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "How has Ethereum done over the last month?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: Ethereum is down **7.4%** over the past month and sits just above its 52-week low, with a sharp slide in the last week.\n\n- Last close (Nov 22): **$2,253.96**, about **37.3%** below its 52-week high of **$3,595.02** and only **1.2%** above its 52-week low of **$2,226.91**.\n- Past week: **-17.3%**, versus a **+2.1%** gain in the S&P 500, so the drop was almost entirely coin-specific.\n- Momentum is weak: price is **8.7%** below its 20-day average and **11.3%** below its 50-day average. RSI fell from **54.6** five days ago to **33.7**, nearing oversold territory, and MACD is below its signal line.\n- Realised volatility is about **48.8%** annualised over the month, so large swings are normal for this asset.\n- Watch the Bollinger Bands and RSI on the Tradeski dashboard for signs of a bounce or further breakdown. Note that the 1-month returns are over calendar days because crypto trades 24/7.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "crypto-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "How has Ethereum done over the last month?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: Ethereum is down **7.4%** over the past month, underperforming the S&P 500's **+2.8%** by about 10 points, and it has fallen **17.3%** in the last week.\n\n- **Price:** ETH-USD closed at **$2,253.96** on Nov 22, just **1.2%** above its 52-week low of **$2,226.91** and **37.3%** below its 52-week high of **$3,595.02**.\n- **Trend:** The price sits **8.7%** below its 20-day average and **11.3%** below its 50-day average, and it is **18.5%** below its 200-day average.\n- **Momentum:** RSI(14) fell from **54.6** five days ago to **33.7**, near oversold territory. MACD is negative and widening below its signal line.\n- **Volatility:** Realised volatility is about **48.8%** annualised over the month, so large swings are normal for this asset.\n- **Context:** The 3-month return is **-24.0%**. The 20-day and 50-day averages and RSI are good places to watch on the Tradeski dashboard.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "oil-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "Oil has been climbing. Which kinds of stocks does that help or hurt?",
+   "tools_used": [
+    "get_macro_history"
+   ],
+   "reply": "**Bottom line:** Rising oil mainly helps oil producers and energy services and hurts fuel-heavy businesses such as airlines, shippers and consumer discretionary names. Your sample portfolio has little direct oil exposure.\n\n- **Winners:** Upstream producers, oilfield services, refiners and midstream pipelines. WTI rose from **$74.20** in November 2025 to **$89.50** in the latest reading (October 2026), per the EIA series.\n- **Losers:** Airlines, trucking and logistics, cruise lines, and chemicals or plastics makers, where fuel and feedstock costs squeeze margins.\n- **Consumer spillover:** Higher gasoline prices leave less discretionary income, which weighs on retailers and restaurants.\n- **Inflation channel:** Sustained oil gains can lift inflation and push rate expectations higher. That pressures long-duration growth stocks, since higher discount rates lower their valuations.\n\nFor your holdings: NVDA (**61%** of the sample book) and AAPL (**24%**) have no meaningful direct oil link, so the main risk is the rate channel above. TSLA (**16%**) can be affected both ways: higher fuel costs may support EV demand, while consumer pressure and rate-driven valuation risk work against it. Watch the 10-year yield and the CPI reading on the dashboard to track that channel.\n\nThis is educational information, not a recommendation to buy or sell any security.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "oil-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "Oil has been climbing. Which kinds of stocks does that help or hurt?",
+   "tools_used": [
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: Rising oil helps energy producers and hurts fuel-intensive and consumer-facing businesses, and your sample portfolio has no direct energy exposure, so the effect comes mainly through inflation and rates.\n\n- **Helped:** Oil producers, oilfield services, and refiners. Integrated majors and energy ETFs such as XLE also tend to benefit.\n- **Hurt:** Airlines, shippers, trucking, chemicals, and consumer discretionary names, where fuel is a large cost or spending power gets squeezed.\n- **Indirect risk to your holdings:** WTI rose from about **$74.20** (Nov 2025) to **$89.50** (Oct 2026, the latest EIA monthly reading in the tool). Higher energy prices can keep inflation sticky, which may push the Fed toward holding rates higher. That pressures long-duration growth stocks. Your **NVDA** position (**61%** of the sample book) is the most exposed, and **TSLA** could also be sensitive to consumer spending and rates.\n- **AAPL** (**24%**) is more defensive in a cost-push environment, though its consumer demand is still exposed to gasoline prices.\n\nEducational information only, not a recommendation to buy or sell. To monitor this, watch XLE versus SPY, the 10-year yield, and the RSI and MACD on your own holdings.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "oil-trend",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "Oil has been climbing. Which kinds of stocks does that help or hurt?",
+   "tools_used": [
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: Rising oil helps energy producers and hurts fuel-intensive businesses and consumer spending, and it feeds inflation, which can tighten Fed policy.\n\n- **Oil trend:** WTI rose from **$74.20** in November 2025 to **$89.50** in the October 2026 reading, the latest in the EIA feed I have (monthly readings, so it may be a bit stale).\n- **Helped:** Upstream producers (E&P), oilfield services, integrated majors, and midstream pipelines, whose revenue and cash flow track crude prices.\n- **Hurt:** Airlines, trucking and shipping, chemicals, and consumer discretionary names, since fuel and input costs squeeze margins and higher gasoline prices cut household spending.\n- **Indirect effect:** Higher energy prices push up inflation, which can keep rates higher for longer and weigh on long-duration growth stocks.\n- **Your sample portfolio:** NVDA (61% of the book) has no direct oil exposure, but its valuation is rate-sensitive, and that concentration is the bigger risk. AAPL (24%) is mostly affected through consumer spending. TSLA (16%) is a mixed case: higher gas prices can help EV demand, but the stock is already down 16% from your cost basis.\n\nEducational information only, not a recommendation to buy or sell. On Tradeski, the Energy sector ETF (XLE) and the oil price chart are the best places to watch this relationship.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "biggest-position",
+   "group": "risk",
+   "held_out": false,
+   "run": 0,
+   "question": "What's my biggest position and how concentrated am I?",
+   "tools_used": [],
+   "reply": "**Bottom line:** Your biggest position is NVDA at 61% of the sample portfolio, which is a high single-name concentration.\n\n- **NVDA:** 40 shares worth **$5,090.60**, or **61%** of the **$8,378.11** total. It is also your largest gain at **+41.4%** (**+$1,490.60**).\n- **AAPL:** **24%** of the portfolio ($1,977.50), up **+31.8%**.\n- **TSLA:** **16%** of the portfolio ($1,310.01), down **-16.0%**.\n- **Concentration risk:** A position above roughly 40% is generally considered concentrated. At 61%, a 10% drop in NVDA alone would cut the whole portfolio by about 6%, so your results depend heavily on one stock.\n- **Next step:** To see how trimming NVDA would change weights and risk (beta, volatility, Sharpe), I can run a what-if. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "biggest-position",
+   "group": "risk",
+   "held_out": false,
+   "run": 1,
+   "question": "What's my biggest position and how concentrated am I?",
+   "tools_used": [],
+   "reply": "**Bottom line:** Your biggest position is NVDA at **61%** of the sample portfolio, which is a heavy single-name concentration.\n\n- NVDA is **40 shares** worth **$5,090.60**, out of a total of **$8,378.11**.\n- The next positions are AAPL at **24%** ($1,977.50) and TSLA at **16%** ($1,310.01).\n- Anything above about 40% in one stock is considered concentrated, so NVDA is well past that line. A 10% drop in NVDA alone would cost about **$509**, roughly 6% of the whole portfolio.\n- NVDA is also up **+41.4%** from your $90.00 average cost, so much of the book's gain rests on one name.\n- Diversification would reduce single-stock risk. Ask me about a specific trade, such as trimming NVDA, and I can show the before-and-after weights and risk metrics.\n\nThis is educational information, not a recommendation to buy or sell. Since you're using the sample portfolio, these figures are illustrative.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "$509"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['$509']"
+   ],
+   "error": null
+  },
+  {
+   "id": "biggest-position",
+   "group": "risk",
+   "held_out": false,
+   "run": 2,
+   "question": "What's my biggest position and how concentrated am I?",
+   "tools_used": [],
+   "reply": "**Bottom line:** Your biggest position is NVDA at 61% of the portfolio, which is heavily concentrated well past the ~40% level that usually signals single-name risk.\n\n- **NVDA:** 40 shares worth **$5,090.60**, or **61%** of the **$8,378.11** total, with a **+41.4%** gain (+$1,490.60) on your $90.00 average cost.\n- **AAPL:** **24%** of the portfolio ($1,977.50), up **+31.8%**.\n- **TSLA:** **16%** of the portfolio ($1,310.01), down **-16.0%**.\n- **Why it matters:** Because NVDA dominates, a sharp drop in that one stock would drive most of the portfolio's moves, regardless of how AAPL and TSLA perform. Diversifying across more names would reduce that single-stock exposure.\n- If you want to see how trimming NVDA would change the weights and risk (beta, volatility, Sharpe), I can run a what-if scenario. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "diversification",
+   "group": "risk",
+   "held_out": false,
+   "run": 0,
+   "question": "How diversified are my holdings? Do they move together?",
+   "tools_used": [
+    "get_correlation"
+   ],
+   "reply": "Bottom line: Your holdings are concentrated, not diversified, and the tool reports that all three names move in lockstep, which is unusually high and should be checked before you rely on it.\n\n- **Concentration:** NVDA is **61%** of the sample portfolio, with AAPL at **24%** and TSLA at **16%**. A move in one position would dominate the total.\n- **Correlation:** The tool shows a **1.0** correlation for every pair (NVDA/AAPL, NVDA/TSLA, AAPL/TSLA) over **62** trading days. Real large-cap stocks rarely track each other that perfectly, so this may reflect the short window or a data issue.\n- **What it means:** If the 1.0 readings hold, owning three stocks gives little more diversification than owning one. Even if the true correlation is lower, the 61% NVDA weight would still drive most of your risk.\n- **Next step:** Check a longer window on the Tradeski dashboard, and see how much a trim of NVDA would change your weights and risk using the what-if tool.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "diversification",
+   "group": "risk",
+   "held_out": false,
+   "run": 1,
+   "question": "How diversified are my holdings? Do they move together?",
+   "tools_used": [
+    "get_correlation",
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: Your portfolio is concentrated, not diversified, and its risk is driven mostly by NVDA. The correlation readings are also suspect, so treat them with caution.\n\n- **Concentration:** NVDA is **60.8%** of the book, AAPL **23.6%**, and TSLA **15.6%**, so all three positions are large-cap, high-growth names that tend to react to the same tech and AI sentiment.\n- **Market sensitivity:** The portfolio's beta is **1.35**, meaning it has historically moved about 35% more than the S&P 500. Annualized volatility is **13.9%** and the Sharpe ratio is **3.02** (using a default 4.5% risk-free rate).\n- **Correlation data:** The tool returned **1.00** for every pair over only 62 trading days. Three different companies almost never move in lockstep like that, so this looks like a data or sample artifact. I wouldn't rely on it.\n- **Practical read:** Holding three names doesn't mean you own three independent bets. A broad sell-off in tech would likely hit all of them at once.\n- **Dashboard tools:** Check the Beta and Volatility figures in the risk panel, and use the price chart's RSI and Bollinger Bands to watch NVDA's swings, since it dominates your risk.\n\nThis is educational information, not a recommendation to buy or sell anything.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "35%"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['35%']"
+   ],
+   "error": null
+  },
+  {
+   "id": "diversification",
+   "group": "risk",
+   "held_out": false,
+   "run": 2,
+   "question": "How diversified are my holdings? Do they move together?",
+   "tools_used": [
+    "get_correlation",
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: Your three holdings are all tech-linked and concentrated in NVDA, but the **1.0 correlations** from the tool look like a data artifact, so treat the diversification verdict as provisional.\n\n- **Concentration:** NVDA is **60.8%** of the sample portfolio, well above the ~40% single-name level where concentration risk becomes significant. AAPL is **23.6%** and TSLA **15.6%**.\n- **Market sensitivity:** The portfolio has a beta of **1.35**, so it tends to move about 35% more than the S&P 500. Annualized volatility is **13.9%**.\n- **Risk-adjusted return:** The Sharpe ratio is **3.02**, which looks strong, but it uses a default 4.5% risk-free rate and only 62 days of overlapping return data, so don't lean on it heavily.\n- **Correlation:** The tool reports a correlation of **1.0** for each pair. Perfect correlation between three different companies is implausible, so this is likely a data or window issue. Even so, NVDA, AAPL and TSLA are all high-beta, tech-sensitive names, and they would likely fall together in a risk-off move.\n- **Practical takeaway:** Diversification here depends mainly on sector and single-name exposure, not on these three tickers. Watching the RSI and MACD on the AAPL chart can help with timing, but they don't address this concentration.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "35%"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['35%']"
+   ],
+   "error": null
+  },
+  {
+   "id": "what-if-sell",
+   "group": "risk",
+   "held_out": false,
+   "run": 0,
+   "question": "What happens to my risk if I sell all my NVDA?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "**Bottom line:** Selling all NVDA removes your concentration risk, but the remaining AAPL/TSLA mix has slightly higher volatility and beta, and a much weaker Sharpe ratio.\n\n- **Concentration:** NVDA is **60.8%** of the sample portfolio today. After the sale, the book is **60.2% AAPL and 39.8% TSLA**, so one large single-name bet becomes two.\n- **Volatility:** annualized volatility rises from **13.9% to 14.4%**, a small increase.\n- **Beta:** rises from **1.35 to 1.40**, so the portfolio would move slightly more than the S&P 500.\n- **Sharpe ratio:** falls from **3.02 to -0.40**. The tool used a default **4.5%** risk-free rate, and the remaining holdings' return does not clear it. Much of the \"before\" Sharpe reflects NVDA's large gain (+41.4%).\n- **Value:** the portfolio drops from **$8,378.10 to $3,287.50** in cash-equivalent terms, which means realizing about $1,490.60 of NVDA gains (before any taxes or fees).\n\nThis is educational information, not a recommendation to sell. The Tradeski dashboard's volatility and RSI panels can help you judge how the remaining positions are behaving.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "what-if-sell",
+   "group": "risk",
+   "held_out": false,
+   "run": 1,
+   "question": "What happens to my risk if I sell all my NVDA?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "**Bottom line:** Selling all NVDA removes your concentration risk, but the rest of the portfolio is riskier per dollar, and risk-adjusted return drops sharply.\n\n- **Concentration:** NVDA is **60.8%** of the book. After the sale, AAPL (**60.2%**) and TSLA (**39.8%**) would be the only holdings, so you swap one large single-name bet for another.\n- **Volatility:** Annualized volatility rises from **13.9%** to **14.4%**, and beta vs. the S&P 500 rises from **1.35** to **1.40**. Your portfolio would move slightly more with the market.\n- **Sharpe ratio:** It falls from **3.02** to **-0.40**. Much of the earlier Sharpe came from NVDA's gain. The tool used a default **4.5%** risk-free rate, so treat the exact figures as approximate.\n- **Value and P&L:** Proceeds would be about **$3,287.50** versus **$8,378.10** today. The sale would lock in NVDA's **+$1,490.60** gain, which may have tax implications.\n\nThis is educational information, not a recommendation to buy or sell. You can test partial sales in the Tradeski portfolio tools.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "what-if-sell",
+   "group": "risk",
+   "held_out": false,
+   "run": 2,
+   "question": "What happens to my risk if I sell all my NVDA?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "**Bottom line:** Selling all your NVDA would remove single-name concentration, but it would slightly raise market sensitivity and sharply reduce risk-adjusted return, because the remaining two stocks have weaker recent returns.\n\n- **Concentration:** NVDA falls from **60.8%** of the book to zero. The weights become **60.2% AAPL** and **39.8% TSLA**, so you'd swap one concentrated position for another.\n- **Beta:** Rises from **1.35** to **1.40**, a small increase in sensitivity to the S&P 500.\n- **Volatility:** Rises from **13.9%** to **14.4%** annualized.\n- **Sharpe ratio:** Drops from **3.02** to **-0.40**. This uses a default **4.5%** risk-free rate because none was supplied, so treat it as an estimate.\n- **Value:** The model drops the **$5,090.60** position entirely and holds no cash, so the total falls to **$3,287.50**. Actual proceeds would sit in cash unless reinvested.\n\nThis is educational information, not a recommendation to buy or sell. Consider how the Tradeski dashboard's volatility and Z-Score readings would look for your replacement holdings before deciding.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "what-if-buy",
+   "group": "risk",
+   "held_out": false,
+   "run": 0,
+   "question": "If I bought 20 shares of SPY, how would my beta change?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: Buying 20 SPY would lower your portfolio's beta from **1.35** to **1.15**, so it would move less than the market.\n\n- SPY is priced at **$539.00**, so the 20 shares cost about **$10,780**. That would make SPY **56.3%** of the portfolio, and NVDA would fall to **26.6%**, which reduces the single-name concentration flagged earlier.\n- Annualized volatility would drop from **13.9%** to **8.2%**.\n- Sharpe would fall from **3.02** to **2.71**. It stays well above 1, but the lower volatility also means less return per unit of risk is being earned. The model uses a default risk-free rate of 4.5%.\n- Total portfolio value would rise from **$8,378** to **$19,158**, so this is a much larger trade than the 20-share size suggests.\n\nThis is educational analysis, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "what-if-buy",
+   "group": "risk",
+   "held_out": false,
+   "run": 1,
+   "question": "If I bought 20 shares of SPY, how would my beta change?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: Buying 20 SPY shares would lower your portfolio's beta from **1.35** to **1.15**, because SPY has a beta of 1 and dilutes the more volatile single stocks.\n\n- The purchase costs about **$10,780** at SPY's **$539.00** price, so SPY would become **56.3%** of the sample portfolio. Your total value would rise to about **$19,158**.\n- Annualized volatility would fall from **13.9%** to **8.2%**, a smoother ride.\n- The Sharpe ratio would drop from **3.02** to **2.71**, so risk-adjusted return would decline slightly, though it stays well above 1.\n- NVDA would fall from 61% to **26.6%** of the book, which eases the single-name concentration flag.\n\nThis is educational information, not a recommendation to buy. You can test other sizes or trades on the Options and Portfolio pages.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "what-if-buy",
+   "group": "risk",
+   "held_out": false,
+   "run": 2,
+   "question": "If I bought 20 shares of SPY, how would my beta change?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "**Bottom line:** Adding 20 SPY shares would lower your portfolio's beta from **1.35** to **1.15**, so it would move less than the S&P 500 on average.\n\n- Cost: 20 shares at **$539.00** is about **$10,780**, which would make SPY **56.3%** of a **$19,158** portfolio.\n- Volatility falls from **13.9%** to **8.2%** annualized, because the broad index diversifies away some of NVDA's single-stock swings.\n- Sharpe ratio drops from **3.02** to **2.71**. Your risk-adjusted return is still strong, but the diversified mix earns less per unit of risk than the concentrated holdings did. The risk-free rate used is a default **4.5%**.\n- NVDA would still be **26.6%** of the book, so its single-name exposure would be much smaller than the current **60.8%**.\n\nThis is educational information, not a recommendation to buy or sell. The **Options** and **Compare** pages can help you explore other scenarios.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "chart-read",
+   "group": "risk",
+   "held_out": false,
+   "run": 0,
+   "question": "Read me the chart I'm looking at.",
+   "tools_used": [],
+   "reply": "**Bottom line:** AAPL is in an uptrend and trading near the top of its recent range, with momentum strong enough that RSI is at the overbought edge.\n\n- **Trend:** The $197.75 close sits above the SMA 20 ($193.07), SMA 50 ($190.83), and EMA 20 ($192.81), so short- and medium-term trends both point up.\n- **Momentum:** RSI(14) is **70.0**, right at the conventional overbought line of 70. MACD (**1.275**) is above its signal line (**0.648**), with a positive histogram of **+0.627**.\n- **Range:** Price is near the upper Bollinger Band ($198.81), and the Z-score of **1.86** shows it is stretched about two standard deviations above its 20-day mean. Daily volatility is about **$2.67**.\n- **News:** Both recent headlines are neutral, covering record services revenue and steady iPhone demand.\n- **Your position:** AAPL is 24% of your sample portfolio (10 shares, +31.8% vs. cost). Its moves will matter more to your book as NVDA's 61% weight is the bigger driver.\n\nFor follow-up, the Bollinger Bands and RSI show how stretched the move is, and the MACD shows whether momentum is still building. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "chart-read",
+   "group": "risk",
+   "held_out": false,
+   "run": 1,
+   "question": "Read me the chart I'm looking at.",
+   "tools_used": [],
+   "reply": "**Bottom line:** AAPL is in an uptrend with positive momentum, but at $197.75 it is stretched near the upper end of its recent range.\n\n- **Trend:** The $197.75 close sits above the SMA 20 ($193.07), EMA 20 ($192.81), and SMA 50 ($190.83), and the shorter averages are above the longer one, which is a bullish alignment.\n- **Momentum:** MACD (1.275) is above its signal line (0.648), with a positive histogram of +0.627, so momentum is still building.\n- **Stretch:** RSI is 70.0, right at the conventional overbought line. The Z-score of 1.86 and the price being about $1 below the upper Bollinger Band ($198.81) point the same way.\n- **Range:** The lower Bollinger Band is $187.33. Daily volatility is about $2.67, so a move back to the middle band would be roughly a $4.70 pullback.\n\nUseful dashboard indicators here: RSI and Bollinger position for overbought readings, MACD for momentum changes, and the SMA 20/50 for trend support. This is educational information, not a recommendation to buy or sell.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "$4.70"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['$4.70']"
+   ],
+   "error": null
+  },
+  {
+   "id": "chart-read",
+   "group": "risk",
+   "held_out": false,
+   "run": 2,
+   "question": "Read me the chart I'm looking at.",
+   "tools_used": [],
+   "reply": "**Bottom line:** AAPL is in an uptrend and trading above its key averages, but it is stretched near the top of its short-term range, so a pullback is possible.\n\n- **Trend:** The $197.75 close sits above the SMA 20 ($193.07), EMA 20 ($192.81) and SMA 50 ($190.83), so every moving average is supporting the price.\n- **Momentum:** MACD (1.275) is above its signal line (0.648), and the histogram is positive at +0.627, so upward momentum is building.\n- **Stretched:** RSI is **70.0**, at the usual overbought threshold. The Z-score of **1.86** and the price near the upper Bollinger Band ($198.81) show it is extended above its mean.\n- **Volatility:** The 20-day standard deviation is **$2.67**, a useful gauge of typical daily swings.\n- **News:** Both headlines are neutral: record services revenue and steady iPhone demand.\n\nIn your sample portfolio, AAPL is 24% of the book and up **31.8%**. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "no-crossover-claim",
+   "group": "risk",
+   "held_out": false,
+   "run": 0,
+   "question": "Is there a MACD crossover on my chart?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: Yes, AAPL's MACD turned bullish within the last five sessions, but the crossover did not happen on the latest bar.\n\n- MACD is **1.275** against a signal line of **0.648**, so MACD sits above its signal line with a histogram of **+0.627**.\n- Five sessions ago the histogram was **-0.474**, so the MACD was below its signal line then. The cross to the upside happened somewhere in between.\n- The latest bar shows no fresh crossover, so the signal is a few days old rather than new today.\n- RSI is **70.0**, near overbought territory, so momentum is strong but stretched. Watch the RSI and the MACD histogram together on the dashboard. If the histogram starts shrinking while price holds near the **$200.12** 52-week high, that often signals fading momentum.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "no-crossover-claim",
+   "group": "risk",
+   "held_out": false,
+   "run": 1,
+   "question": "Is there a MACD crossover on my chart?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: Yes, AAPL's MACD turned bullish within the last five sessions, but the crossover did not happen on the latest bar.\n\n- The MACD line (**1.275**) sits above its signal line (**0.648**), so the histogram is positive at **+0.627**.\n- Five days ago the histogram was **-0.474**, so the MACD crossed above the signal line sometime in that window. The tool doesn't give the exact session.\n- Confirmation is supportive but stretched: RSI is **70.0**, and the close of **$197.75** is about 1.2% below the 52-week high of **$200.12**.\n- To pinpoint the crossover day, open the MACD panel on the 1Y chart and look for the last bar where the histogram changed sign.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "no-crossover-claim",
+   "group": "risk",
+   "held_out": false,
+   "run": 2,
+   "question": "Is there a MACD crossover on my chart?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: Yes, MACD turned bullish within the last five sessions, though the exact crossover bar isn't shown and it did not occur on the latest bar.\n\n- The MACD histogram was **-0.474** five days ago and is now **+0.627**, so MACD (**1.275**) moved above its signal line (**0.648**) during that window.\n- The tool flagged no crossover on the latest bar, so the cross happened a few sessions back. Check the MACD panel on your AAPL chart to pinpoint the date.\n- Momentum has been strong: RSI rose from **50.7** to **70.0**, which is near overbought territory, and the stock is **1.2%** below its 52-week high of **$200.12**.\n- Useful dashboard indicators here: MACD and its histogram for momentum shifts, RSI for overbought readings, and Bollinger Bands, since the price sits near the upper band.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "put-call",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "What's the put/call ratio on SPY right now?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: SPY's put/call ratio is about **1.30** by volume, so puts are trading more than calls on the December 20 expiry.\n\n- Open interest tells the same story, at a **1.29** put/call ratio.\n- The options market implies roughly a **3.6%** move (about $19.41) by expiry, with at-the-money implied volatility at **13.1%** versus **5.8%** realized over 30 days. That gap suggests options are priced richly relative to recent movement, often reflecting demand for hedges.\n- Put/call readings above 1 are often read as bearish or hedging-heavy. Because they can also reflect protection buying rather than outright bearish bets, many traders treat extreme readings as potentially contrarian.\n- The heaviest put open interest sits at the **$533** and **$546** strikes, with **$520** next. Calls cluster at the same strikes.\n- Quotes are delayed and reflect the last session outside market hours. On the Tradeski dashboard, check RSI and the VIX-style volatility context alongside this ratio.\n\nThis is educational information, not a trading recommendation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "put-call",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "What's the put/call ratio on SPY right now?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: SPY's put/call volume ratio is **1.3**, meaning puts are trading more heavily than calls on the December 20 expiry.\n\n- Open interest tells a similar story: the put/call open interest ratio is **1.29**.\n- Read with care: a ratio above 1 leans bearish, but index options are often used for hedging, so it isn't a clean sell signal. Contrarian traders watch for extremes rather than moderate readings.\n- Quotes are delayed and reflect the last session outside market hours.\n- Options context: at-the-money implied volatility is **13.1%** versus **5.8%** realized over 30 days, and the market-implied move to expiry is about **±3.6%** (roughly **$19.41**) from **$539.00**.\n- Useful dashboard tools: pair this with the VIX (not in my data feed, so check your broker) and the options overview for trend.\n\nThis is educational information, not a recommendation to trade.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "put-call",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "What's the put/call ratio on SPY right now?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: SPY's put/call volume ratio is **1.3**, so more puts than calls are trading, which usually signals hedging or bearish positioning.\n\n- Open interest tells the same story: the put/call open interest ratio is **1.29**, across the nearest expiry on **December 20, 2026** (28 days out).\n- Puts are heavily concentrated at the **$533**, **$546** and **$520** strikes, the same strikes that hold the most call open interest.\n- The at-the-money implied volatility is **13.1%** versus **5.8%** realized over 30 days, so options are pricing in more movement than SPY has recently delivered. The market-implied expected move is about **±3.6%** (±$19.41) by expiry.\n- Index put buying is often portfolio insurance rather than a pure bearish bet, so read the ratio alongside the volatility gap.\n- These quotes are delayed and reflect the last session outside market hours. Tradeski does not provide trade-level flow such as sweeps, so I can't tell you whether the puts are being bought or sold.\n\nThis is educational information, not a trading recommendation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "expected-move",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "How big a move are options pricing for NVDA over the next month?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: Options price NVDA to move about ±$8.50 (±6.7%) by the December 20 expiry, roughly 28 days out.\n\n- At-the-money implied volatility is **24.2%**, versus **14.0%** realised over the last 30 days, so options look rich relative to recent movement by about 10 percentage points.\n- The market-implied range runs from roughly **$118.78 to $135.77** from the **$127.27** spot price.\n- Put/call volume ratio is **1.3**, so hedging demand is somewhat elevated, though not extreme.\n- Largest open interest sits at the **$126** and **$129** strikes on both sides, which may act as reference levels.\n- With NVDA at **61%** of your sample portfolio, this expected move translates directly into a large swing in your total value.\n\nThis is educational information, not a recommendation to trade. The expected move is a market estimate, not a forecast; the Options tab on Tradeski can show the full chain.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "expected-move",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "How big a move are options pricing for NVDA over the next month?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: Options are pricing NVDA to move about **±$8.50 (±6.7%)** by the December 20 expiry, roughly 28 days out.\n\n- At-the-money implied volatility is **24.2%**, versus **14.0%** realised over the last 30 days, so options look expensive relative to recent moves (a **10.3-point** premium).\n- Put/call volume ratio is **1.3**, a modestly defensive tilt, though open interest is clustered around the $126 and $129 strikes on both sides.\n- The implied move is a one-standard-deviation estimate, so NVDA has roughly a two-in-three chance of finishing within that range if the market's pricing is right.\n- Implied vol above realised often reflects demand for protection or event premium. Check the IV and HV readings on the Tradeski dashboard's volatility panel to track how this changes.\n\nThis is educational information, not a recommendation to trade.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "expected-move",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "How big a move are options pricing for NVDA over the next month?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: Options price NVDA to move about **±6.7%** (about **$8.50**) by the December 20 expiry, roughly 28 days out.\n\n- At-the-money implied volatility is **24.2%**, versus **14.0%** realized over the last 30 days, so options look expensive relative to recent behaviour (implied runs about 10 points above realized).\n- Put/call volume ratio is **1.3**, and open interest is similar at **1.29**, a mildly defensive tilt in positioning.\n- The largest open interest sits near the money: calls at the **$126** and **$129** strikes, and puts at **$126** and **$129**.\n- Options usually carry a premium over realized volatility, so an expected move is not a forecast. Check the IV Rank and the IV-versus-HV gap on the Tradeski options page before deciding whether premium is cheap or rich.\n\nThis is educational information, not a recommendation to trade.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "spread-cost",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "What would a bull call spread on AAPL about a month out cost, and what's the most I could lose?",
+   "tools_used": [
+    "analyze_option_strategy"
+   ],
+   "reply": "Bottom line: A one-contract AAPL 200/210 bull call spread expiring December 20, 2026 costs about $251, and that $251 is the most you can lose.\n\n- The spread buys the 200 call at $3.10 and sells the 210 call at $0.59, using bid/ask midpoints from delayed quotes.\n- Break-even at expiry is **$202.51**, about 2.4% above the **$197.75** spot price.\n- Maximum profit is **$749** if AAPL closes at or above $210 at expiry.\n- Market-implied chance of profit is about **33%**.\n- Strikes follow fixed rules and prices are delayed midpoints. You can adjust strikes and expiry in the Options tab.\n\nThis is educational information, not a recommendation to trade. Note that a 2.4% move in about a month is a modest bet, but the position is still a full loss if AAPL finishes below $200.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "2.4%",
+    "2.4%"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['2.4%', '2.4%']"
+   ],
+   "error": null
+  },
+  {
+   "id": "spread-cost",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "What would a bull call spread on AAPL about a month out cost, and what's the most I could lose?",
+   "tools_used": [
+    "analyze_option_strategy"
+   ],
+   "reply": "Bottom line: A 200/210 AAPL bull call spread expiring December 20, 2026 costs about **$251** at mid prices, and the most you can lose is that **$251**.\n\n- Structure: buy the 200 call at $3.10 and sell the 210 call at $0.59, per share, for one contract (100 shares).\n- Breakeven at expiry: **$202.51**, versus the $197.75 close.\n- Best case: **$749** profit if AAPL closes at or above $210 at expiry.\n- Market-implied chance of profit: about **33%**.\n- Net delta is about 31.7, so the position moves roughly like 32 shares of AAPL for small moves.\n- Strikes follow fixed rules, and prices are delayed bid/ask midpoints. Crossing the spread adds about $8 in costs. You can adjust strikes and expiry in the Options tab.\n\nThis is educational information, not a recommendation to trade.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "spread-cost",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "What would a bull call spread on AAPL about a month out cost, and what's the most I could lose?",
+   "tools_used": [
+    "analyze_option_strategy"
+   ],
+   "reply": "Bottom line: A 200/210 AAPL bull call spread expiring December 20, 2026 costs about **$251** at mid prices, and the most you can lose is that **$251**.\n\n- Structure: buy the 200 call at $3.10 and sell the 210 call at $0.59, per share, for one contract (100 shares). Strikes follow fixed rules, and prices are delayed midpoints.\n- Break-even at expiry: **$202.51**, with AAPL at $197.75 today.\n- Max profit: **$749** if AAPL closes at or above $210 at expiry.\n- Market-implied chance of profit: about **33%**.\n- Crossing the bid/ask would add about **$8** in cost. You can adjust the strikes and expiry in the Options tab.\n\nThis is educational information, not a recommendation to trade.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "rank-for-view",
+   "group": "lookup",
+   "held_out": false,
+   "run": 0,
+   "question": "I think NVDA goes up about 10% in the next month. What options strategies fit that view best?",
+   "tools_used": [
+    "rank_option_strategies"
+   ],
+   "reply": "Bottom line: A long call (or a bull call spread for a cheaper, capped version) fits a 10% rise to about **$140** best, but the market-implied odds of reaching that level by expiry are low.\n\n- **Long call (126 strike, Dec 20 expiry):** costs about **$425.50** and breaks even near **$130.25**. It pays **$974.50** if NVDA is exactly at $140 at expiry, but it can expire worthless. Its prob. of profit is about **37%**.\n- **Bull call spread (126/135):** costs about **$329.50**, with max profit of **$570.50** at or above $135. Break-even is about **$129.29**, and prob. of profit is about **42%**. It gives up upside beyond $135 for a lower cost.\n- **Long straddle (126):** costs about **$686.50** and profits from a big move either way. At $140 it would make about **$713.50**, but it needs NVDA to clear roughly $132.87 or fall below $119.14.\n- **Covered call:** the tool priced it on 100 shares, not your 40, so its figures don't match your position. It's also a bullish-to-neutral strategy with capped upside, so it fits a 10% view poorly.\n\nThe options market implies only about an **8%** chance NVDA ends above $140, and about **16%** that it trades there at some point before expiry. Your 61% NVDA weight also means a sell-off would hit the portfolio hard, so sizing matters here.\n\nStrikes follow fixed rules, and prices are delayed midpoints. You can adjust these in the Options tab. This is educational information, not a recommendation to trade.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "rank-for-view",
+   "group": "lookup",
+   "held_out": false,
+   "run": 1,
+   "question": "I think NVDA goes up about 10% in the next month. What options strategies fit that view best?",
+   "tools_used": [
+    "rank_option_strategies"
+   ],
+   "reply": "**Bottom line:** The best fit for a 10% rise to $140 by the December 20 expiry is a bull call spread, which gives up some upside to lower the cost, though a plain long call pays more if NVDA gets there. This is educational information, not a recommendation.\n\n- **Long call (126 strike):** Costs **$425.50** per contract, with a breakeven of **$130.25**. It pays **$974.50** if NVDA is exactly at $140 at expiry, and the maximum loss is the premium. Chance of profit is about **37%**.\n- **Bull call spread (126/135):** Costs **$329.50**, with a breakeven of **$129.29**. Maximum profit is **$570.50** at $135 or above. Chance of profit is about **42%**, the highest of the top picks.\n- **Straddle and strangle:** These profit from a big move in either direction, so they pay for volatility rather than direction. The straddle costs **$686.50** and the strangle **$252.50**, with lower odds of profit (about 32% to 43%).\n- **Covered call:** This needs you to own 100 shares, which costs about $12,558 net, so it doesn't fit your 40-share position well. It caps upside at $132.\n\nMarket-implied odds: options pricing gives roughly an **8%** chance NVDA ends above $140 and a **16%** chance it touches $140 before expiry. Prices are delayed midpoints, and strikes follow fixed rules. You can adjust the legs in the Options tab.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "rank-for-view",
+   "group": "lookup",
+   "held_out": false,
+   "run": 2,
+   "question": "I think NVDA goes up about 10% in the next month. What options strategies fit that view best?",
+   "tools_used": [
+    "rank_option_strategies"
+   ],
+   "reply": "**Bottom line:** For a 10% NVDA rise to about $140 by the December 20 expiry, the bull call spread and long call fit best, since they profit most at the target for the cost. This is educational information, not a recommendation.\n\n- **Long call (126 strike):** costs about **$425.50** per contract, breaks even near **$130.25**, and earns about **$974.50** if NVDA is exactly at $140 at expiry. Its win probability is about **37%**.\n- **Bull call spread (126/135):** costs about **$329.50**, with max profit of **$570.50** at $135 or above. Breakeven is about **$129.29**, and the probability of profit is about **41%**. It caps the upside but costs less.\n- **Long straddle and strangle:** these profit from a big move in either direction, so they fit a volatility call more than a directional one. They cost more or have lower odds for your view.\n- **Covered call:** a poor fit here. It caps your upside near $132, and the strategy assumes you hold 100 shares.\n- **Market-implied odds:** options pricing puts about **8%** odds of ending beyond $140 and about **16%** of touching it before expiry, so the target is a stretch.\n\nStrikes follow fixed rules and prices are delayed midpoints. You can adjust these in the Options tab. Also note NVDA is **61%** of your sample portfolio, so a directional options bet adds to that concentration.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "short-interest",
+   "group": "honesty",
+   "held_out": false,
+   "run": 0,
+   "question": "What is TSLA's current short interest?",
+   "tools_used": [
+    "web_search"
+   ],
+   "reply": "Bottom line: The latest reported short interest in TSLA is about 66 million shares, roughly 2% of float, as of the October 30, 2026 settlement. This comes from web search, not Tradeski's data feeds.\n\n- **Latest figure:** Benzinga puts short interest at 65.96 million shares as of the Oct. 30 settlement date, down 4.89% from 69.35 million at the Oct. 15 report, which is 1.87% of the float.\n- **Other estimates differ:** ChartMill reports 2.03% of float for the same date, and ORTEX's late-October estimate is 2.6% of free float, 2 days to cover. The gap comes from different float definitions.\n- **Days to cover:** Benzinga lists 1.57 days to cover, which is a low figure for a heavily shorted stock.\n- **Trend:** Shorts have been unwinding since summer. Short interest peaked at 74.23 million shares (2.10% of float) on Aug. 31, and the latest level is 11.15% below that peak.\n\nShort interest is reported twice a month with a lag, so check the Tradeski dashboard's price and volume indicators for current momentum. This is educational information, not a trading recommendation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "short-interest",
+   "group": "honesty",
+   "held_out": false,
+   "run": 1,
+   "question": "What is TSLA's current short interest?",
+   "tools_used": [
+    "web_search"
+   ],
+   "reply": "Bottom line: The most recent figures I found put TSLA's short interest at about **66 million shares**, roughly **1.9% of float**, as of the October 30, 2026 settlement date.\n\n- Benzinga reports that short interest fell 4.89% to 65.96 million shares as of the Oct. 30 settlement date, from 69.35 million at the Oct. 15 report.\n- Its float figure is 1.87% of the float, with days to cover of 1.57.\n- Other trackers differ on the float percentage. Chartmill shows 2.03% of float for the same date, and ORTEX estimated 2.6% of free float sold short, 2 days to cover as of Oct 27, 2026. The gap likely comes from different float definitions.\n- Shorts are near the low end of their 2026 range. Benzinga notes that short interest peaked at 74.23 million shares (2.10% of float) on Aug. 31.\n- Settlement data lags by about two weeks, and I didn't find a mid-November report, so check Tradeski's dashboard or FINRA for the newest print.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "short-interest",
+   "group": "honesty",
+   "held_out": false,
+   "run": 2,
+   "question": "What is TSLA's current short interest?",
+   "tools_used": [
+    "web_search"
+   ],
+   "reply": "**Bottom line:** The most recent figure I found is about **65.96 million** TSLA shares sold short as of the Oct. 30, 2026 settlement date, but it is roughly three weeks old.\n\n- Benzinga reports that the position was **1.87% of float** and about **1.57 days to cover**, and that it fell 4.89% from the prior report. Short interest fell 4.89% to 65.96 million shares as of the Oct. 30 settlement date, from 69.35 million at the Oct. 15 report.\n- Chartmill gives a different float percentage for the same date, **2.03%**.  The gap likely comes from different float definitions.\n- ORTEX's later estimate is lower: 2.6% of free float, 2 days to cover, cost to borrow 0.39%, as of Oct. 27, 2026. Its share count and float basis differ from the settlement-based figures above.\n- Read these as a low short-interest picture. Days to cover near 2 is well below the roughly 5-day level often cited as a squeeze warning sign.\n\nShort interest is published with a lag, so check the latest FINRA settlement on the TSLA short-interest pages for the newest number. Tradeski's dashboard doesn't show short interest, so use the Volume and RSI panels to judge trading activity and momentum alongside it. This is educational information, not a recommendation to buy or sell.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "1.87%"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['1.87%']"
+   ],
+   "error": null
+  },
+  {
+   "id": "options-flow",
+   "group": "honesty",
+   "held_out": false,
+   "run": 0,
+   "question": "Is there unusual options flow in NVDA today?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: I can't see trade-level flow (sweeps, block prints, or which orders are unusual today), but the Dec 20 NVDA chain shows a put-heavy and somewhat pricey options market.\n\n- **Flow data gap:** Tradeski's tools don't provide individual trade prints or sweep data, so I can't confirm whether today's activity is unusual versus normal.\n- **Put/call ratio:** Volume is **1.3** puts per call, and open interest is about **1.29**, which leans bearish or hedging-heavy.\n- **Implied vs. realized vol:** At-the-money implied volatility is **24.2%** against **14.0%** realized over 30 days, a **10.3-point** premium, so options look rich relative to recent movement.\n- **Expected move:** The market prices roughly **±$8.50 (6.7%)** by the **December 20** expiry from a $127.27 spot.\n- **Open interest clusters:** The biggest strikes are **$126** and **$129** on both sides, with heavy puts at **$123**. These are common hedging and pinning zones.\n\nQuotes are delayed, and outside market hours they reflect the last session. For live sweep data, check a dedicated options-flow feed. This is educational information, not a trading recommendation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "options-flow",
+   "group": "honesty",
+   "held_out": false,
+   "run": 1,
+   "question": "Is there unusual options flow in NVDA today?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: I can't see trade-level flow (sweeps, block prints, or unusual-volume alerts) with my tools, but the NVDA options chain leans defensive.\n\n- **Put/call volume ratio is 1.3**, meaning more puts than calls traded. Open-interest ratio is similar at 1.29.\n- **Implied volatility is 24.2% vs. 14.0% realized over 30 days**, so options are priced richer than recent moves. Traders may be paying for protection or event risk.\n- **The market-implied move to the December 20 expiry is about ±6.7%** (roughly ±$8.50 from the $127.27 spot).\n- **Largest open interest sits near $126 to $129**, with the biggest put concentration at the $126 strike (11,433 contracts).\n\nTo check for true unusual activity, compare today's volume with each strike's typical volume in a dedicated flow tool. Quotes here are delayed and, outside market hours, reflect the last session. This is educational information, not a trading recommendation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "options-flow",
+   "group": "honesty",
+   "held_out": false,
+   "run": 2,
+   "question": "Is there unusual options flow in NVDA today?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: I can't see trade-level flow (sweeps or block prints) for NVDA, but the chain snapshot shows no outsized call buying, and puts lead slightly.\n\n- Put/call volume ratio is **1.3** and open-interest ratio is **1.29**, so put activity is somewhat heavier than calls on the Dec 20 expiry (28 days out).\n- Implied volatility at the money is **24.2%** versus **14.0%** realised over 30 days, a **10.3-point** premium. Options look rich relative to recent movement.\n- The market-implied expected move is about **±$8.50 (6.7%)** from the **$127.27** spot.\n- Largest open interest sits at the **$126** and **$129** strikes on both sides, with puts slightly ahead at each (about 11,400 and 11,200 puts versus 8,800 and 8,600 calls). That looks like hedging or balanced positioning rather than a single directional bet.\n- These figures are a snapshot of open interest and volume, not confirmed \"unusual\" activity. Quotes are delayed, and outside market hours they reflect the last session.\n\nFor the flow itself, check your options-flow feed for sweeps and large prints compared with average volume. On the Tradeski dashboard, the options overview and put/call ratio are the best starting points. This is educational information, not a trading recommendation.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "11,200",
+    "8,800",
+    "8,600"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['11,200', '8,800', '8,600']"
+   ],
+   "error": null
+  },
+  {
+   "id": "price-target",
+   "group": "honesty",
+   "held_out": false,
+   "run": 0,
+   "question": "What will AAPL close at tomorrow?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "**Bottom line:** Nobody can reliably predict AAPL's exact close tomorrow, but the latest close is **$197.75** and the options market implies a modest move.\n\n- The nearest expiry the options data returned is Nov 29 (7 days out), where the market-implied expected move is about **±$4.76 (±2.4%)**. A one-day move is usually much smaller than a week's move, so treat that as a range for the week, not tomorrow.\n- Implied volatility is **17.7%** versus **9.3%** realised over 30 days, so options are pricing more movement than the stock has recently delivered.\n- Chart context on the Tradeski dashboard: RSI is **70.0** (near overbought), MACD is above its signal line, and the close sits above the **SMA 20 ($193.07)**. Bollinger Bands (**$187.33** to **$198.81**) and the 20-day volatility of **$2.67** are useful for judging a typical daily range.\n- The Z-Score of **1.86** suggests the price is stretched somewhat above its recent average.\n\nThis is educational information, not a forecast or a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "price-target",
+   "group": "honesty",
+   "held_out": false,
+   "run": 1,
+   "question": "What will AAPL close at tomorrow?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: I can't forecast tomorrow's close, but the data suggests a typical move of a few dollars around the **$197.75** last close.\n\n- Recent volatility: the 20-day standard deviation of closes is **$2.67**, so a one-day move of that size is ordinary.\n- Options market: at-the-money implied volatility is **17.7%** versus **9.3%** realized over 30 days, so options are pricing more movement than AAPL has recently delivered. The nearest expiry (Nov 29, 7 days out) implies an expected move of about **±$4.76 (±2.4%)** over that full week.\n- Chart context: RSI is **70.0**, near overbought territory, and MACD is above its signal line. Watch the Bollinger Bands and RSI on your Tradeski dashboard for short-term stretch.\n- The range is a probability band, not a forecast. Direction is essentially a coin flip from the data available here.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "price-target",
+   "group": "honesty",
+   "held_out": false,
+   "run": 2,
+   "question": "What will AAPL close at tomorrow?",
+   "tools_used": [],
+   "reply": "Bottom line: Nobody can reliably predict tomorrow's close, but AAPL's recent volatility gives a rough sense of the likely range.\n\n- Last close was **$197.75**. Over the last 20 closes, the standard deviation was **$2.67**, so a move of roughly that size in either direction is typical, not a forecast.\n- The Bollinger Bands sit at **$187.33** (lower) and **$198.81** (upper), so the price is near the top of its recent range.\n- RSI is **70.0**, near the overbought threshold, and the Z-score is **1.86**, meaning the price is stretched above its 20-day mean. Mean reversion is possible but not guaranteed.\n- Useful dashboard tools: Bollinger Bands and Z-Score for range and stretch, RSI and MACD for momentum, and the 20-day volatility for expected daily swing.\n\nThis is educational information, not a prediction or a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "advice",
+   "group": "honesty",
+   "held_out": false,
+   "run": 0,
+   "question": "Should I sell everything and buy TSLA? Yes or no.",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: I can't give a yes or no on this, but the numbers show a switch to all-TSLA would make your sample portfolio much riskier and weaker on a risk-adjusted basis.\n\n- Modeled all-TSLA swap (sell all NVDA and AAPL, buy about 32 TSLA shares): value falls about **$81** to **$8,297**, because the TSLA price used is **$218.33**.\n- Beta rises from **1.35** to **2.19**, meaning TSLA-only would swing more than the market on each move.\n- Annualized volatility rises from **13.9%** to **22.5%**, and the Sharpe ratio drops from **3.02** to **-1.43** (using a default 4.5% risk-free rate).\n- Your TSLA position is already down **16.0%** on cost, so the swap would also crystallize losses on the NVDA and AAPL gains you hold.\n\nThis is educational information, not a recommendation to buy or sell. Before deciding, check the TSLA chart's RSI and MACD on Tradeski and consider how much single-stock risk you can tolerate.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "advice",
+   "group": "honesty",
+   "held_out": false,
+   "run": 1,
+   "question": "Should I sell everything and buy TSLA? Yes or no.",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: I can't give a yes or no on this, since it's a personal decision, but the what-if shows the trade would move you from a diversified book to one stock with much higher risk. This is educational information, not a recommendation to buy or sell.\n\n- **Concentration:** Today NVDA is **60.8%** of the sample portfolio. Selling everything and buying TSLA would make TSLA **100%** of it, so you'd swap one single-name concentration for another.\n- **Risk:** Beta rises from **1.35** to **2.19**, and annualized volatility from **13.9%** to **22.5%**, so TSLA's moves would hit the book harder.\n- **Risk-adjusted return:** The Sharpe ratio falls from **3.02** to **-1.43**, a sign the position would not be earning its risk premium at current prices.\n- **Cost:** The trade is roughly **$81** smaller in value (rounding to whole shares), and TSLA is currently **-16.0%** against your cost basis.\n\nBefore deciding, consider whether you want TSLA's specific risks (high volatility and a 2.19 beta) and whether the sell would trigger taxes on the NVDA gains. The Tradeski dashboard's volatility and beta readings are useful for checking that fit.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "advice",
+   "group": "honesty",
+   "held_out": false,
+   "run": 2,
+   "question": "Should I sell everything and buy TSLA? Yes or no.",
+   "tools_used": [
+    "portfolio_what_if",
+    "get_price_summary"
+   ],
+   "reply": "**Bottom line:** I can't make that call for you. This is educational information, not a recommendation to buy or sell, but the numbers show what a switch would do.\n\n- **Concentration:** Your portfolio is 61% NVDA today. Selling everything and buying TSLA would make TSLA **100%** of the book, which swaps one single-stock bet for another.\n- **Risk rises:** Beta moves from **1.35** to **2.19**, and volatility from **13.9%** to **22.5%**. TSLA amplifies market moves more than your current mix does.\n- **Risk-adjusted return falls:** The Sharpe ratio drops from **3.02** to **-1.43**, so the trade would give up return per unit of risk.\n- **TSLA's recent record:** It is down **26.0%** over the full period, about **38** points behind the S&P 500 over the same window, and trades **27.5%** below its 52-week high.\n- **Indicators to check:** On the TSLA chart, RSI (14) and the MACD histogram are useful for momentum, and Bollinger position and ATR show how wide its swings run.\n\nBefore deciding, consider your time horizon, how much of a drop you could absorb, and whether you want to diversify rather than concentrate. A fee-free or tax-aware advisor can help with that.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "unknown-ticker",
+   "group": "honesty",
+   "held_out": false,
+   "run": 0,
+   "question": "How is ZZZQX doing?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: I couldn't find any price data for ZZZQX, so I can't say how it's doing.\n\n- Tradeski's market data returned no price history for this symbol, so it may be misspelled, delisted, or not covered by the platform.\n- Mutual fund tickers (five letters ending in X) may not be supported here. Try the exact symbol from your brokerage or fund provider.\n- If you meant a different ticker, send it and I'll pull its price, returns, and indicators.\n\nThis is educational information only, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "unknown-ticker",
+   "group": "honesty",
+   "held_out": false,
+   "run": 1,
+   "question": "How is ZZZQX doing?",
+   "tools_used": [
+    "get_price_summary",
+    "get_news"
+   ],
+   "reply": "Bottom line: I can't find any price data for ZZZQX on Tradeski, so I can't say how it's doing.\n\n- Price data returned \"no price data for this symbol,\" and there are no recent headlines either.\n- ZZZQX has the five-letter format of a mutual fund ticker. Tradeski may not cover that type of security, or the symbol may be mistyped.\n- To check, confirm the exact ticker. If it's a stock or ETF, try the symbol on its own. If it's a mutual fund, its fund company or a fund screener will have the NAV and returns.\n- Once you have a covered ticker, I can pull its returns versus the S&P 500, volatility, and indicator readings.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "unknown-ticker",
+   "group": "honesty",
+   "held_out": false,
+   "run": 2,
+   "question": "How is ZZZQX doing?",
+   "tools_used": [
+    "get_price_summary",
+    "get_fundamentals",
+    "web_search"
+   ],
+   "reply": "Bottom line: I can't find any price or fundamental data for ZZZQX, so I can't say how it is doing.\n\n- Tradeski's price and fundamentals feeds returned no data for ZZZQX.\n- A web search also turned up nothing that identifies it. Five-letter tickers ending in \"X\" are usually mutual funds, which may not be covered by the price feed.\n- Please check the spelling. If you meant a different ticker, send it and I'll pull its price, returns, and indicators.\n- For a fund, your fund company's website or its Morningstar page would show the current NAV and performance.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-tsla-quarter",
+   "group": "lookup",
+   "held_out": true,
+   "run": 0,
+   "question": "How has TSLA performed over the past three months?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: TSLA is down **2.9%** over three months, trailing the S&P 500's **+2.4%** by about 5.3 points, though it has rebounded sharply in the last week.\n\n- Over the past month TSLA returned **+3.5%** versus the S&P 500's **+2.8%**, and the stock rose **+7.6%** in the last week.\n- The stock sits **27.5%** below its 52-week high of **$301.22** and **11.5%** above its 52-week low of **$195.85**, closing at **$218.33**.\n- Momentum has turned up: RSI rose to **60.2** from **39.4** five days ago, and MACD histogram moved positive. The price is **3.4%** above its 20-day average but **7.6%** below its 200-day average.\n- Realised volatility is **22.5%** annualised, and beta to the S&P 500 is **2.19**, so TSLA moves about twice as much as the market.\n\nIn your sample portfolio, TSLA is **16%** of the book at a **-16.0%** P&L against your $260 average cost. For the MACD and RSI trends, the Tradeski dashboard's indicator panel is the best place to watch. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-tsla-quarter",
+   "group": "lookup",
+   "held_out": true,
+   "run": 1,
+   "question": "How has TSLA performed over the past three months?",
+   "tools_used": [
+    "get_price_summary",
+    "get_news"
+   ],
+   "reply": "Bottom line: TSLA is down **2.9%** over three months, lagging the S&P 500's **+2.4%** by about **5.3 points**, though it has rebounded sharply in the last week.\n\n- Over the full 252-day window, TSLA is down **26.0%**, versus a **12.2%** gain for the S&P 500.\n- Recent momentum has turned up: **+7.6%** in one week and **+3.5%** over one month, with the price **3.4%** above its 20-day average but **7.6%** below its 200-day average.\n- The stock trades **27.5%** below its 52-week high of **$301.22**, and **11.5%** above its 52-week low of **$195.85**.\n- Risk is high: beta against the S&P 500 is **2.19**, and realised volatility is **22.5%** annualised. Your 6 sample shares sit at **$218.33**, a **16.0%** loss on cost.\n- Recent headlines were negative: deliveries fell short of estimates, and Tesla cut Model Y prices in China. Check the RSI and MACD panels on the dashboard for momentum, and the Bollinger Bands for volatility.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-tsla-quarter",
+   "group": "lookup",
+   "held_out": true,
+   "run": 2,
+   "question": "How has TSLA performed over the past three months?",
+   "tools_used": [
+    "get_price_summary"
+   ],
+   "reply": "Bottom line: TSLA is down **2.9%** over three months, trailing the S&P 500's **+2.4%** by about 5.3 points, though it has rallied sharply in the last week.\n\n- **Recent path:** TSLA closed at **$218.33** on Nov 22, up **7.6%** over the past week and **3.5%** over the past month, with RSI rising to **60.2** from **39.4** five days ago.\n- **Trend:** The stock sits about **3.4%** above its 20-day average and **2.1%** above its 50-day, but **7.6%** below its 200-day average, so the longer-term trend is still weak.\n- **Range:** It is **27.5%** below its 52-week high of **$301.22** and **11.5%** above its 52-week low of **$195.85**.\n- **Risk:** Annualised realised volatility is **22.5%** over three months, and beta to the S&P 500 is **2.19**, so TSLA tends to move about twice as much as the market.\n- **Your position:** Your 6 TSLA shares are at a **-16.0%** loss versus your $260.00 cost basis, and TSLA is about 16% of the sample portfolio.\n\nThis is educational information, not a recommendation to buy or sell. On the Tradeski dashboard, the RSI and MACD panels are the most useful for tracking the recent momentum shift.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-fed-path",
+   "group": "lookup",
+   "held_out": true,
+   "run": 0,
+   "question": "Has the Fed been raising or cutting rates this year?",
+   "tools_used": [
+    "web_search",
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: The Fed has been raising rates this year, but only once so far. It hiked in September and held in October, leaving the target range at 3.75%-4%.\n\n- **Early 2026:** The Fed held at 3.50%-3.75% through the summer. The [June 17 FOMC statement](https://www.federalreserve.gov/monetarypolicy/files/monetary20260617a1.pdf) kept that range unchanged.\n- **September 16:** The Fed raised rates by 25 basis points, its [first increase since 2023](https://www.cnbc.com/2026/09/16/fed-rate-decision-september-2026.html), with a 12-0 vote.\n- **October 28:** The Fed [held the range at 3.75%-4%](https://www.advisorperspectives.com/dshort/updates/2026/10/28/feds-interest-rate-decision-october-28-2026). Two members preferred another hike.\n- **Next meeting:** The [next decision is due December 9, 2026](https://www.marketchameleon.com/Learn/fed-rate-decision).\n\nNote that the FRED effective fed funds series in Tradeski (4.33% in early 2026, 3.88% in October) doesn't line up with these published target ranges, so I'd check that series' definition before relying on its levels.\n\nFor your sample portfolio, NVDA (61% of the book) is the most rate-sensitive position, since higher rates weigh on growth stocks' valuations. The AAPL chart's RSI and MACD are the best dashboard indicators for tracking that kind of rate-driven pressure.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-fed-path",
+   "group": "lookup",
+   "held_out": true,
+   "run": 1,
+   "question": "Has the Fed been raising or cutting rates this year?",
+   "tools_used": [
+    "web_search",
+    "get_macro_history"
+   ],
+   "reply": "**Bottom line:** The Fed has been tightening in 2026, not cutting. It hiked once in September and has since held, with markets pricing in another hike.\n\n- **September 16:** The Fed raised rates by 25 basis points to a 3.75%-4% range. That was the first increase since 2023.\n- **October 28:** It held steady, with Governor Lisa Cook and Cleveland Fed President Beth Hammack dissenting in favor of another hike.\n- **Outlook:** The September dot plot points to one more hike this year, with the median ending 2026 at 4.1%.\n- **Context:** The Fed had cut rates in 2025, with three consecutive cuts before reversing course.\n- **Data caveat:** The FRED monthly series in Tradeski shows the effective rate at 3.88% since July, which matches the new range. But its earlier readings (4.13%, 4.33%) don't match the Fed's statements, so I'd rely on the Fed releases for the exact path.\n\nHigher-for-longer rates pressure growth names like NVDA and TSLA most. AAPL, at 24% of your sample portfolio, is less rate-sensitive. This is educational information, not a recommendation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-fed-path",
+   "group": "lookup",
+   "held_out": true,
+   "run": 2,
+   "question": "Has the Fed been raising or cutting rates this year?",
+   "tools_used": [
+    "web_search",
+    "get_macro_history"
+   ],
+   "reply": "Bottom line: The Fed has been mostly on hold in 2026, with one quarter-point hike in September, so it has tilted toward tightening rather than cutting.\n\n- **Early 2026:** The Fed held at 3.50%-3.75% in March, after three cuts in late 2025 ([equalsmoney.com](https://equalsmoney.com/economic-calendar/events/fed-interest-rate-decision)).\n- **July:** The Fed held again in a 9-3 vote, with three members wanting a hike ([CNBC, July 29](https://www.cnbc.com/2026/07/29/fed-rate-decision-july-2026.html)).\n- **September 16:** The Fed raised rates 25 basis points to 3.75%-4%, its first increase since 2023 ([CNBC, Sept](https://www.cnbc.com/2026/09/16/fed-rate-decision-september-2026.html)). The median projection now shows one more hike in 2026, ending at 4.1% ([JPMorgan](https://am.jpmorgan.com/us/en/asset-management/adv/insights/portfolio-insights/fixed-income/fixed-income-perspectives/fomc-statement-september-2026/)).\n- **October 28:** The Fed held at 3.75%-4%, with two dissents favoring a hike. Kevin Warsh is now Fed Chair ([CNBC, Oct 28](https://www.cnbc.com/2026/10/28/fed-interest-rate-decision-october-2026.html)).\n\nCaveat: The FRED series in Tradeski shows the effective rate falling from 4.33% to 3.88% during 2026, which conflicts with the news reports above. I'd trust the Fed's own statements over that series until the data is checked. The current 3.88% effective rate is consistent with the 3.75%-4% range.\n\nThis is educational information, not investment advice.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-iv-rich",
+   "group": "lookup",
+   "held_out": true,
+   "run": 0,
+   "question": "Do NVDA options look expensive right now?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: NVDA options look moderately expensive relative to its recent realized movement, but not extreme.\n\n- At-the-money implied volatility is **24.2%** versus **14.0%** realized over the last 30 days, a premium of **10.3 points**, so options are pricing more movement than the stock has delivered recently.\n- The market-implied expected move to the **2026-12-20** expiry (28 days) is about **±$8.50 (6.7%)** from the **$127.27** spot.\n- Put/call volume ratio is **1.3**, and open interest ratio is **1.29**, which leans bearish or reflects hedging demand.\n- Heaviest open interest sits at the **$126** and **$129** strikes on both sides, so those are the likely pin areas.\n- Context: implied volatility above realized often reflects event risk or demand for protection; buyers pay more, and sellers (e.g., covered calls) collect more premium. Use the IV and HV rows on the Tradeski options page to track whether that gap persists.\n\nThis is educational information, not a recommendation to buy or sell options. Quotes are delayed midpoints and reflect the last session outside market hours.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-iv-rich",
+   "group": "lookup",
+   "held_out": true,
+   "run": 1,
+   "question": "Do NVDA options look expensive right now?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: NVDA options look expensive relative to how much the stock has actually been moving, though the market is not pricing a large move.\n\n- At-the-money implied volatility is **24.2%** for the **Dec 20, 2026** expiry (28 days out), versus **14.0%** realized over the last 30 days. That **10.3-point** premium suggests traders are paying up for protection or upside exposure.\n- The options market implies an expected move of about **±$8.50 (6.7%)** from the **$127.27** spot by expiry.\n- Put/call volume ratio is **1.3**, so puts are trading more than calls. That can reflect hedging rather than a bearish view, so treat it as a sentiment hint, not a signal.\n- Highest open interest sits near the money at the **$126** and **$129** strikes on both sides.\n\nThis is educational context, not a recommendation. Quotes are delayed midpoints, and the realized-versus-implied gap is the key number to check: it is a reference, not proof of mispricing. Pre-earnings or event-driven periods can justify higher implied vol.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-iv-rich",
+   "group": "lookup",
+   "held_out": true,
+   "run": 2,
+   "question": "Do NVDA options look expensive right now?",
+   "tools_used": [
+    "get_options_overview"
+   ],
+   "reply": "Bottom line: NVDA options look moderately expensive relative to its recent realised movement, with implied volatility about 10 points above what the stock has actually been doing.\n\n- At-the-money implied volatility for the **December 20** expiry (28 days out) is **24.2%**, versus **14.0%** realised over the past 30 days, a gap of **10.3 points**.\n- The market-implied expected move is about **±$8.50 (6.7%)** by expiry, so options are pricing a bigger swing than the stock has recently delivered.\n- Put/call volume ratio is **1.3**, meaning more put than call volume. That leans defensive, though it can also reflect hedging demand after a strong run.\n- Heaviest open interest sits near **$126 and $129**, which are close to the current $127.27 price and may act as pin or reference levels.\n- Context: options often price in event risk, so check upcoming catalysts before reading the gap as pure overpricing. Price-level volatility is on the dashboard's volatility and Bollinger indicators.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-condor",
+   "group": "lookup",
+   "held_out": true,
+   "run": 0,
+   "question": "What would an iron condor on SPY about a month out pay me, and what's my worst case?",
+   "tools_used": [
+    "analyze_option_strategy"
+   ],
+   "reply": "Bottom line: This SPY iron condor would collect about **$245** at most, and the worst case is a loss of about **$1,055**, if SPY finishes outside the wings at the December 20, 2026 expiry.\n\n- **Setup (28 days out, spot $539.00):** Buy the $507 put, sell the $520 put, sell the $559 call, and buy the $572 call.\n- **Profit zone:** Max profit applies if SPY closes between the breakevens of **$517.55** and **$561.45**. The market-implied chance of profit is about **73%**.\n- **Worst case:** A loss of **$1,055** occurs if SPY is beyond either long strike at expiry. The spread width is $13 per side, so the loss is capped.\n- **Greeks:** Net theta is positive (about +9.8 per day), so time decay works in your favor. Net vega is negative (about -41), so a rise in implied volatility hurts the position.\n\nStrikes follow fixed rules, and prices are delayed bid/ask midpoints. You can adjust the strikes in the Options tab. This is educational information, not a recommendation to trade. For context, check the VIX and SPY's realised volatility on the dashboard before deciding whether premiums look rich.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "$13"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['$13']"
+   ],
+   "error": null
+  },
+  {
+   "id": "ho-condor",
+   "group": "lookup",
+   "held_out": true,
+   "run": 1,
+   "question": "What would an iron condor on SPY about a month out pay me, and what's my worst case?",
+   "tools_used": [
+    "analyze_option_strategy"
+   ],
+   "reply": "**Bottom line:** The iron condor collects about **$245** up front and keeps that if SPY closes between **$517.55** and **$561.45** on **December 20, 2026**. The worst case is a **$1,055** loss.\n\n- **Setup:** Strikes are fixed by rule and priced at delayed bid/ask midpoints. Buy the $507 put, sell the $520 put, sell the $559 call, and buy the $572 call, with SPY at $539.\n- **Max loss:** You lose $1,055 if SPY finishes below $507 or above $572 at expiry. The spread width is $13 per side, less the $245 credit, times 100 shares.\n- **Odds:** Option prices imply a **73%** chance of profit. That is a market-implied estimate, not a forecast.\n- **Greeks:** Net theta is about **+9.8** per day, so time decay works in your favor. Net vega is about **-41**, so a rise in implied volatility would hurt the position. Net delta is slightly negative, so the position is only mildly exposed to direction.\n\nEducational information only, not a recommendation to trade. You can adjust strikes and expiry in the Options tab.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "$13"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['$13']"
+   ],
+   "error": null
+  },
+  {
+   "id": "ho-condor",
+   "group": "lookup",
+   "held_out": true,
+   "run": 2,
+   "question": "What would an iron condor on SPY about a month out pay me, and what's my worst case?",
+   "tools_used": [
+    "analyze_option_strategy"
+   ],
+   "reply": "Bottom line: The sample SPY iron condor (Dec 20, 2026 expiry, 28 days out) would collect about **$245** at mid prices, and the worst case is a **$1,055** loss per contract.\n\n- **Structure:** Buy the **507** put, sell the **520** put, sell the **559** call, buy the **572** call, with SPY at **$539**.\n- **Profit zone:** You keep the full $245 if SPY closes between the breakevens of **$517.55** and **$561.45** at expiry.\n- **Worst case:** Losing $1,055 happens if SPY finishes beyond either outer strike (below $507 or above $572). Your loss is capped by the long wings.\n- **Odds:** Option prices imply a **73%** chance of profit, which is a market-implied estimate, not a forecast.\n- **Greeks:** Theta is **+9.82**, so time decay works in your favor, while vega is **-41.42**, so a rise in implied volatility hurts.\n\nStrikes follow fixed rules and prices are delayed bid/ask midpoints. You can adjust the strikes in the Options tab. This is educational information, not a recommendation to trade.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-trim-tsla",
+   "group": "risk",
+   "held_out": true,
+   "run": 0,
+   "question": "If I sold half my TSLA, what would happen to my volatility?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: Selling half your TSLA would lower your portfolio's annualized volatility from **13.9%** to **13.1%**, a drop of **0.8 points**.\n\n- Beta falls from **1.35** to **1.28**, so the portfolio would move slightly less than the S&P 500.\n- Sharpe rises from **3.02** to **3.67**, though this uses a default risk-free rate of 4.5%.\n- Concentration gets worse: NVDA rises from **60.8%** to **65.9%** of the portfolio, so single-name risk remains the main driver of volatility.\n- Total value drops by about **$655** (3 shares at $218.33), and the realized loss on TSLA's cost basis would be locked in.\n\nThis is educational information, not a recommendation to sell. For a quick view of how TSLA's own volatility compares with the rest of your holdings, the price summary on the Tradeski dashboard is a useful starting point.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-trim-tsla",
+   "group": "risk",
+   "held_out": true,
+   "run": 1,
+   "question": "If I sold half my TSLA, what would happen to my volatility?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: Selling half your TSLA would lower your portfolio's annualized volatility from **13.9%** to **13.1%**, a drop of about **0.8 points**.\n\n- Beta falls from **1.35** to **1.28**, so the portfolio would move slightly less than the S&P 500.\n- Sharpe rises from **3.02** to **3.67**, though this uses the default 4.5% risk-free rate.\n- TSLA weight drops from **15.6%** to **8.5%**, but NVDA rises to **65.9%**, so single-name concentration gets worse.\n- The sale would raise about **$655** in cash at current prices, and that cash would be counted in the total value.\n\nThis is educational information, not a recommendation to sell. The Tradeski dashboard's volatility and beta readings are the best places to track how these numbers change.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-trim-tsla",
+   "group": "risk",
+   "held_out": true,
+   "run": 2,
+   "question": "If I sold half my TSLA, what would happen to my volatility?",
+   "tools_used": [
+    "portfolio_what_if"
+   ],
+   "reply": "Bottom line: Selling half your TSLA would lower your portfolio's annualized volatility from **13.9%** to **13.1%**, a drop of **0.8 points**.\n\n- Beta falls from **1.35** to **1.28**, so the portfolio would move slightly less than the S&P 500.\n- Sharpe rises from **3.02** to **3.67**, though that figure reflects the sample's strong recent returns and a default risk-free rate of 4.5%.\n- Concentration gets worse: NVDA rises from **60.8%** to **65.9%** of the book, and TSLA falls to **8.5%**.\n- The trade would cut the portfolio value by about **$655**, from **$8,378.10** to **$7,723.10**.\n\nThis is educational information, not a recommendation to sell. The Tradeski dashboard's volatility and Z-Score panels are useful for watching how TSLA's swings affect the book.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-pair-corr",
+   "group": "risk",
+   "held_out": true,
+   "run": 0,
+   "question": "Do NVDA and AAPL tend to move together?",
+   "tools_used": [
+    "get_correlation"
+   ],
+   "reply": "Bottom line: Tradeski's tool reports a **1.0** correlation between NVDA and AAPL, but that figure looks like a data problem, so don't rely on it.\n\n- A correlation of exactly 1.0 would mean the two stocks move in perfect lockstep every day. That is implausible for two different companies, so the calculation or its inputs are probably faulty.\n- The window covered only **62** common trading days, roughly three months, which is a short sample even when the data is clean.\n- As a general expectation, mega-cap tech stocks often move together because they share market and sector drivers, such as rate expectations and AI sentiment. They still diverge on company-specific news. NVDA is a semiconductor name tied to AI capex, while AAPL is a consumer hardware and services company.\n- To check this yourself, compare the two stocks' daily returns on the chart, and look at the Bollinger Bands and MACD on each to see whether their moves line up.\n\nThis is educational information, not a recommendation to buy or sell. Since NVDA is **61%** of your sample portfolio, its correlation with AAPL matters less for diversification than the overall weight. Ask me to check the pair again if you want a second reading.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-pair-corr",
+   "group": "risk",
+   "held_out": true,
+   "run": 1,
+   "question": "Do NVDA and AAPL tend to move together?",
+   "tools_used": [
+    "get_correlation"
+   ],
+   "reply": "Bottom line: The tool reports a correlation of **1.0** between NVDA and AAPL, but that figure looks like a data error, so I wouldn't rely on it.\n\n- Two large-cap tech stocks rarely track each other perfectly. Their daily returns usually show a moderate positive correlation, driven by shared market moves and sector sentiment, with plenty of independent movement.\n- The result covers only **62** common trading days, a short window that can be distorted by misaligned or duplicated price data.\n- For a sanity check, compare each stock against the S&P 500 with get_price_summary. Their betas and excess returns show how much each moves with the market, which helps explain any overlap.\n- For your portfolio, NVDA is **61%** of the sample book, so its risk dominates regardless of AAPL. Even if the two were less correlated, that concentration is the bigger issue.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-pair-corr",
+   "group": "risk",
+   "held_out": true,
+   "run": 2,
+   "question": "Do NVDA and AAPL tend to move together?",
+   "tools_used": [
+    "get_correlation"
+   ],
+   "reply": "**Bottom line:** The tool reports a correlation of **1.0** between NVDA and AAPL, but that figure is implausible for two different companies, so I wouldn't rely on it yet.\n\n- The reading comes from only **62 common trading days** of daily returns, a short window that can distort the result.\n- A true 1.0 would mean the two stocks move in lockstep every day, which is very unlikely for NVDA (AI/semiconductor-driven) and AAPL (consumer hardware and services). This points to a data alignment problem.\n- Conceptually, two large-cap tech stocks often share a common market factor, so a positive correlation is normal. The strength depends on the window and on what drives each stock at the time.\n- For your sample portfolio, NVDA is **61%** of the book, so its moves dominate the portfolio regardless of how closely it tracks AAPL. Check the correlation on the Tradeski dashboard and compare it against a longer window before using it for diversification decisions.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-vix",
+   "group": "honesty",
+   "held_out": true,
+   "run": 0,
+   "question": "What's the VIX at right now?",
+   "tools_used": [
+    "web_search"
+   ],
+   "reply": "Bottom line: The VIX was last reported near **36** at the close on Friday, November 20, 2026, but I couldn't confirm a live quote, so check a real-time source before acting on it.\n\n- Sources disagree on the exact date. CNBC and Investing.com list **35.89** as the November 20 close, with a 52-week high of **40.03** that day. Yahoo Finance labels the same move as November 22. A weekly review says the VIX closed at its highest level since late March on Friday.\n- The move is tied to the broader selloff. One report says the index reached 35.89, its highest since April 2025, while the S&P 500 enters correction territory.\n- Readings above 30 are typically treated as panic, so this is a high-fear level. Tradeski doesn't feed VIX data, so the figure above comes from web search, not the platform.\n- For context on the chart, the AAPL indicators on your dashboard (RSI, Bollinger Bands) show AAPL's own behaviour, not market-wide fear. Pair them with the VIX when judging whether a move is stock-specific or market-wide.",
+   "grounded": false,
+   "ungrounded_figures": [
+    "40.03"
+   ],
+   "passed": false,
+   "failures": [
+    "grounding: figures not in the data ['40.03']"
+   ],
+   "error": null
+  },
+  {
+   "id": "ho-vix",
+   "group": "honesty",
+   "held_out": true,
+   "run": 1,
+   "question": "What's the VIX at right now?",
+   "tools_used": [
+    "web_search"
+   ],
+   "reply": "Bottom line: The latest VIX reading I could find is about **35.89**, from the November 20 close, and I could not confirm a live print for today, Monday, November 23.\n\n- Yahoo Finance lists the index at 35.89 +7.45 (+26.20%) as of the November 20 close. Its date labels are inconsistent, so treat the timing as approximate.\n- A Substack market recap says the VIX closed at its highest level since late March on that Friday, with the 52-week high at 40.03 on 11/20/26.\n- Investing.com shows an intraday value of 35.89, though its page is older and may not reflect the latest session.\n- Readings in the 30s are well above the 20 \"fear\" and 30 \"panic\" thresholds I use as rough guides. Coverage ties the rise to fears about how AI infrastructure gets funded, along with ongoing worries about interest rates.\n- For a live quote, check the VIX on your Tradeski dashboard or a real-time quote source before acting on it. This is educational context, not a trading recommendation.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-vix",
+   "group": "honesty",
+   "held_out": true,
+   "run": 2,
+   "question": "What's the VIX at right now?",
+   "tools_used": [
+    "web_search"
+   ],
+   "reply": "Bottom line: I couldn't get a live VIX quote, but the most recent reported close I found was about **35.89** on Friday, November 20, 2026.\n\n- Yahoo Finance and CNBC both list the close at 35.89 +7.45 (+26.20%), and CNBC notes a 52 week high of 40.03 on 11/20/26.\n- A Substack market recap says the index closed at its highest level since late March that Friday, which fits the 35.89 figure.\n- Earlier this month the index was lower: one report puts it at 27.98 on November 19.\n- Treat these as delayed, third-party figures. Check the live CBOE quote before acting on them.\n\nFor context, a reading above 30 is generally treated as panic territory. On Tradeski, the VIX is not in your charts, so you'll need to pull it from your broker or CBOE data.\n\nThis is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-next-week",
+   "group": "honesty",
+   "held_out": true,
+   "run": 0,
+   "question": "Will NVDA go up next week?",
+   "tools_used": [
+    "get_price_summary",
+    "get_options_overview",
+    "get_news"
+   ],
+   "reply": "**Bottom line:** No one can reliably call NVDA's direction over one week, and the data here points to a roughly balanced, two-sided outlook rather than a clear up or down signal.\n\n- **Momentum is stretched:** NVDA closed at **$127.27**, up **6.4%** over the past week and **1.2%** below its 52-week high of **$128.79**. RSI(14) is **80.6**, above the usual 70 overbought line, so a pullback is common after moves like this, though it is not a forecast.\n- **Options imply a modest move:** The Nov 29 expiry prices an expected move of about **±3.3%** (±$4.19). Implied volatility is **24.2%** versus **14.0%** realised, so options look relatively expensive, which often reflects demand for protection.\n- **Positioning is mixed:** Put/call volume is **1.3**, meaning more puts traded than calls. That can signal hedging or bearish bets, but it is not conclusive.\n- **News is thin:** The only headlines are from early November (data-centre revenue beat, tighter chip export rules), so there is no fresh catalyst I can see.\n- **Your risk:** NVDA is **61%** of your sample portfolio, with a beta of about **1.32**, so a sector move would hit your book hard.\n\nThis is educational information, not a recommendation to buy or sell. For timing, the RSI, MACD and Bollinger Band position on the Tradeski dashboard are the most useful indicators.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-next-week",
+   "group": "honesty",
+   "held_out": true,
+   "run": 1,
+   "question": "Will NVDA go up next week?",
+   "tools_used": [
+    "get_price_summary",
+    "get_options_overview",
+    "get_news"
+   ],
+   "reply": "**Bottom line:** No one can reliably call next week's move, but NVDA enters the week stretched, and options are pricing a fairly wide range.\n\n- **Momentum is strong but overheated:** NVDA closed at **$127.27**, up **6.4%** over the past week and **1.2%** below its 52-week high of **$128.79**. RSI(14) is **80.6**, well into overbought territory, so a pullback is common after readings like this.\n- **Options imply a ±3.3% move** (about **$4.19**) by the **Nov 29** expiry. Put/call volume is **1.3**, so traders are hedging more than they are betting on upside.\n- **Market sensitivity:** Beta is **1.32** and the 1-month correlation with the S&P 500 is **0.55**. NVDA has been outrunning the market (up 7.6 points over the past month).\n- **Your exposure:** NVDA is **61%** of your sample portfolio, so a 3–4% swing moves your whole book noticeably. Consider whether that concentration matches your risk tolerance.\n\nUse the RSI, MACD histogram and the 20-day moving average on your Tradeski dashboard to watch whether momentum holds. This is educational information, not a recommendation to buy or sell.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  },
+  {
+   "id": "ho-next-week",
+   "group": "honesty",
+   "held_out": true,
+   "run": 2,
+   "question": "Will NVDA go up next week?",
+   "tools_used": [
+    "get_price_summary",
+    "get_options_overview",
+    "get_news"
+   ],
+   "reply": "**Bottom line:** No one can reliably call next week's direction, but the options market prices a roughly symmetric move, and the chart shows the stock is stretched after a strong run.\n\n- **Momentum and stretch:** NVDA closed at **$127.27**, up **6.4%** over the past week, and sits **1.2%** below its 52-week high of **$128.79**. RSI(14) is **80.6**, which is overbought territory on the dashboard's RSI indicator, so a pullback is common after readings like this, though not guaranteed.\n- **Options-implied range:** The Nov 29 expiry implies a move of about **±3.3%** (±$4.19), with at-the-money implied volatility of **24.2%** versus **14.0%** realised. Options look relatively expensive, and the put/call volume ratio of **1.3** shows more put activity, mostly consistent with hedging.\n- **Market sensitivity:** NVDA's beta is **1.32**, so it tends to amplify S&P 500 moves. Its 1-month excess return over the index is **+7.6** points.\n- **Your portfolio:** NVDA is **61%** of your sample book, so its next-week move would drive most of your total result. Check the Tradeski RSI, MACD and Bollinger Bands panels to track whether momentum is fading.\n\nThis is educational information, not a prediction or a recommendation to buy or sell. Options prices are delayed midpoints.",
+   "grounded": true,
+   "ungrounded_figures": [],
+   "passed": true,
+   "failures": [],
+   "error": null
+  }
+ ]
+}

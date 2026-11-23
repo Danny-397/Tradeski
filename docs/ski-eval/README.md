@@ -1,19 +1,33 @@
 # Ski eval results
 
-The first runs of the Ski eval ([`tests/ski_eval/`](../../tests/ski_eval)) against the real model,
-on 2026-11-15. Claude Haiku 5.5, three runs per case, graded deterministically (no model judges).
+Runs of the Ski eval ([`tests/ski_eval/`](../../tests/ski_eval)) against the real model,
+from 2026-11-15. Claude Haiku 5.5, three runs per case, graded deterministically (no model judges).
 Each file here is a compact copy of a workflow run's results; the full artifact (with the
 grounding evidence and raw reply blocks) is linked from the file.
 
-| Run | What changed | Main set (24 cases × 3) | Held-out set (8 cases × 3) |
+| Run | What changed | Main set (× 3 runs) | Held-out set (8 cases × 3) |
 |---|---|---|---|
 | [1](2026-11-15-1-first-run.json) | Nothing: Ski and graders as on `main` | 41/72 (57%) | n/a |
 | [2](2026-11-15-2-before.json) | Graders and grounding check fixed; Ski unchanged | **66/72 (92%)** | **16/24 (67%)** |
 | [3](2026-11-15-3-after.json) | Ski fixed | **64/72 (89%)** | **19/24 (79%)** |
+| [4](2026-11-23-4-macro-crypto.json) | 2026-11-23: BLS/EIA macro data and crypto added; 3 new cases (27 in all) | **71/81 (88%)** | **21/24 (88%)** |
 
 Runs 2 and 3 are both scored with the final graders (`run_eval.py --regrade`), so they compare
 like with like. The held-out cases were written and committed (`0971bb3`) before any fix and
 before Ski had answered them.
+
+## Run 4: macro and crypto (2026-11-23)
+
+- **The three new cases passed 9/9:** `oil-trend` (Ski reads the WTI series and names who gains and
+  loses), `crypto-trend` (Ethereum's month in calendar days) and `crypto-vs-stocks` (correlation of
+  BTC-USD with SPY and QQQ).
+- One `crypto-vs-stocks` reply first failed on the grounding check: it called QQQ "the Nasdaq-100", and
+  the "100" was taken for an invented figure. Index names are no longer read as figures; run 4 is
+  scored with that fix, which changed only this reply.
+- The fixture prices are synthetic, so BTC-USD comes out with a correlation of −0.67 and a beta of −3.97
+  to the S&P 500. Ski reported them and called them unusually large rather than explaining them away.
+- The scores match run 3 within noise. Every failure is a grounding flag; they were not checked by hand
+  this time.
 
 ## What the first run measured
 

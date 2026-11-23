@@ -35,6 +35,12 @@ _FIGURE = re.compile(
     re.IGNORECASE,
 )
 _DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
+# Index names carry numbers that are not figures: "Nasdaq-100", "Russell 2000".
+_INDEX_NAMES = re.compile(
+    r"\b(?:Nasdaq[- ]?100|S&P\s?(?:500|400|600)|Russell\s?(?:1000|2000|3000)|FTSE\s?100|"
+    r"Nikkei\s?225|Stoxx\s?600|Euro\s?Stoxx\s?50|Dow(?: Jones)?\s?30)\b",
+    re.IGNORECASE,
+)
 _LENGTH_WORDS = re.compile(r"^\s*-?\s?(?:day|week|month|year|period|bar)s?\b", re.IGNORECASE)
 
 
@@ -87,7 +93,7 @@ def _figures(text: str, *, for_reply: bool) -> list[tuple[float, float, str]]:
     3.45e12. In a reply, a whole number after "about"/"roughly" also treats
     its trailing zeros as rounding: "about 8,800" covers 8,750 to 8,850.
     """
-    text = _DATE.sub(" ", text)
+    text = _INDEX_NAMES.sub(" ", _DATE.sub(" ", text))
     out = []
     for m in _FIGURE.finditer(text):
         whole, frac, unit = m.group(2), m.group(3) or "", (m.group(4) or "").lower()
