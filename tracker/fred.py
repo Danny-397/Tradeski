@@ -48,15 +48,36 @@ IMPACT: dict[str, str] = {
     "CPILFESL": "The Fed watches core inflation most; a hot reading pushes rate expectations and yields up.",
     "FEDFUNDS": "Higher rates raise borrowing costs and discount future earnings, hitting growth stocks hardest.",
     "GDP": "Faster growth lifts earnings, helping cyclicals such as industrials, materials and banks.",
-    "UNRATE": "Rising unemployment signals a slowdown but can bring rate cuts; falling unemployment can mean tighter policy.",
-    "PAYEMS": "Strong job gains support consumer spending but can keep rates higher; weak gains raise recession fears.",
-    "CES0500000003": "Fast wage growth feeds inflation and squeezes margins in labour-heavy businesses such as retail and restaurants.",
-    "DGS10": "A higher 10-year yield lowers the value of future profits, pressuring growth stocks, REITs and utilities.",
+    "UNRATE": (
+        "Rising unemployment signals a slowdown but can bring rate cuts; falling unemployment can mean "
+        "tighter policy."
+    ),
+    "PAYEMS": (
+        "Strong job gains support consumer spending but can keep rates higher; weak gains raise recession "
+        "fears."
+    ),
+    "CES0500000003": (
+        "Fast wage growth feeds inflation and squeezes margins in labour-heavy businesses such as retail and "
+        "restaurants."
+    ),
+    "DGS10": (
+        "A higher 10-year yield lowers the value of future profits, pressuring growth stocks, REITs and "
+        "utilities."
+    ),
     "T10Y2Y": "A negative spread (inverted curve) has often come before recessions and squeezes bank lending margins.",
     "BAMLH0A0HYM2": "A widening spread means lenders see more default risk: a risk-off signal for stocks.",
-    "DCOILWTICO": "Higher oil helps energy producers and hurts airlines, shippers and consumers; it also feeds inflation.",
-    "GASREGW": "Pricier gasoline leaves consumers less to spend elsewhere, weighing on retail and discretionary stocks.",
-    "DHHNGSP": "Higher natural gas helps gas producers and raises costs for utilities, chemicals and fertiliser makers.",
+    "DCOILWTICO": (
+        "Higher oil helps energy producers and hurts airlines, shippers and consumers; it also feeds "
+        "inflation."
+    ),
+    "GASREGW": (
+        "Pricier gasoline leaves consumers less to spend elsewhere, weighing on retail and discretionary "
+        "stocks."
+    ),
+    "DHHNGSP": (
+        "Higher natural gas helps gas producers and raises costs for utilities, chemicals and fertiliser "
+        "makers."
+    ),
 }
 
 
