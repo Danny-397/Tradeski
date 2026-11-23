@@ -33,6 +33,18 @@ _QUERY_TERMS: dict[str, list] = {
     "GOOG":  ["Alphabet", "Google"],
     "META":  ["Meta Platforms", "Meta", "Facebook"],
     "BRK-B": ["Berkshire Hathaway", "Berkshire"],
+    # Coins: names people write in headlines. Ambiguous words (Avalanche, Link)
+    # are left out in favour of the ticker.
+    "BTC-USD":  ["Bitcoin", "BTC"],
+    "ETH-USD":  ["Ethereum", "Ether"],
+    "SOL-USD":  ["Solana"],
+    "XRP-USD":  ["XRP", "Ripple"],
+    "BNB-USD":  ["BNB", "Binance Coin"],
+    "DOGE-USD": ["Dogecoin"],
+    "ADA-USD":  ["Cardano"],
+    "AVAX-USD": ["AVAX"],
+    "LINK-USD": ["Chainlink"],
+    "LTC-USD":  ["Litecoin"],
     "F":     ["Ford"],
 }
 

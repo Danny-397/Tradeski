@@ -1,6 +1,7 @@
 # tracker/price_fetcher.py
 # Fetches latest stock prices via yfinance.
 
+import datetime
 import math
 from typing import Optional
 import yfinance as yf
@@ -144,10 +145,20 @@ def get_ohlc_history(symbol: str, period: str = "1mo", interval: str = "1d") -> 
     Valid period/interval combos (yfinance):
       "1d"/"5m", "5d"/"15m", "1mo"/"1d", "3mo"/"1d", "6mo"/"1d", "1y"/"1d"
     """
+    # Coins (BTC-USD) trade around the clock, and Yahoo's "1d" for them means
+    # "since midnight UTC": a couple of bars on a US evening. Their intraday
+    # view is instead the last 24 hours, in New York time like stocks.
+    crypto_intraday = symbol.upper().endswith("-USD") and not interval.endswith(("d", "wk", "mo"))
     try:
-        df = yf.Ticker(symbol).history(period=period, interval=interval)
+        fetch_period = "2d" if crypto_intraday and period == "1d" else period
+        df = yf.Ticker(symbol).history(period=fetch_period, interval=interval)
         if df.empty:
             return []
+        if crypto_intraday:
+            if df.index.tz is not None:
+                df.index = df.index.tz_convert("America/New_York")
+            if period == "1d":
+                df = df[df.index > df.index[-1] - datetime.timedelta(hours=24)]
 
         result = []
         for idx, row in df.iterrows():

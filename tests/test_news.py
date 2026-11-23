@@ -190,3 +190,9 @@ def test_format_news_context_structure(mock_get):
     assert "AAPL" in text
     assert "Aggregate" in text
     assert "bullish" in text.lower() or "bearish" in text.lower() or "neutral" in text.lower()
+
+
+def test_coins_search_headlines_by_name():
+    from tracker.news import _query_for
+    assert "Bitcoin" in _query_for("BTC-USD")
+    assert "Ethereum" in _query_for("ETH-USD")

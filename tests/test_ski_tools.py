@@ -296,3 +296,45 @@ def test_what_if_returns_the_prices_it_used():
     out = st.run_tool("portfolio_what_if", {"changes": [{"symbol": "SPY", "shares_change": 20}]}, data)
     assert set(out["prices_used"]) == {"AAPL", "SPY"}
     assert all(isinstance(p, float) and p > 0 for p in out["prices_used"].values())
+
+
+# ── crypto ───────────────────────────────────────────────────
+
+def weekdays_only(bars):
+    return [b for b in bars if datetime.date.fromisoformat(b["timestamp"][:10]).weekday() < 5]
+
+
+def test_crypto_periods_are_calendar_days():
+    bars = make_bars(365)                     # a coin: a bar every day
+    closes = [b["close"] for b in bars]
+    out = st.price_summary("BTC-USD", bars)
+    assert out["return_pct"]["1_week"] == round((closes[-1] / closes[-8] - 1) * 100, 1)
+    assert out["return_pct"]["1_month"] == round((closes[-1] / closes[-31] - 1) * 100, 1)
+    assert "24/7" in out["asset_type"]
+    assert "asset_type" not in st.price_summary("AAPL", make_bars())
+
+
+def test_crypto_beta_uses_stock_market_days_only():
+    coin = make_bars(365, wobble=0.02)
+    spy = weekdays_only(make_bars(365, wobble=0.02))
+    # The same prices on the days both trade: correlation and beta must be exactly 1.
+    rel = st.vs_benchmark(st.price_summary("BTC-USD", coin), coin, spy)
+    assert rel["correlation_with_sp500"] == 1.0 and rel["beta_vs_sp500"] == 1.0
+    assert rel["days_for_beta"] == len(spy) - 1
+
+
+def test_correlation_lines_up_crypto_weekends_with_stocks():
+    coin = make_bars(120, wobble=0.02)
+    stock = weekdays_only(make_bars(120, wobble=0.02))
+    out = st.correlation({"BTC-USD": coin, "QQQ": stock})
+    assert out["pairs_most_correlated_first"][0]["correlation"] == 1.0
+
+
+def test_crypto_has_no_fundamentals_or_options_and_says_so():
+    data = fake_data()
+    fund = st.run_tool("get_fundamentals", {"symbol": "btc-usd"}, data)
+    assert fund["asset_type"] == "cryptocurrency" and "pe" not in fund
+    called = []
+    data.options = lambda s, d: called.append(s)
+    out = st.run_tool("get_options_overview", {"symbol": "ETH-USD", "days_to_expiry": 30}, data)
+    assert "crypto" in out["error"] and not called

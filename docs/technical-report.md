@@ -329,7 +329,7 @@ and indicator lengths, and it needed a rule for textbook levels: the first live 
 flagged for "70" in "approaching overbought (typically 70+)", which is a rule of thumb, not
 data. For now it only logs.
 
-**Quality is measured, not asserted.** `tests/ski_eval/` asks 25 questions through the
+**Quality is measured, not asserted.** `tests/ski_eval/` asks 27 questions through the
 real endpoint against fixed fixture data (including a fixture option chain), in three groups:
 lookups, portfolio risk, and honesty traps (short interest, trade-level options flow,
 tomorrow's close), plus 8 held-out questions written before any fix was made. Grading is

@@ -24,11 +24,13 @@ EOD_DIR = os.path.join(os.path.dirname(OUT), "data", "options")
 # frontend/, so they are not deployed with the site.
 ARCHIVE_DIR = os.path.join(os.path.dirname(os.path.dirname(OUT)), "data", "options-archive")
 
-TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
+TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ", "BTC-USD"]
+# Coins have no listed options, so they skip the IV and option-chain captures.
+OPTION_SYMS = [s for s in TICKER_SYMS if not s.endswith("-USD")]
 TIMEFRAMES = ["1D", "5D", "1M", "3M", "6M", "1Y"]
 DEFAULT_SYM = "AAPL"
 # The ticker strip plus the scanner's default list.
-EOD_SYMS = TICKER_SYMS + ["JPM"]
+EOD_SYMS = OPTION_SYMS + ["JPM"]
 
 # The same series, labels and transformations as the backend's /macro route.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -133,7 +135,7 @@ def record_iv(endpoints):
     """
     print("options (ATM IV at ~%d days):" % IV_TARGET_DTE)
     readings = {}
-    for s in TICKER_SYMS:
+    for s in OPTION_SYMS:
         try:
             exp = get_json("/options/expirations?symbol=%s" % s)
             expiry = nearest_expiry(exp.get("expirations") or [], IV_TARGET_DTE)

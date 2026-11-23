@@ -42,6 +42,10 @@ CASES = [
      "tools_any": ["get_macro_history"]},
     {"id": "inflation-trend", "group": "lookup", "q": "Has inflation been cooling recently?",
      "tools_any": ["get_macro_history"]},
+    {"id": "crypto-vs-stocks", "group": "lookup", "q": "Is bitcoin moving with the stock market lately?",
+     "tools_any": ["get_correlation", "get_price_summary"], "must_match": r"BTC|[Bb]itcoin"},
+    {"id": "crypto-trend", "group": "lookup", "q": "How has Ethereum done over the last month?",
+     "tools_any": ["get_price_summary"], "must_match": r"ETH|Ethereum"},
     {"id": "oil-trend", "group": "lookup", "q": "Oil has been climbing. Which kinds of stocks does that help or hurt?",
      "tools_any": ["get_macro_history"], "must_match": r"airline|energy|XLE|refiner"},
 

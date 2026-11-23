@@ -59,3 +59,17 @@ def test_sharpe_moves_with_the_rate_and_reports_it(monkeypatch):
 def test_price_history_no_longer_sends_an_unshown_prediction():
     with open(os.path.join(ROOT, "Plotly dashboard", "app.py"), encoding="utf-8") as fh:
         assert '"prediction"' not in fh.read()
+
+
+def test_risk_lines_up_a_coin_with_stocks_by_date(monkeypatch):
+    """A coin has weekend bars and stocks don't: holdings must be matched by date,
+    not by counting bars back from the end."""
+    monkeypatch.setattr(app, "_cache", SimpleCache())
+    app._cache.set("macro_snapshot", snapshot(3.0), ttl=60)
+    every_day = bars(0.001)
+    weekdays = [b for b in every_day if datetime.date.fromisoformat(b["timestamp"][:10]).weekday() < 5]
+    # The coin and SPY have identical prices on the days both trade, so beta is 1.
+    series = {"BTC-USD": every_day, "SPY": weekdays}
+    monkeypatch.setattr(app, "get_ohlc_history", lambda s, p, i: series.get(s, []))
+    risk, _ = app._compute_portfolio_risk([{"symbol": "BTC-USD", "market_value": 1000.0}])
+    assert risk["beta"] == 1.0

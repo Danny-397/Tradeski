@@ -1250,18 +1250,26 @@ def _compute_portfolio_risk(holdings: List[dict]) -> Tuple[Optional[dict], Optio
     total_value = sum(h["market_value"] for h in valued)
     fetch_syms = list({h["symbol"] for h in valued}) + ["SPY"]
 
-    price_data: dict = {}
+    closes: dict = {}
     for sym in fetch_syms:
         bars = get_ohlc_history(sym, "1y", "1d")
         if bars and len(bars) > 20:
-            prices = np.array([b["close"] for b in bars], dtype=float)
-            price_data[sym] = np.diff(prices) / prices[:-1]
+            closes[sym] = {b["timestamp"][:10]: float(b["close"]) for b in bars}
 
-    if "SPY" not in price_data:
+    if "SPY" not in closes:
         return None, "Insufficient data"
 
-    min_len = min(len(v) for v in price_data.values())
-    aligned = {k: v[-min_len:] for k, v in price_data.items()}
+    # Line holdings up by date, on days every one of them (and SPY) has a close.
+    # Counting bars back from the end mismatched dates as soon as one holding
+    # traded on other days: a coin has 365 daily bars a year, a stock 252.
+    dates = sorted(set.intersection(*(set(c) for c in closes.values())))
+    if len(dates) <= 20:
+        return None, "Insufficient data"
+    aligned = {}
+    for sym, by_day in closes.items():
+        prices = np.array([by_day[d] for d in dates], dtype=float)
+        aligned[sym] = np.diff(prices) / prices[:-1]
+    min_len = len(dates) - 1
 
     port_returns = np.zeros(min_len)
     for h in valued:
@@ -1279,7 +1287,7 @@ def _compute_portfolio_risk(holdings: List[dict]) -> Tuple[Optional[dict], Optio
     ann_vol = round(std * float(np.sqrt(252)) * 100, 1)
     sharpe = round(float((np.mean(port_returns) - RISK_FREE_DAILY) / std * np.sqrt(252)), 2)
     spy_var = float(np.var(spy_returns))
-    beta = round(float(np.cov(port_returns, spy_returns)[0][1] / spy_var), 2) if spy_var > 0 else 1.0
+    beta = round(float(np.cov(port_returns, spy_returns, ddof=0)[0][1] / spy_var), 2) if spy_var > 0 else 1.0
 
     return {"sharpe": sharpe, "beta": beta, "volatility": ann_vol,
             "risk_free_pct": round(risk_free * 100, 2), "risk_free_source": rf_source}, None
@@ -1406,6 +1414,10 @@ estimate or recall a price, ratio or indicator reading from memory.
 - If no tool or search can supply what was asked (trade-level options flow such as sweeps, VIX, short \
 interest), say so plainly and answer conceptually.
 - When relevant, suggest which indicators on the Tradeski dashboard are most useful for the user's question.
+Crypto: Tradeski charts the major coins as COIN-USD (BTC-USD, ETH-USD, SOL-USD...). get_price_summary, get_news and \
+get_correlation work for them; there are no fundamentals and no options data for crypto. Crypto trades 24/7, so its \
+returns are over calendar days, and its beta against the S&P 500 uses stock-market days only. For "is bitcoin moving \
+with stocks?" use get_correlation with BTC-USD and SPY or QQQ.
 
 PORTFOLIO-AWARE BEHAVIOR
 You have access to the user's actual portfolio — holdings with cost basis and live P&L, each position's WEIGHT (percent \

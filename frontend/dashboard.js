@@ -11,7 +11,10 @@ const CFG = {
     PORTFOLIO_REFRESH_MS: 30_000,
 };
 
-const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"];
+const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ", "BTC-USD"];
+
+// Yahoo spells coins BTC-USD; no stock ticker ends in -USD.
+const isCrypto = (sym) => /-USD$/.test(sym || "");
 
 // ============================================================
 // STATE
@@ -310,6 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (input) input.value = linked;
     }
     updateOptionsLink(state.symbol);
+    updateMarketStatus();
     loadDashboard(state.symbol);
     buildTickerTape();
     setInterval(() => { if (!pageIdle()) buildTickerTape(); }, CFG.TICKER_REFRESH_MS);
@@ -377,6 +381,12 @@ function updateMarketStatus() {
     const estStr = new Date().toLocaleString("en-US", { timeZone: "America/New_York",
         hour: "2-digit", minute: "2-digit", hour12: false });
     if (timeEl) timeEl.textContent = `${estStr} EST`;
+
+    if (isCrypto(state.symbol)) {
+        dot.className = "status-dot open";
+        label.textContent = "Crypto · trades 24/7";
+        return;
+    }
 
     const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
     const day = now.getDay();
@@ -450,7 +460,7 @@ function searchSymbols(query, limit = 8) {
     for (const [sym, name] of list) {
         const n = name.toUpperCase();
         let score = -1;
-        if (sym === q) score = 0;
+        if (sym === q || sym === q + "-USD") score = 0;   // "BTC" means the coin
         else if (sym.startsWith(q)) score = 1;
         else if (n.startsWith(q)) score = 2;
         else if (n.includes(" " + q)) score = 3;
@@ -578,6 +588,7 @@ function updateOptionsLink(sym) {
 function switchSymbol(sym) {
     state.symbol = sym;
     updateOptionsLink(sym);
+    updateMarketStatus();
     const symInput = document.getElementById("symbol-input");
     if (symInput && document.activeElement !== symInput) symInput.value = sym;
     const badge = document.getElementById("current-symbol-badge");
@@ -1328,7 +1339,7 @@ async function buildTickerTape() {
         const dir   = pct >= 0 ? "up" : "down";
         const sign  = pct >= 0 ? "+" : "";
         return `<span class="ticker-item">
-            <span class="ticker-symbol">${symbol}</span>
+            <span class="ticker-symbol">${symbol.replace(/-USD$/, "")}</span>
             <span class="ticker-price">$${fmt(price)}</span>
             <span class="ticker-change ${dir}">${sign}${pct.toFixed(2)}%</span>
         </span>`;
