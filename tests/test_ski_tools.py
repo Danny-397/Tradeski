@@ -125,6 +125,14 @@ def test_macro_history_clamps_count_and_rejects_unknown_series():
         st.run_tool("get_macro_history", {"series_id": "SP500", "count": 3}, fake_data())
 
 
+def test_macro_history_covers_energy_and_jobs_and_explains_impact():
+    for sid in ("DCOILWTICO", "GASREGW", "DHHNGSP", "PAYEMS", "CPILFESL", "CES0500000003"):
+        out = st.run_tool("get_macro_history", {"series_id": sid, "count": 3}, fake_data())
+        assert out["source"] in ("EIA", "BLS")
+        assert out["how_it_usually_moves_stocks"]
+        assert len(out["readings_newest_first"]) == 3
+
+
 def test_unknown_symbol_says_so():
     assert "error" in st.run_tool("get_price_summary", {"symbol": "nope"}, fake_data())
 

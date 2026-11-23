@@ -2141,11 +2141,26 @@ const MACRO_LABELS = {
     CPIAUCSL:     { short: "CPI",      tip: "Consumer Price Index YoY %" },
     FEDFUNDS:     { short: "Fed funds", tip: "Effective Federal Funds Rate" },
     GDP:          { short: "GDP",      tip: "Real GDP (Chained 2017 $B)" },
-    UNRATE:       { short: "Unemployment", tip: "Unemployment Rate" },
+    UNRATE:       { short: "Jobless", tip: "Unemployment Rate" },
     DGS10:        { short: "10Y yield", tip: "10-Year Treasury Yield" },
     T10Y2Y:       { short: "Yield curve", tip: "Yield Curve (10Y−2Y Spread)" },
     BAMLH0A0HYM2: { short: "HY spread", tip: "High Yield OAS Credit Spread" },
+    CPILFESL:     { short: "Core CPI", tip: "CPI excluding food and energy, YoY %" },
+    PAYEMS:       { short: "Payrolls", tip: "Nonfarm payrolls, monthly change" },
+    CES0500000003:{ short: "Wages",    tip: "Average hourly earnings, YoY %" },
+    DCOILWTICO:   { short: "WTI oil",  tip: "WTI crude oil, $ per barrel" },
+    GASREGW:      { short: "Gasoline", tip: "US regular gasoline, $ per gallon (weekly)" },
+    DHHNGSP:      { short: "Natural gas", tip: "Henry Hub natural gas, $ per million Btu" },
 };
+
+// "$" = dollar price, "K" = signed change in thousands, "B" = $ billions.
+function formatMacroValue(value, unit) {
+    if (value == null) return "—";
+    if (unit === "$") return `$${value.toFixed(2)}`;
+    if (unit === "K") return `${value > 0 ? "+" : ""}${Math.round(value)}K`;
+    if (unit === "B" && Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(1)}T`;
+    return `${value}${unit}`;
+}
 
 async function loadMacroRibbon() {
     const inner = document.getElementById("macro-inner");
@@ -2157,7 +2172,7 @@ async function loadMacroRibbon() {
         try { data = await res.json(); } catch { data = {}; }
         if (!res.ok || data.error) {
             const msg = data.error || `HTTP ${res.status}`;
-            inner.innerHTML = `<div class="macro-item"><span class="macro-error">Federal Reserve data unavailable (${msg})</span></div>`;
+            inner.innerHTML = `<div class="macro-item"><span class="macro-error">Macro data unavailable (${msg})</span></div>`;
             return;
         }
 
@@ -2166,14 +2181,13 @@ async function loadMacroRibbon() {
             const meta   = MACRO_LABELS[sid] || { short: info.label, tip: info.description };
             const item   = document.createElement("div");
             item.className = "macro-item";
-            item.title   = `${meta.tip} — as of ${info.date || "?"}`;
+            item.title   = `${meta.tip} — as of ${info.date || "?"}`
+                + (info.source ? ` (${info.source})` : "")
+                + (info.impact ? `\n${info.impact}` : "");
 
             const arrowMap = { up: " ▲", down: " ▼", neutral: "" };
             const cls      = info.trend === "up" ? "up" : info.trend === "down" ? "down" : "neutral";
-            const val      = info.value == null ? "—"
-                : (info.unit === "B" && Math.abs(info.value) >= 1000)
-                    ? `$${(info.value / 1000).toFixed(1)}T`
-                    : `${info.value}${info.unit}`;
+            const val      = formatMacroValue(info.value, info.unit);
             const arrow    = arrowMap[info.trend] || "";
 
             item.innerHTML = `

@@ -42,6 +42,8 @@ CASES = [
      "tools_any": ["get_macro_history"]},
     {"id": "inflation-trend", "group": "lookup", "q": "Has inflation been cooling recently?",
      "tools_any": ["get_macro_history"]},
+    {"id": "oil-trend", "group": "lookup", "q": "Oil has been climbing. Which kinds of stocks does that help or hurt?",
+     "tools_any": ["get_macro_history"], "must_match": r"airline|energy|XLE|refiner"},
 
     # ── portfolio and risk ────────────────────────────────────
     {"id": "biggest-position", "group": "risk", "q": "What's my biggest position and how concentrated am I?",

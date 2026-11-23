@@ -9,7 +9,7 @@ Live charts · Market news · Whole-market screener · Options strategy lab · A
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-336%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-341%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 336 tests across 27 files — CI on every push |
+| **Tests** | 341 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 ### Screenshots
@@ -187,7 +187,7 @@ Tradeski/
 │   ├── auth.py                # Password hashing (PBKDF2) + signed bearer tokens
 │   ├── database.py            # SQLite persistence — users, alerts, portfolio, saved screens
 │   ├── price_fetcher.py       # yfinance: live prices, OHLC history, screener data
-│   ├── fred.py                # FRED API client — 7 macro series with trend detection
+│   ├── fred.py                # FRED API client — 13 macro series (Fed, BLS, BEA, EIA) with trend detection
 │   ├── news.py                # NewsAPI + VADER sentiment with financial lexicon
 │   ├── ski_tools.py           # Ski's tools: price summary, fundamentals, news, correlation, what-if, macro
 │   ├── alert_eval.py          # Alert checks against price history since each alert was set
@@ -209,7 +209,7 @@ Tradeski/
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 336 tests across 27 files
+├── tests/                     # pytest suite — 341 tests across 27 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_fred.py           # FRED client with mocked HTTP — trend detection
@@ -290,7 +290,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (336 tests) |
+| Testing | pytest (341 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -338,7 +338,7 @@ Ski is powered by **Anthropic Claude Haiku 5.5**. It starts every request with l
 | `get_news` | Recent headlines with source and date |
 | `get_correlation` | Daily-return correlation between 2 to 10 tickers, aligned on common trading days |
 | `portfolio_what_if` | Your weights and risk (Sharpe, beta, volatility) before and after hypothetical trades |
-| `get_macro_history` | Recent readings of a FRED series, to show its trend |
+| `get_macro_history` | Recent readings of a FRED series (incl. BLS jobs and wages, EIA oil, gasoline and natural gas), its trend and how it usually moves stocks |
 | `get_options_overview` | What a ticker's options imply: ATM implied vs 30-day realised volatility, expected move by expiry, put/call ratios, the strikes with the most open interest |
 | `analyze_option_strategy` | A standard strategy built from the live chain: legs, cost, max profit and loss, break-evens, chance of profit, net Greeks |
 | `rank_option_strategies` | The Compare tab's ranking for a view ("NVDA to $210 in a month"): the top five strategies by profit at the target per dollar at risk, plus the market-implied odds of the target |
@@ -348,7 +348,7 @@ Ski can answer "Is now a good time to add to my NVDA position?" with awareness o
 
 **Grounding check** ([`tracker/ski_grounding.py`](tracker/ski_grounding.py)). After every answer, the server pulls the figures out of the reply and checks each one, at the reply's own rounding, against the data Ski was given: its context, its tool results and any cited search text. Counts, years, dates, indicator lengths ("14-day") and textbook levels named next to their indicator ("RSI above 70") are skipped. A figure that matches nothing is either invented or something Ski calculated itself. Either way it's logged, and the response carries `grounded` and `ungrounded_figures`. For now this only logs; it doesn't block anything.
 
-**Eval set** ([`tests/ski_eval/`](tests/ski_eval)). 24 questions asked through the real `/chat` endpoint against fixed fixture data, so a score change comes from Ski, not the market, plus 8 held-out questions written before any fix. They fall into three groups:
+**Eval set** ([`tests/ski_eval/`](tests/ski_eval)). 25 questions asked through the real `/chat` endpoint against fixed fixture data, so a score change comes from Ski, not the market, plus 8 held-out questions written before any fix. They fall into three groups:
 - lookups: another ticker's trend, P/E, news, macro trends, and options (put/call ratio, expected move, a spread's cost and max loss), against a fixture option chain
 - portfolio risk: concentration, correlation, what-if trades
 - honesty traps: short interest, unusual options flow, tomorrow's price, an unknown ticker
@@ -625,7 +625,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-336 tests across 27 files:
+341 tests across 27 files:
 
 | File | What it covers |
 |:---|:---|
@@ -634,7 +634,7 @@ python -m pytest -v
 | `test_auth.py` | Registration, login, token handling, per-user scoping |
 | `test_demo_mode.py` | Demo fallback when no credentials are configured |
 | `test_input_limits.py` | NaN/Infinity holdings refused; the cache drops expired entries once full |
-| `test_fred.py` | FRED client with mocked HTTP — trend detection, missing series |
+| `test_fred.py` | FRED client with mocked HTTP — trend detection, missing series, BLS/EIA series and units |
 | `test_news.py` | VADER: financial lexicon augmentation, aggregation |
 | `test_portfolio.py` | CRUD operations, UPSERT behavior, case-insensitive symbols |
 | `test_build_screener.py` | Screener data build: the symbol directory keeps only common stocks, technicals from known price paths, RSI identical to the chart's, price-derived ratios, row layout |
