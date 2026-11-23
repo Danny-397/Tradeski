@@ -73,3 +73,31 @@ def test_risk_lines_up_a_coin_with_stocks_by_date(monkeypatch):
     monkeypatch.setattr(app, "get_ohlc_history", lambda s, p, i: series.get(s, []))
     risk, _ = app._compute_portfolio_risk([{"symbol": "BTC-USD", "market_value": 1000.0}])
     assert risk["beta"] == 1.0
+
+
+def _intraday(open_, close, high, low):
+    return [{"timestamp": "2026-11-22T00:00:00", "open": open_, "high": open_, "low": open_, "close": open_},
+            {"timestamp": "2026-11-22T12:00:00", "open": open_, "high": high, "low": low, "close": open_},
+            {"timestamp": "2026-11-22T21:00:00", "open": close, "high": close, "low": close, "close": close}]
+
+
+def test_stats_for_a_coin_cover_the_last_24_hours(monkeypatch):
+    """A coin's open/high/low/change come from the last 24 hours of 5-minute bars,
+    not Yahoo's calendar-day bar (which starts at midnight UTC)."""
+    monkeypatch.setattr(app, "_cache", SimpleCache())
+    monkeypatch.setattr(app.limiter, "enabled", False)
+    daily = [{**b, "open": b["close"], "high": b["close"], "low": b["close"]} for b in bars(0.001)]
+
+    def history(sym, period, interval):
+        return _intraday(100.0, 110.0, 120.0, 90.0) if interval == "5m" else daily
+    monkeypatch.setattr(app, "get_ohlc_history", history)
+
+    coin = app.app.test_client().get("/stats?symbol=BTC-USD").get_json()
+    assert coin["window"] == "24h"
+    assert (coin["open"], coin["close"], coin["high"], coin["low"]) == (100.0, 110.0, 120.0, 90.0)
+    assert coin["change_pct"] == 10.0
+    assert coin["high_52w"] >= 120.0 and coin["low_52w"] <= 90.0
+
+    stock = app.app.test_client().get("/stats?symbol=AAPL").get_json()
+    assert stock["window"] == "day"
+    assert stock["close"] == round(daily[-1]["close"], 4)

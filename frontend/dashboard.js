@@ -1154,13 +1154,15 @@ async function loadStats(sym) {
 
     const strip = document.getElementById("market-data-strip");
     if (!strip) return;
+    // Coins: the figures cover the last 24 hours (see /stats), so say so.
+    const h24 = d.window === "24h";
     strip.innerHTML = `
         <div class="md-item">
             <span class="md-label">Symbol</span>
             <span class="md-value" id="current-symbol-badge">${sym}</span>
         </div>
         <div class="md-item">
-            <span class="md-label">Open</span>
+            <span class="md-label">${h24 ? "24h Open" : "Open"}</span>
             <span class="md-value">$${fmt(d.open)}</span>
         </div>
         <div class="md-item">
@@ -1176,11 +1178,11 @@ async function loadStats(sym) {
             <span class="md-value ${dir}">$${fmt(d.close)}</span>
         </div>
         <div class="md-item">
-            <span class="md-label">Change</span>
+            <span class="md-label">${h24 ? "24h Change" : "Change"}</span>
             <span class="md-value ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>
         </div>
         <div class="md-item">
-            <span class="md-label">Day Range</span>
+            <span class="md-label">${h24 ? "24h Range" : "Day Range"}</span>
             <span class="md-value">$${fmt(d.high - d.low)}</span>
         </div>
         <div class="md-range-item">
