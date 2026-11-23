@@ -18,6 +18,7 @@ from typing import Callable, Optional
 import numpy as np
 
 from tracker import options as opt
+from tracker.fred import IMPACT as MACRO_IMPACT, SOURCES as MACRO_SOURCES
 from tracker.analyzer import atr, bollinger_bands, macd, rsi, sma, stochastic
 
 MAX_CORR_SYMBOLS = 10
@@ -33,6 +34,12 @@ MACRO_SERIES = {
     "T10Y2Y": "10-year minus 2-year Treasury spread, percentage points",
     "BAMLH0A0HYM2": "High-yield corporate bond spread (OAS), percentage points",
     "GDP": "Nominal GDP, $ billions (annualised, quarterly)",
+    "CPILFESL": "Core CPI (excluding food and energy), % change from a year earlier",
+    "PAYEMS": "Nonfarm payrolls, change from the prior month, thousands of jobs",
+    "CES0500000003": "Average hourly earnings (private sector), % change from a year earlier",
+    "DCOILWTICO": "WTI crude oil spot price, $ per barrel (daily)",
+    "GASREGW": "US regular gasoline retail price, $ per gallon (weekly)",
+    "DHHNGSP": "Henry Hub natural gas spot price, $ per million Btu (daily)",
 }
 
 
@@ -454,6 +461,8 @@ def run_tool(name: str, args: dict, data: SkiData) -> dict:
         return {
             "series_id": sid,
             "meaning": MACRO_SERIES[sid],
+            "source": MACRO_SOURCES.get(sid),
+            "how_it_usually_moves_stocks": MACRO_IMPACT.get(sid),
             "readings_newest_first": [{"date": o["date"], "value": _r(float(o["value"]), 3)} for o in obs],
         } if obs else {"series_id": sid, "error": "FRED returned no data"}
 

@@ -30,16 +30,13 @@ DEFAULT_SYM = "AAPL"
 # The ticker strip plus the scanner's default list.
 EOD_SYMS = TICKER_SYMS + ["JPM"]
 
-# series_id -> (label, unit, description, fred transformation or None)
-FRED_SERIES = [
-    ("CPIAUCSL", "CPI", "%", "Consumer Price Index YoY %", "pc1"),
-    ("FEDFUNDS", "Fed Rate", "%", "Effective Federal Funds Rate", None),
-    ("GDP", "GDP", "B", "Real GDP (Chained 2017 $B)", None),
-    ("UNRATE", "Unemployment", "%", "Unemployment Rate", None),
-    ("DGS10", "10Y Yield", "%", "10-Year Treasury Yield", None),
-    ("T10Y2Y", "Yield Curve", "%", "10Y minus 2Y Treasury Spread", None),
-    ("BAMLH0A0HYM2", "HY Spread", "%", "High Yield OAS Credit Spread", None),
-]
+# The same series, labels and transformations as the backend's /macro route.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tracker.fred import _SERIES, _SERIES_UNITS, IMPACT, SOURCES  # noqa: E402
+
+# (series_id, label, unit, description, fred transformation or None)
+FRED_SERIES = [(sid, label, unit, desc, _SERIES_UNITS.get(sid))
+               for sid, (label, unit, desc) in _SERIES.items()]
 
 
 def get(url, timeout=120):
@@ -93,6 +90,7 @@ def build_macro():
             obs = []
         if not obs:
             out[sid] = {"label": label, "unit": unit, "description": desc,
+                        "source": SOURCES.get(sid), "impact": IMPACT.get(sid),
                         "value": None, "prev_value": None, "date": None, "trend": "neutral"}
             continue
         date, val = obs[-1]
@@ -103,6 +101,7 @@ def build_macro():
             trend = "up" if val > prev else ("down" if val < prev else "neutral")
         out[sid] = {
             "label": label, "unit": unit, "description": desc,
+            "source": SOURCES.get(sid), "impact": IMPACT.get(sid),
             "value": round(val, 3),
             "prev_value": round(prev, 3) if prev is not None else None,
             "date": date, "trend": trend,

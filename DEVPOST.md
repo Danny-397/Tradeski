@@ -44,7 +44,7 @@ An AI chatbot powered by Anthropic Claude. What makes Ski different from a gener
 
 **Data Layer:**
 - **yfinance** for OHLC history and fundamental screener data
-- **FRED API** for macroeconomic series (7 indicators, cached 1 hour)
+- **FRED API** for macroeconomic series (13 indicators incl. BLS jobs and inflation and EIA energy prices, cached 1 hour)
 - **NewsAPI** + **VADER** for news headlines and sentiment
 - **SQLite** for portfolio and alert persistence
 

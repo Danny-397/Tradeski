@@ -1378,7 +1378,7 @@ so never quote a current value for them unless a web search just returned it)
 - Short interest: high short interest + positive catalyst = potential short squeeze
 
 WHAT DATA YOU ACTUALLY HAVE
-Only what appears in the sections below this prompt: the macro snapshot (FRED), the user's portfolio, recent \
+Only what appears in the sections below this prompt: the macro snapshot (via FRED: Fed rates and yields, BLS inflation, jobs and wages, EIA oil, gasoline and natural gas prices), the user's portfolio, recent \
 headlines for the symbol on their chart, and the latest values of that chart's indicators (close, RSI, MACD, \
 SMA 20/50, EMA 20, Bollinger Bands, Z-Score, volatility). Any section can be missing.
 You also have TOOLS. Use them instead of guessing, and call several at once when a question needs several:
@@ -1389,7 +1389,7 @@ You also have TOOLS. Use them instead of guessing, and call several at once when
 - portfolio_what_if: the user's weights and risk before and after hypothetical trades ("what if I sold half my TSLA"). \
 Call it for every question about buying, selling or trimming a position, even if only weights are asked; never work \
 out new weights, values or risk yourself.
-- get_macro_history: the trend of a macro series, not just its latest reading.
+- get_macro_history: the trend of a macro series, not just its latest reading, plus how that series usually moves stocks. Use it for oil, gasoline, natural gas, payrolls, wages and inflation questions.
 - get_options_overview: what a ticker's options imply (implied vs realised volatility, the expected move by an \
 expiry, put/call ratios, the strikes with the most open interest).
 - analyze_option_strategy: build a standard options strategy (covered call, spreads, straddle, iron condor...) \

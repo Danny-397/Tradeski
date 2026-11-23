@@ -83,3 +83,47 @@ def test_format_macro_context(mock_get):
     assert "CPI" in ctx
     assert "3.2" in ctx
     assert "↑" in ctx
+
+
+# ── BLS and EIA series (via FRED) ───────────────────────────
+
+from tracker import fred  # noqa: E402
+
+
+def test_every_series_names_its_source_and_how_it_moves_stocks():
+    for sid in fred._SERIES:
+        assert fred.SOURCES.get(sid), sid
+        assert fred.IMPACT.get(sid), sid
+    assert fred.SOURCES["DCOILWTICO"] == "EIA" and fred.SOURCES["PAYEMS"] == "BLS"
+
+
+@patch("tracker.fred.requests.get")
+def test_transforms_are_requested_for_rates_of_change(mock_get):
+    mock_get.side_effect = _mock_obs({})
+    fred.get_macro_snapshot("fake_key")
+    units = {c.kwargs["params"]["series_id"]: c.kwargs["params"].get("units")
+             for c in mock_get.call_args_list}
+    assert units["PAYEMS"] == "chg"            # monthly job gains, not the level
+    assert units["CPILFESL"] == "pc1" and units["CES0500000003"] == "pc1"
+    assert units["DCOILWTICO"] is None          # oil is shown as a price
+
+
+@patch("tracker.fred.requests.get")
+def test_energy_and_jobs_readings_in_snapshot_and_context(mock_get):
+    mock_get.side_effect = _mock_obs({
+        "DCOILWTICO": [_make_obs("89.53"), _make_obs("89.24")],
+        "PAYEMS": [_make_obs("165"), _make_obs("60")],
+    })
+    snap = fred.get_macro_snapshot("fake_key")
+    oil = snap["DCOILWTICO"]
+    assert oil["value"] == 89.53 and oil["trend"] == "up" and oil["source"] == "EIA"
+    assert "airlines" in oil["impact"]
+    ctx = fred.format_macro_context(snap)
+    assert "$89.53" in ctx and "+165K" in ctx and "EIA" in ctx
+
+
+def test_format_value_units():
+    assert fred.format_value(3.2, "%") == "3.2%"
+    assert fred.format_value(89.53, "$") == "$89.53"
+    assert fred.format_value(165.0, "K") == "+165K"
+    assert fred.format_value(-20.0, "K") == "-20K"
