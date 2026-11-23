@@ -35,6 +35,14 @@ def test_counts_years_dates_and_indicator_lengths_are_not_checked():
     assert check(reply, [], [])["checked"] == 0
 
 
+def test_index_names_are_not_figures():
+    """From the 2026-11-23 eval: "QQQ (Nasdaq-100)" was flagged as an invented 100."""
+    reply = "Bottom line: BTC vs QQQ (Nasdaq-100) is -0.67; the S&P 500 and Russell 2000 agree."
+    r = check(reply, [], [{"correlation": -0.67}])
+    assert r["grounded"] and r["checked"] == 1
+    assert not check("Bottom line: the Nasdaq-100 rose 3.1%.", [], [])["grounded"]   # real figures still checked
+
+
 def test_scaled_figures_match_full_numbers():
     tool = [{"market_cap": 3.12e12, "pe": 48.2}]
     assert check("Bottom line: worth $3.1 trillion at 48.2 times earnings.", [], tool)["grounded"]
