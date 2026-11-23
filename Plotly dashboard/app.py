@@ -256,6 +256,17 @@ def stats() -> tuple:
     latest     = bars[-1]
     all_highs  = [b["high"] for b in bars]
     all_lows   = [b["low"]  for b in bars]
+    window     = "day"
+    # Coins trade around the clock: their open/high/low/change are the last 24
+    # hours (the same 5-minute bars as the 1D chart), not Yahoo's UTC calendar day.
+    if symbol.endswith("-USD"):
+        recent = get_ohlc_history(symbol, "1d", "5m")
+        if recent:
+            latest = {"open": recent[0]["open"], "close": recent[-1]["close"],
+                      "high": max(b["high"] for b in recent), "low": min(b["low"] for b in recent)}
+            all_highs.append(latest["high"])
+            all_lows.append(latest["low"])
+            window = "24h"
     change_pct = (
         (latest["close"] - latest["open"]) / latest["open"] * 100
         if latest["open"] else 0.0
@@ -270,6 +281,7 @@ def stats() -> tuple:
         "high_52w":   round(max(all_highs),  4),
         "low_52w":    round(min(all_lows),   4),
         "change_pct": round(change_pct,      4),
+        "window":     window,
     }
 
     _cache.set(cache_key, result, ttl=_CHART_TTL)

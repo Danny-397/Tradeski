@@ -9,7 +9,7 @@ Live charts · Market news · Whole-market screener · Options strategy lab · A
 [![CI](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml/badge.svg)](https://github.com/Danny-397/Tradeski/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-349%20passing-22c55e.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-350%20passing-22c55e.svg)](#running-tests)
 [![Deploy: Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Deploy: Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
@@ -34,7 +34,7 @@ Every quantitative indicator is hand-written directly on NumPy arrays — no TA-
 | **Backend** | Python 3.12 · Flask · Flask-SocketIO · gevent |
 | **Frontend** | Vanilla JS · Plotly.js · Socket.IO |
 | **Data** | yfinance · FRED API · NewsAPI · Anthropic Claude |
-| **Tests** | 349 tests across 27 files — CI on every push |
+| **Tests** | 350 tests across 27 files — CI on every push |
 | **Deployment** | Render (backend) · Vercel (frontend) · tradeski.dev |
 
 ### Screenshots
@@ -87,7 +87,7 @@ Live equity prices broadcast over WebSocket (Socket.IO / gevent) with automatic 
 | Overlays | Bollinger Bands · SMA 20/50 · EMA 20 — each independently toggleable |
 | Subpanels | RSI and MACD as separate panels below the main chart |
 | Click-to-inspect | Click any candle to populate the data strip with exact OHLC, change %, and range |
-| Crypto | The ten largest coins (BTC-USD, ETH-USD, ...) chart like any stock, with news and Ski's price tools. They trade 24/7, so 1D is the last 24 hours and Ski measures their returns in calendar days. There are no options or fundamentals for coins |
+| Crypto | The ten largest coins (BTC-USD, ETH-USD, ...) chart like any stock, with news and Ski's price tools. They trade 24/7, so 1D and the open, range and change under the chart cover the last 24 hours, and Ski measures their returns in calendar days. There are no options or fundamentals for coins |
 | Compare mode | Normalize up to 5 symbols to a common 0% baseline for relative performance |
 
 ### Macroeconomic Ribbon
@@ -210,7 +210,7 @@ Tradeski/
 │   ├── options.html           # The Options page (/options)
 │   └── options.js             # Options page: chain filters, strategy builder, scanner
 │
-├── tests/                     # pytest suite — 349 tests across 27 files
+├── tests/                     # pytest suite — 350 tests across 27 files
 │   ├── test_analyzer.py       # Indicator shape, value range, arithmetic correctness
 │   ├── test_analyzer_basic.py # Edge cases: empty input, flat series, single-element
 │   ├── test_fred.py           # FRED client with mocked HTTP — trend detection
@@ -291,7 +291,7 @@ Tradeski/
 | Fonts | Space Grotesk · JetBrains Mono |
 | CI/CD | GitHub Actions |
 | Linting | Flake8 |
-| Testing | pytest (349 tests) |
+| Testing | pytest (350 tests) |
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
@@ -626,7 +626,7 @@ python -m http.server 8080 --directory frontend
 python -m pytest -v
 ```
 
-349 tests across 27 files:
+350 tests across 27 files:
 
 | File | What it covers |
 |:---|:---|
