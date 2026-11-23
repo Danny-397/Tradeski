@@ -2159,7 +2159,21 @@ function formatMacroValue(value, unit) {
     if (unit === "$") return `$${value.toFixed(2)}`;
     if (unit === "K") return `${value > 0 ? "+" : ""}${Math.round(value)}K`;
     if (unit === "B" && Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(1)}T`;
-    return `${value}${unit}`;
+    return `${Number(value.toFixed(2))}${unit}`;
+}
+
+// Ribbon order, grouped: inflation, rates and credit, jobs and growth, energy.
+// The API sorts its keys alphabetically, so the order has to live here.
+const MACRO_ORDER = [
+    "CPIAUCSL", "CPILFESL", "CES0500000003",
+    "FEDFUNDS", "DGS10", "T10Y2Y", "BAMLH0A0HYM2",
+    "UNRATE", "PAYEMS", "GDP",
+    "DCOILWTICO", "GASREGW", "DHHNGSP",
+];
+
+function orderedMacro(data) {
+    const rank = (sid) => { const i = MACRO_ORDER.indexOf(sid); return i < 0 ? MACRO_ORDER.length : i; };
+    return Object.entries(data).sort((a, b) => rank(a[0]) - rank(b[0]));
 }
 
 async function loadMacroRibbon() {
@@ -2177,7 +2191,7 @@ async function loadMacroRibbon() {
         }
 
         inner.innerHTML = "";
-        for (const [sid, info] of Object.entries(data)) {
+        for (const [sid, info] of orderedMacro(data)) {
             const meta   = MACRO_LABELS[sid] || { short: info.label, tip: info.description };
             const item   = document.createElement("div");
             item.className = "macro-item";

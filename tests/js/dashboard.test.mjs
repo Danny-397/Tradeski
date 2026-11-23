@@ -147,3 +147,22 @@ test("?symbol= opens the dashboard on that ticker, and junk is ignored", () => {
     assert.equal(symbolFromQuery("?symbol=<script>"), null);
     assert.equal(symbolFromQuery("?symbol=TOOLONGSYMBOL1"), null);
 });
+
+// ---- macro ribbon ---------------------------------------------------------------
+
+test("macro ribbon groups series in a fixed order whatever order the API sends", () => {
+    const { orderedMacro } = load(["const MACRO_ORDER = [", "function orderedMacro("]);
+    const api = { BAMLH0A0HYM2: 1, CES0500000003: 2, CPIAUCSL: 3, DCOILWTICO: 4, NEWSERIES: 5, UNRATE: 6 };
+    assert.deepEqual(plain(orderedMacro(api).map(([sid]) => sid)),
+        ["CPIAUCSL", "CES0500000003", "BAMLH0A0HYM2", "UNRATE", "DCOILWTICO", "NEWSERIES"]);
+});
+
+test("macro values stay short enough for the ribbon", () => {
+    const { formatMacroValue } = load(["function formatMacroValue("]);
+    assert.equal(formatMacroValue(3.121, "%"), "3.12%");
+    assert.equal(formatMacroValue(4.1, "%"), "4.1%");
+    assert.equal(formatMacroValue(89.53, "$"), "$89.53");
+    assert.equal(formatMacroValue(165, "K"), "+165K");
+    assert.equal(formatMacroValue(33010.036, "B"), "$33.0T");
+    assert.equal(formatMacroValue(null, "%"), "—");
+});
