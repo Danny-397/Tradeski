@@ -166,3 +166,20 @@ test("macro values stay short enough for the ribbon", () => {
     assert.equal(formatMacroValue(33010.036, "B"), "$33.0T");
     assert.equal(formatMacroValue(null, "%"), "—");
 });
+
+test("coins are found by ticker or name; a shared ticker lists the coin and the security", () => {
+    const s = search();
+    assert.deepEqual(plain(s("BTC").slice(0, 2).map(r => r.sym)), ["BTC-USD", "BTC"]);
+    assert.equal(s("BTC")[0].score, 0);           // pre-selected, so Enter charts the coin
+    assert.deepEqual(plain(s("LTC").slice(0, 2).map(r => r.sym)), ["LTC-USD", "LTC"]);
+    assert.equal(s("bitcoin")[0].sym, "BTC-USD");
+    assert.equal(s("ethereum")[0].sym, "ETH-USD");
+    assert.equal(s("doge")[0].sym, "DOGE-USD");
+});
+
+test("crypto is recognised by its -USD spelling", () => {
+    const { isCrypto } = load(["const isCrypto = "]);
+    assert.equal(isCrypto("BTC-USD"), true);
+    assert.equal(isCrypto("AAPL"), false);
+    assert.equal(isCrypto("BRK-B"), false);
+});

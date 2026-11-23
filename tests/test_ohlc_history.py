@@ -145,3 +145,29 @@ def test_num_keeps_zero_distinct_from_none():
     """0.0 is a real value; callers decide whether to treat it as missing."""
     assert _num(0.0) == 0.0
     assert math.isfinite(_num(0.0))
+
+
+@patch("tracker.price_fetcher.yf.Ticker")
+def test_crypto_1d_is_the_last_24_hours_in_new_york_time(mock_cls):
+    """Yahoo's "1d" for a coin starts at midnight UTC: a couple of bars on a US
+    evening. Coins get the last 24 hours instead, in the same time zone as stocks."""
+    idx = pd.date_range("2026-11-21 00:00", "2026-11-23 02:00", freq="5min", tz="UTC")
+    df = pd.DataFrame({"Open": 1.0, "High": 2.0, "Low": 0.5, "Close": 1.5, "Volume": 1}, index=idx)
+    ticker = _ticker(df)
+    mock_cls.return_value = ticker
+
+    bars = get_ohlc_history("BTC-USD", "1d", "5m")
+
+    assert ticker.history.call_args.kwargs["period"] == "2d"
+    assert len(bars) == 24 * 12                                  # 24 hours of 5-minute bars
+    assert bars[-1]["timestamp"] == "2026-11-22T21:00:00"        # 02:00 UTC = 21:00 in New York
+
+
+@patch("tracker.price_fetcher.yf.Ticker")
+def test_stocks_and_daily_crypto_bars_are_untouched(mock_cls):
+    ticker = _ticker(_frame([("2026-10-19", 1.0, 2.0, 0.5, 1.5, 10)]))
+    mock_cls.return_value = ticker
+    get_ohlc_history("AAPL", "1d", "5m")
+    assert ticker.history.call_args.kwargs["period"] == "1d"
+    get_ohlc_history("BTC-USD", "1y", "1d")
+    assert ticker.history.call_args.kwargs["period"] == "1y"

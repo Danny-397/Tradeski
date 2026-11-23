@@ -47,5 +47,5 @@ def test_symbols_use_the_api_spelling(symbols):
 
 def test_ticker_strip_symbols_are_searchable(symbols):
     have = {s for s, _ in symbols}
-    for s in ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]:
+    for s in ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ", "BTC-USD"]:
         assert s in have, s

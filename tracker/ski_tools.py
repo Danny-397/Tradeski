@@ -59,6 +59,11 @@ class SkiData:
     options: Optional[Callable[[str, int], Optional[dict]]] = None
 
 
+def is_crypto(symbol: str) -> bool:
+    """Yahoo spells cryptocurrencies <COIN>-USD (BTC-USD); no stock ticker ends that way."""
+    return str(symbol or "").upper().endswith("-USD")
+
+
 def clean_symbol(raw) -> str:
     return re.sub(r"[^A-Z0-9.\-]", "", str(raw or "").upper())[:10]
 
@@ -91,6 +96,9 @@ def price_summary(symbol: str, bars: list) -> dict:
     if len(bars) < 30:
         return {"symbol": symbol, "error": "not enough price history"}
 
+    # Bars per week / month / quarter / year: crypto trades every day, stocks on weekdays.
+    crypto = is_crypto(symbol)
+    week, month, quarter, year = (7, 30, 91, 365) if crypto else (5, 21, 63, 252)
     closes = [b["close"] for b in bars]
     highs = [b["high"] for b in bars]
     lows = [b["low"] for b in bars]
@@ -103,7 +111,7 @@ def price_summary(symbol: str, bars: list) -> dict:
 
     def realised_vol(n):
         window = daily[-n:]
-        return _r(float(np.std(window)) * math.sqrt(252) * 100, 1) if len(window) >= 10 else None
+        return _r(float(np.std(window)) * math.sqrt(year) * 100, 1) if len(window) >= 10 else None
 
     high_52w, low_52w = max(highs), min(lows)
     rsi_vals = rsi(closes, 14)
@@ -128,14 +136,14 @@ def price_summary(symbol: str, bars: list) -> dict:
     def vs(avg):
         return _pct(last, avg[-1]) if avg and avg[-1] is not None else None
 
-    return {
+    out = {
         "symbol": symbol,
         "as_of": bars[-1]["timestamp"][:10],
         "close": _r(last),
         "return_pct": {
-            "1_week": _pct(last, back(5)),
-            "1_month": _pct(last, back(21)),
-            "3_months": _pct(last, back(63)),
+            "1_week": _pct(last, back(week)),
+            "1_month": _pct(last, back(month)),
+            "3_months": _pct(last, back(quarter)),
             "full_period": _pct(last, closes[0]),
         },
         "full_period_days": len(closes),
@@ -143,7 +151,7 @@ def price_summary(symbol: str, bars: list) -> dict:
         "low_52w": _r(low_52w),
         "pct_below_52w_high": _r((1 - last / high_52w) * 100, 1),
         "pct_above_52w_low": _r((last / low_52w - 1) * 100, 1),
-        "realised_volatility_annualised_pct": {"1_month": realised_vol(21), "3_months": realised_vol(63)},
+        "realised_volatility_annualised_pct": {"1_month": realised_vol(month), "3_months": realised_vol(quarter)},
         "rsi_14": now_and_5d(rsi_vals, 1),
         "macd": {
             "macd": _r(macd_line[-1], 3),
@@ -156,6 +164,10 @@ def price_summary(symbol: str, bars: list) -> dict:
         "atr_14": _r(atr_vals[-1]),
         "stochastic_k_14": _r(k_vals[-1], 1),
     }
+    if crypto:
+        out["asset_type"] = ("cryptocurrency: trades 24/7, so periods are calendar days and "
+                             "volatility is annualised over 365 days")
+    return out
 
 
 def _daily_returns_by_date(bars: list) -> dict:
@@ -181,7 +193,12 @@ def vs_benchmark(summary: dict, bars: list, bench_bars: list) -> Optional[dict]:
         theirs = bench["return_pct"].get(k)
         excess[k] = _r(mine - theirs, 1) if mine is not None and theirs is not None else None
 
-    a, b = _daily_returns_by_date(bars), _daily_returns_by_date(bench_bars)
+    # Only the stock market's days: a coin's weekend move then lands in Monday's
+    # return, as the S&P 500's does, instead of Monday covering one day for one
+    # series and three for the other.
+    bench_days = {x["timestamp"][:10] for x in bench_bars}
+    a = _daily_returns_by_date([x for x in bars if x["timestamp"][:10] in bench_days])
+    b = _daily_returns_by_date(bench_bars)
     common = sorted(set(a) & set(b))
     beta = corr = None
     if len(common) >= 60:
@@ -207,16 +224,21 @@ def clean_fundamentals(row: Optional[dict]) -> dict:
 
 
 def correlation(series: dict) -> dict:
-    """Correlation of daily returns, aligned on the dates every symbol traded."""
-    returns = {s: _daily_returns_by_date(b) for s, b in series.items() if b}
-    symbols = [s for s in returns if len(returns[s]) > 15]
+    """Correlation of daily returns, aligned on the dates every symbol traded.
+
+    Returns run from one common date to the next, so mixing crypto (every day)
+    with stocks (weekdays) compares Friday-to-Monday with Friday-to-Monday.
+    """
+    closes = {s: {x["timestamp"][:10]: x["close"] for x in b} for s, b in series.items() if b}
+    symbols = [s for s in closes if len(closes[s]) > 16]
     if len(symbols) < 2:
         return {"error": "need price history for at least two of the symbols",
                 "missing": sorted(set(series) - set(symbols))}
-    common = sorted(set.intersection(*(set(returns[s]) for s in symbols)))
+    dates = sorted(set.intersection(*(set(closes[s]) for s in symbols)))
+    common = [(p, d) for p, d in zip(dates, dates[1:]) if all(closes[s][p] for s in symbols)]
     if len(common) < 15:
         return {"error": "too few common trading days"}
-    matrix = np.corrcoef([[returns[s][d] for d in common] for s in symbols])
+    matrix = np.corrcoef([[closes[s][d] / closes[s][p] - 1 for p, d in common] for s in symbols])
     pairs = []
     for i in range(len(symbols)):
         for j in range(i + 1, len(symbols)):
@@ -259,7 +281,7 @@ def _schema(props: dict) -> dict:
     return {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}
 
 
-_SYMBOL = {"type": "string", "description": "Ticker symbol, e.g. AAPL, BRK-B, SPY"}
+_SYMBOL = {"type": "string", "description": "Ticker symbol, e.g. AAPL, BRK-B, SPY; crypto as COIN-USD, e.g. BTC-USD"}
 
 TOOLS = [
     {
@@ -406,6 +428,11 @@ def run_tool(name: str, args: dict, data: SkiData) -> dict:
                     out["vs_sp500"] = rel
             return out
         if name == "get_fundamentals":
+            if is_crypto(sym):
+                return {"symbol": sym, "asset_type": "cryptocurrency",
+                        "note": "Cryptocurrencies have no company fundamentals (no earnings, P/E, revenue or "
+                                "sector), and Tradeski has no supply or market-cap data for them. Use "
+                                "get_price_summary and get_news, or web_search for market cap and supply."}
             return _fundamentals(sym, data)
         articles = data.news(sym)
         return {
@@ -476,6 +503,9 @@ def _options_tool(name: str, args: dict, data: SkiData) -> dict:
     sym = clean_symbol(args.get("symbol"))
     if not sym:
         raise ValueError("symbol is required")
+    if is_crypto(sym):
+        return {"symbol": sym, "error": "Tradeski has no options data for cryptocurrencies: its data source "
+                                        "lists options only for US stocks and ETFs. Say so plainly."}
     if data.options is None:
         return {"symbol": sym, "error": "options data is not available here"}
     dte = args.get("days_to_expiry")

@@ -23,7 +23,7 @@ DEMO_JS = os.path.join(FRONTEND, "demo-mode.js")
 INDEX_HTML = os.path.join(FRONTEND, "index.html")
 
 # Symbols the dashboard's ticker strip requests on load.
-TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"]
+TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ", "BTC-USD"]
 
 
 def _read(path):

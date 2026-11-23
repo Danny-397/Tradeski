@@ -865,7 +865,9 @@ async function optLoadSymbol(sym) {
         optState.expirations = data.expirations;
         if (!data.expirations.length) {
             sel.innerHTML = "";
-            optStatus(`No option data came back for ${sym}. Either it has no listed options, or the data source isn't answering right now.`, true);
+            optStatus(/-USD$/.test(sym)
+                ? `Tradeski has no options data for crypto. Options here cover US stocks and ETFs.`
+                : `No option data came back for ${sym}. Either it has no listed options, or the data source isn't answering right now.`, true);
             optRenderChain();
             return;
         }

@@ -11,7 +11,10 @@ const CFG = {
     PORTFOLIO_REFRESH_MS: 30_000,
 };
 
-const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ"];
+const TICKER_SYMS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "SOFI", "RDW", "GOOGL", "META", "SPY", "QQQ", "BTC-USD"];
+
+// Yahoo spells coins BTC-USD; no stock ticker ends in -USD.
+const isCrypto = (sym) => /-USD$/.test(sym || "");
 
 // ============================================================
 // STATE
@@ -310,6 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (input) input.value = linked;
     }
     updateOptionsLink(state.symbol);
+    updateMarketStatus();
     loadDashboard(state.symbol);
     buildTickerTape();
     setInterval(() => { if (!pageIdle()) buildTickerTape(); }, CFG.TICKER_REFRESH_MS);
@@ -378,6 +382,12 @@ function updateMarketStatus() {
         hour: "2-digit", minute: "2-digit", hour12: false });
     if (timeEl) timeEl.textContent = `${estStr} EST`;
 
+    if (isCrypto(state.symbol)) {
+        dot.className = "status-dot open";
+        label.textContent = "Crypto · trades 24/7";
+        return;
+    }
+
     const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
     const day = now.getDay();
     const h   = now.getHours() + now.getMinutes() / 60;
@@ -440,7 +450,8 @@ function onPriceUpdate(msg) {
 // handler as "AAPL". Any ticker not in the list still goes through as typed.
 // Ties go to the names people look up most, so "micro" lists Microsoft first.
 const POPULAR_SYMS = new Set([...TICKER_SYMS, "AMD", "NFLX", "JPM", "V", "MA", "BRK-B", "COIN",
-    "PLTR", "DIS", "KO", "WMT", "COST", "BA", "INTC", "UBER", "HOOD", "AVGO", "ORCL", "CRM"]);
+    "PLTR", "DIS", "KO", "WMT", "COST", "BA", "INTC", "UBER", "HOOD", "AVGO", "ORCL", "CRM",
+    "ETH-USD", "SOL-USD", "XRP-USD", "BNB-USD", "DOGE-USD", "ADA-USD", "AVAX-USD", "LINK-USD", "LTC-USD"]);
 
 function searchSymbols(query, limit = 8) {
     const list = window.TRADESKI_SYMBOLS || [];
@@ -450,7 +461,9 @@ function searchSymbols(query, limit = 8) {
     for (const [sym, name] of list) {
         const n = name.toUpperCase();
         let score = -1;
-        if (sym === q) score = 0;
+        // "BTC" matches both Bitcoin (BTC-USD) and the ETF listed as BTC; both are
+        // listed, and the suggestion labels the coin "(crypto)".
+        if (sym === q || sym === q + "-USD") score = 0;
         else if (sym.startsWith(q)) score = 1;
         else if (n.startsWith(q)) score = 2;
         else if (n.includes(" " + q)) score = 3;
@@ -500,7 +513,7 @@ function attachSymbolSuggest(input, onPick) {
         if (!items.length) { close(); return; }
         box.innerHTML = items.map((it, i) => `
             <li id="${box.id}-${i}" role="option" data-i="${i}">
-                <span class="ss-sym">${it.sym}</span><span class="ss-name">${escapeHtml(it.name)}</span>
+                <span class="ss-sym">${it.sym}</span><span class="ss-name">${escapeHtml(it.name)}${isCrypto(it.sym) ? " (crypto)" : ""}</span>
             </li>`).join("");
         box.hidden = false;
         input.setAttribute("aria-expanded", "true");
@@ -578,6 +591,7 @@ function updateOptionsLink(sym) {
 function switchSymbol(sym) {
     state.symbol = sym;
     updateOptionsLink(sym);
+    updateMarketStatus();
     const symInput = document.getElementById("symbol-input");
     if (symInput && document.activeElement !== symInput) symInput.value = sym;
     const badge = document.getElementById("current-symbol-badge");
